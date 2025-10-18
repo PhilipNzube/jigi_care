@@ -1,9 +1,9 @@
 // Color palette for JijiCare app
 export const Colors = {
   // Primary colors
-  primary: "#2196F3",
-  primaryDark: "#1976D2",
-  primaryLight: "#BBDEFB",
+  primary: "#0098B3",
+  primaryDark: "#007A96",
+  primaryLight: "#B3E5F0",
 
   // Secondary colors
   secondary: "#FF9800",

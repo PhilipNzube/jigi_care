@@ -5,18 +5,16 @@ import { Image } from "react-native";
 export const Images = {
   // App icons
   appIcon: require("../../../assets/images/app_icon.png"),
-  logo: require("../../assets/images/logo.png"),
-  logoWhite: require("../../assets/images/logo-white.png"),
 
-  // Health icons
-  heart: require("../../assets/icons/heart.png"),
-  medicine: require("../../assets/icons/medicine.png"),
-  calendar: require("../../assets/icons/calendar.png"),
-  user: require("../../assets/icons/user.png"),
+  // Health icons (using app icon as placeholder for now)
+  heart: require("../../../assets/images/app_icon.png"),
+  medicine: require("../../../assets/images/app_icon.png"),
+  calendar: require("../../../assets/images/app_icon.png"),
+  user: require("../../../assets/images/app_icon.png"),
 
-  // Placeholder images
-  placeholder: require("../../assets/images/placeholder.png"),
-  avatar: require("../../assets/images/avatar-placeholder.png"),
+  // Placeholder images (using app icon as placeholder for now)
+  placeholder: require("../../../assets/images/app_icon.png"),
+  avatar: require("../../../assets/images/app_icon.png"),
 
   // Onboarding images
   splashImg: require("../../../assets/images/splash_img.png"),

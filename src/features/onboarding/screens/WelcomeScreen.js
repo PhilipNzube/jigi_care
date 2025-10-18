@@ -7,6 +7,7 @@ import {
   Dimensions,
   TouchableOpacity,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, Sizes } from "../../../shared/constants";
 import { Images } from "../../../shared/utils/imageUtils";
 import Button from "../../../shared/components/Button";
@@ -14,6 +15,8 @@ import Button from "../../../shared/components/Button";
 const { width, height } = Dimensions.get("window");
 
 export default function WelcomeScreen({ navigation }) {
+  const insets = useSafeAreaInsets();
+
   const handleGetStarted = () => {
     navigation.replace("MainApp");
   };
@@ -24,7 +27,7 @@ export default function WelcomeScreen({ navigation }) {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Image Section */}
       <View style={styles.imageContainer}>
         <Image source={Images.onboarding4} style={styles.welcomeImage} />
@@ -33,7 +36,7 @@ export default function WelcomeScreen({ navigation }) {
       {/* Content Section */}
       <View style={styles.contentContainer}>
         <Text style={styles.welcomeTitle}>
-          Welcome to <Text style={styles.appNameHighlight}>JijiCare</Text>
+          Welcome to <Text style={styles.appNameHighlight}>Jigicare</Text>
         </Text>
         <Text style={styles.welcomeDescription}>
           Your health journey begins right here, where every step you take leads
@@ -42,14 +45,13 @@ export default function WelcomeScreen({ navigation }) {
       </View>
 
       {/* Action Buttons */}
-      <View style={styles.actionContainer}>
-        <Button
-          title="Get Started"
-          variant="primary"
-          size="lg"
-          onPress={handleGetStarted}
+      <View style={[styles.actionContainer, { paddingBottom: insets.bottom }]}>
+        <TouchableOpacity
           style={styles.getStartedButton}
-        />
+          onPress={handleGetStarted}
+        >
+          <Text style={styles.getStartedButtonText}>Get Started</Text>
+        </TouchableOpacity>
 
         <TouchableOpacity onPress={handleLogin} style={styles.loginButton}>
           <Text style={styles.loginText}>Log in</Text>
@@ -63,28 +65,26 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.white,
-    paddingHorizontal: Sizes.xl,
   },
   imageContainer: {
-    flex: 0.5,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingTop: Sizes.xxl,
+    flex: 0.6,
+    width: "100%",
   },
   welcomeImage: {
-    width: width * 0.7,
-    height: height * 0.3,
-    resizeMode: "contain",
+    width: width,
+    height: height * 0.6,
+    resizeMode: "cover",
   },
   contentContainer: {
-    flex: 0.3,
+    flex: 0.4,
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: Sizes.lg,
+    paddingHorizontal: Sizes.xl,
+    paddingTop: Sizes.xl,
   },
   welcomeTitle: {
     fontSize: 32,
-    fontWeight: "bold",
+    fontFamily: "Poppins-Bold",
     color: Colors.textPrimary,
     textAlign: "center",
     marginBottom: Sizes.lg,
@@ -95,18 +95,29 @@ const styles = StyleSheet.create({
   },
   welcomeDescription: {
     fontSize: Sizes.fontSize.md,
+    fontFamily: "Poppins-Regular",
     color: Colors.textSecondary,
     textAlign: "center",
     lineHeight: 24,
   },
   actionContainer: {
-    flex: 0.2,
-    justifyContent: "center",
+    paddingHorizontal: Sizes.xl,
     paddingBottom: Sizes.xxl,
+    paddingTop: Sizes.lg,
   },
   getStartedButton: {
     width: "100%",
-    marginBottom: Sizes.lg,
+    height: 56,
+    backgroundColor: Colors.primary,
+    borderRadius: 28,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: Sizes.md,
+  },
+  getStartedButtonText: {
+    fontSize: Sizes.fontSize.lg,
+    fontFamily: "Poppins-SemiBold",
+    color: Colors.white,
   },
   loginButton: {
     alignItems: "center",
@@ -114,7 +125,7 @@ const styles = StyleSheet.create({
   },
   loginText: {
     fontSize: Sizes.fontSize.md,
-    color: Colors.primary,
-    fontWeight: "500",
+    fontFamily: "Poppins-Medium",
+    color: Colors.textSecondary,
   },
 });

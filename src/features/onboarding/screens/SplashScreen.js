@@ -1,11 +1,14 @@
 import React, { useEffect } from "react";
 import { View, Text, StyleSheet, Image, Dimensions } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, Sizes } from "../../../shared/constants";
 import { Images } from "../../../shared/utils/imageUtils";
 
 const { width, height } = Dimensions.get("window");
 
 export default function SplashScreen({ navigation }) {
+  const insets = useSafeAreaInsets();
+
   useEffect(() => {
     // Auto navigate to onboarding after 3 seconds
     const timer = setTimeout(() => {
@@ -16,24 +19,32 @@ export default function SplashScreen({ navigation }) {
   }, [navigation]);
 
   return (
-    <View style={styles.container}>
-      {/* Background Image */}
-      <Image source={Images.splashImg} style={styles.backgroundImage} />
-
-      {/* Overlay */}
-      <View style={styles.overlay}>
-        {/* App Logo/Title */}
-        <View style={styles.logoContainer}>
-          <Text style={styles.appTitle}>JijiCare</Text>
-          <Text style={styles.appSubtitle}>Your Health Companion</Text>
+    <View
+      style={[
+        styles.container,
+        { paddingTop: insets.top, paddingBottom: insets.bottom },
+      ]}
+    >
+      {/* Circular Logo */}
+      <View style={styles.logoContainer}>
+        <View style={styles.circularLogo}>
+          <Text style={styles.logoText}>JIGICARE CONSULTING LTD</Text>
+          <Text style={styles.logoSubtext}>
+            HEALTH SOLUTIONS WITHOUT BORDERS
+          </Text>
+          <View style={styles.heartIcon}>
+            <View style={styles.heartLeft} />
+            <View style={styles.heartRight} />
+            <View style={styles.ecgLine} />
+          </View>
         </View>
+      </View>
 
-        {/* Loading Indicator */}
-        <View style={styles.loadingContainer}>
-          <View style={styles.loadingDot} />
-          <View style={styles.loadingDot} />
-          <View style={styles.loadingDot} />
-        </View>
+      {/* Loading Indicator */}
+      <View style={styles.loadingContainer}>
+        <View style={styles.loadingDot} />
+        <View style={styles.loadingDot} />
+        <View style={styles.loadingDot} />
       </View>
     </View>
   );
@@ -43,16 +54,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.white,
-  },
-  backgroundImage: {
-    width: width,
-    height: height,
-    position: "absolute",
-    resizeMode: "cover",
-  },
-  overlay: {
-    flex: 1,
-    backgroundColor: "rgba(255, 255, 255, 0.9)",
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: Sizes.xl,
@@ -61,18 +62,63 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: Sizes.xxl,
   },
-  appTitle: {
-    fontSize: 48,
-    fontWeight: "bold",
-    color: Colors.primary,
-    marginBottom: Sizes.sm,
-    textAlign: "center",
+  circularLogo: {
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: Colors.primary,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: Sizes.lg,
+    position: "relative",
   },
-  appSubtitle: {
-    fontSize: Sizes.fontSize.lg,
-    color: Colors.textSecondary,
+  logoText: {
+    fontSize: 12,
+    fontFamily: "Poppins-Bold",
+    color: Colors.white,
     textAlign: "center",
-    fontWeight: "500",
+    marginBottom: Sizes.xs,
+    letterSpacing: 0.5,
+  },
+  logoSubtext: {
+    fontSize: 8,
+    fontFamily: "Poppins-Regular",
+    color: Colors.white,
+    textAlign: "center",
+    marginBottom: Sizes.sm,
+    letterSpacing: 0.3,
+  },
+  heartIcon: {
+    width: 40,
+    height: 40,
+    position: "relative",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  heartLeft: {
+    position: "absolute",
+    left: 0,
+    width: 20,
+    height: 20,
+    backgroundColor: "#FF69B4",
+    borderRadius: 10,
+    transform: [{ rotate: "-45deg" }],
+  },
+  heartRight: {
+    position: "absolute",
+    right: 0,
+    width: 20,
+    height: 20,
+    backgroundColor: "#4169E1",
+    borderRadius: 10,
+    transform: [{ rotate: "45deg" }],
+  },
+  ecgLine: {
+    position: "absolute",
+    width: 30,
+    height: 2,
+    backgroundColor: Colors.white,
+    borderRadius: 1,
   },
   loadingContainer: {
     flexDirection: "row",

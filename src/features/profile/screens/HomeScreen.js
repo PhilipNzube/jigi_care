@@ -50,7 +50,7 @@ export default function HomeScreen({ navigation }) {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Header Section */}
         <View style={styles.header}>
-          <Image source={Images.logo} style={styles.logo} />
+          <Image source={Images.appIcon} style={styles.logo} />
           <Text style={styles.title}>Welcome to JijiCare</Text>
           <Text style={styles.subtitle}>Your health companion</Text>
         </View>

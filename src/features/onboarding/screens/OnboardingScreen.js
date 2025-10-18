@@ -8,6 +8,7 @@ import {
   ScrollView,
   TouchableOpacity,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, Sizes } from "../../../shared/constants";
 import { Images } from "../../../shared/utils/imageUtils";
 import Button from "../../../shared/components/Button";
@@ -19,6 +20,7 @@ const onboardingData = [
     id: 1,
     image: Images.onboarding1,
     title: "Healthcare that comes to you",
+    titleHighlight: "Healthcare",
     description:
       "Book appointments, talk to doctors, order prescriptions, and manage your health from home.",
   },
@@ -26,6 +28,7 @@ const onboardingData = [
     id: 2,
     image: Images.onboarding2,
     title: "Doctors just a call away",
+    titleHighlight: "Doctors",
     description:
       "Chat or video call with licensed doctors for instant advice and prescriptions.",
   },
@@ -33,6 +36,7 @@ const onboardingData = [
     id: 3,
     image: Images.onboarding3,
     title: "Stay on top of your Health",
+    titleHighlight: "Health",
     description:
       "Get reminders, track your health, and manage everything in one easy app.",
   },
@@ -41,6 +45,7 @@ const onboardingData = [
 export default function OnboardingScreen({ navigation }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const scrollViewRef = useRef(null);
+  const insets = useSafeAreaInsets();
 
   const handleNext = () => {
     if (currentIndex < onboardingData.length - 1) {
@@ -65,28 +70,45 @@ export default function OnboardingScreen({ navigation }) {
     setCurrentIndex(index);
   };
 
-  const renderSlide = (item, index) => (
-    <View key={item.id} style={styles.slide}>
-      {/* Image Section */}
-      <View style={styles.imageContainer}>
-        <Image source={item.image} style={styles.slideImage} />
-      </View>
+  const renderSlide = (item, index) => {
+    const titleParts = item.title.split(item.titleHighlight);
+    return (
+      <View key={item.id} style={styles.slide}>
+        {/* Image Section */}
+        <View style={styles.imageContainer}>
+          <Image source={item.image} style={styles.slideImage} />
+        </View>
 
-      {/* Content Section */}
-      <View style={styles.contentContainer}>
-        <Text style={styles.slideTitle}>{item.title}</Text>
-        <Text style={styles.slideDescription}>{item.description}</Text>
+        {/* Pagination Dots */}
+        <View style={styles.paginationContainer}>
+          {onboardingData.map((_, dotIndex) => (
+            <View
+              key={dotIndex}
+              style={[
+                styles.paginationDot,
+                dotIndex === index && styles.paginationDotActive,
+              ]}
+            />
+          ))}
+        </View>
+
+        {/* Content Section */}
+        <View style={styles.contentContainer}>
+          <Text style={styles.slideTitle}>
+            {titleParts[0]}
+            <Text style={styles.slideTitleHighlight}>
+              {item.titleHighlight}
+            </Text>
+            {titleParts[1]}
+          </Text>
+          <Text style={styles.slideDescription}>{item.description}</Text>
+        </View>
       </View>
-    </View>
-  );
+    );
+  };
 
   return (
-    <View style={styles.container}>
-      {/* Skip Button */}
-      <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
-        <Text style={styles.skipText}>Skip</Text>
-      </TouchableOpacity>
-
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Slides */}
       <ScrollView
         ref={scrollViewRef}
@@ -101,28 +123,16 @@ export default function OnboardingScreen({ navigation }) {
       </ScrollView>
 
       {/* Bottom Section */}
-      <View style={styles.bottomContainer}>
-        {/* Pagination Dots */}
-        <View style={styles.paginationContainer}>
-          {onboardingData.map((_, index) => (
-            <View
-              key={index}
-              style={[
-                styles.paginationDot,
-                index === currentIndex && styles.paginationDotActive,
-              ]}
-            />
-          ))}
-        </View>
-
+      <View style={[styles.bottomContainer, { paddingBottom: insets.bottom }]}>
         {/* Continue Button */}
-        <Button
-          title="Continue"
-          variant="primary"
-          size="lg"
-          onPress={handleNext}
-          style={styles.continueButton}
-        />
+        <TouchableOpacity style={styles.continueButton} onPress={handleNext}>
+          <Text style={styles.continueButtonText}>Continue</Text>
+        </TouchableOpacity>
+
+        {/* Skip Button */}
+        <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
+          <Text style={styles.skipText}>Skip</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -133,55 +143,43 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.white,
   },
-  skipButton: {
-    position: "absolute",
-    top: 60,
-    right: 20,
-    zIndex: 1,
-    padding: Sizes.sm,
-  },
-  skipText: {
-    fontSize: Sizes.fontSize.md,
-    color: Colors.textSecondary,
-    fontWeight: "500",
-  },
   scrollView: {
     flex: 1,
   },
   slide: {
     width: width,
     flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: Sizes.xl,
   },
   imageContainer: {
     flex: 0.6,
-    justifyContent: "center",
-    alignItems: "center",
     width: "100%",
   },
   slideImage: {
-    width: width * 0.8,
-    height: height * 0.4,
-    resizeMode: "contain",
+    width: width,
+    height: height * 0.6,
+    resizeMode: "cover",
   },
   contentContainer: {
     flex: 0.4,
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: Sizes.lg,
+    paddingHorizontal: Sizes.xl,
+    paddingTop: Sizes.xl,
   },
   slideTitle: {
     fontSize: 28,
-    fontWeight: "bold",
-    color: Colors.primary,
+    fontFamily: "Poppins-Bold",
+    color: Colors.textPrimary,
     textAlign: "center",
     marginBottom: Sizes.lg,
     lineHeight: 36,
   },
+  slideTitleHighlight: {
+    color: Colors.primary,
+  },
   slideDescription: {
     fontSize: Sizes.fontSize.md,
+    fontFamily: "Poppins-Regular",
     color: Colors.textSecondary,
     textAlign: "center",
     lineHeight: 24,
@@ -195,7 +193,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: Sizes.xl,
+    marginBottom: Sizes.lg,
+    paddingHorizontal: Sizes.xl,
   },
   paginationDot: {
     width: 8,
@@ -210,5 +209,25 @@ const styles = StyleSheet.create({
   },
   continueButton: {
     width: "100%",
+    height: 56,
+    backgroundColor: Colors.primary,
+    borderRadius: 28,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: Sizes.md,
+  },
+  continueButtonText: {
+    fontSize: Sizes.fontSize.lg,
+    fontFamily: "Poppins-SemiBold",
+    color: Colors.white,
+  },
+  skipButton: {
+    alignItems: "center",
+    paddingVertical: Sizes.md,
+  },
+  skipText: {
+    fontSize: Sizes.fontSize.md,
+    fontFamily: "Poppins-Medium",
+    color: Colors.textSecondary,
   },
 });
