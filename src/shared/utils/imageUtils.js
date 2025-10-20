@@ -22,6 +22,13 @@ export const Images = {
   onboarding2: require("../../../assets/images/onboarding_2.png"),
   onboarding3: require("../../../assets/images/onboarding_3.png"),
   onboarding4: require("../../../assets/images/onboarding_4.png"),
+
+  // Biometric images
+  facialRecognition: require("../../../assets/images/facial_recognition.png"),
+  fingerPrint: require("../../../assets/images/finger_print.png"),
+
+  // Loading images
+  loader: require("../../../assets/images/loader.png"),
 };
 
 // Helper function to get image source

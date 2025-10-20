@@ -18,11 +18,7 @@ export default function WelcomeScreen({ navigation }) {
   const insets = useSafeAreaInsets();
 
   const handleGetStarted = () => {
-    navigation.replace("MainApp");
-  };
-
-  const handleLogin = () => {
-    navigation.navigate("Login");
+    navigation.navigate("SignUp");
   };
 
   return (

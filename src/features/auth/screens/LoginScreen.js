@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -9,6 +9,9 @@ import {
   Dimensions,
   ActivityIndicator,
   ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  Animated,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -25,6 +28,61 @@ export default function LoginScreen({ navigation }) {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [loginMethod, setLoginMethod] = useState("password"); // "password", "face", "fingerprint"
+  const [availableBiometrics, setAvailableBiometrics] = useState({
+    face: false,
+    fingerprint: false,
+  });
+
+  const spinValue = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    checkAvailableBiometrics();
+  }, []);
+
+  useEffect(() => {
+    if (isLoading) {
+      startSpinning();
+    } else {
+      stopSpinning();
+    }
+  }, [isLoading]);
+
+  const startSpinning = () => {
+    spinValue.setValue(0);
+    Animated.loop(
+      Animated.timing(spinValue, {
+        toValue: 1,
+        duration: 1000,
+        useNativeDriver: true,
+      })
+    ).start();
+  };
+
+  const stopSpinning = () => {
+    spinValue.stopAnimation();
+  };
+
+  const checkAvailableBiometrics = async () => {
+    try {
+      const hasHardware = await LocalAuthentication.hasHardwareAsync();
+      const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+      const supportedTypes =
+        await LocalAuthentication.supportedAuthenticationTypesAsync();
+
+      if (hasHardware && isEnrolled) {
+        setAvailableBiometrics({
+          face: supportedTypes.includes(
+            LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION
+          ),
+          fingerprint: supportedTypes.includes(
+            LocalAuthentication.AuthenticationType.FINGERPRINT
+          ),
+        });
+      }
+    } catch (error) {
+      console.error("Error checking biometrics:", error);
+    }
+  };
 
   const handleLogin = async () => {
     setIsLoading(true);
@@ -37,15 +95,6 @@ export default function LoginScreen({ navigation }) {
 
   const handleBiometricLogin = async (method) => {
     try {
-      // Check if biometric authentication is available
-      const hasHardware = await LocalAuthentication.hasHardwareAsync();
-      const isEnrolled = await LocalAuthentication.isEnrolledAsync();
-
-      if (!hasHardware || !isEnrolled) {
-        alert("Biometric authentication is not available on this device");
-        return;
-      }
-
       // Authenticate using biometrics
       const result = await LocalAuthentication.authenticateAsync({
         promptMessage:
@@ -130,11 +179,22 @@ export default function LoginScreen({ navigation }) {
         disabled={!email || !password || isLoading}
       >
         {isLoading ? (
-          <View style={styles.loadingDots}>
-            <View style={styles.loadingDot} />
-            <View style={styles.loadingDot} />
-            <View style={styles.loadingDot} />
-          </View>
+          <Animated.Image
+            source={Images.loader}
+            style={[
+              styles.loadingImage,
+              {
+                transform: [
+                  {
+                    rotate: spinValue.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: ["0deg", "360deg"],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          />
         ) : (
           <Text style={styles.loginButtonText}>Log in</Text>
         )}
@@ -143,18 +203,42 @@ export default function LoginScreen({ navigation }) {
       {/* Sign Up Link */}
       <View style={styles.signUpContainer}>
         <Text style={styles.signUpText}>Don't have an account? </Text>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={() => navigation.navigate("SignUp")}>
           <Text style={styles.signUpLink}>Sign up</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Biometric Option */}
-      <TouchableOpacity
-        style={styles.biometricOption}
-        onPress={() => setLoginMethod("face")}
+      {/* Forgot Password Link */}
+      <TouchableOpacity 
+        style={styles.forgotPasswordContainer}
+        onPress={() => navigation.navigate("ForgotPassword")}
       >
-        <Text style={styles.biometricText}>Click to Log in with Face ID</Text>
+        <Text style={styles.forgotPasswordLink}>Forgot Password?</Text>
       </TouchableOpacity>
+
+      {/* Biometric Options */}
+      <View style={styles.biometricOptions}>
+        {availableBiometrics.face && (
+          <TouchableOpacity
+            style={styles.biometricOption}
+            onPress={() => setLoginMethod("face")}
+          >
+            <Text style={styles.biometricText}>
+              Click to Log in with Face ID
+            </Text>
+          </TouchableOpacity>
+        )}
+        {availableBiometrics.fingerprint && (
+          <TouchableOpacity
+            style={styles.biometricOption}
+            onPress={() => setLoginMethod("fingerprint")}
+          >
+            <Text style={styles.biometricText}>
+              Click to Log in with Fingerprint
+            </Text>
+          </TouchableOpacity>
+        )}
+      </View>
     </View>
   );
 
@@ -162,11 +246,10 @@ export default function LoginScreen({ navigation }) {
     <View style={styles.biometricContainer}>
       {/* Face ID Icon */}
       <View style={styles.biometricIconContainer}>
-        <View style={styles.faceIdIcon}>
-          <View style={styles.faceIdOutline}>
-            <View style={styles.faceIdScanArea} />
-          </View>
-        </View>
+        <Image
+          source={Images.facialRecognition}
+          style={styles.biometricImage}
+        />
       </View>
 
       {/* Instruction Text */}
@@ -196,11 +279,7 @@ export default function LoginScreen({ navigation }) {
     <View style={styles.biometricContainer}>
       {/* Fingerprint Icon */}
       <View style={styles.biometricIconContainer}>
-        <View style={styles.fingerprintIcon}>
-          <View style={styles.fingerprintOutline}>
-            <View style={styles.fingerprintLines} />
-          </View>
-        </View>
+        <Image source={Images.fingerPrint} style={styles.biometricImage} />
       </View>
 
       {/* Instruction Text */}
@@ -230,30 +309,37 @@ export default function LoginScreen({ navigation }) {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoidingView}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          {/* Logo */}
-          <View style={styles.logoContainer}>
-            <Image source={Images.appIcon} style={styles.appLogo} />
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* Header */}
+          <View style={styles.header}>
+            {/* Logo */}
+            <View style={styles.logoContainer}>
+              <Image source={Images.appIcon} style={styles.appLogo} />
+            </View>
+
+            {/* Title */}
+            <Text style={styles.title}>Welcome Back</Text>
+            <Text style={styles.subtitle}>
+              Log in to continue your health journey
+            </Text>
           </View>
 
-          {/* Title */}
-          <Text style={styles.title}>Welcome Back</Text>
-          <Text style={styles.subtitle}>
-            Log in to continue your health journey
-          </Text>
-        </View>
-
-        {/* Content */}
-        {loginMethod === "password" && renderPasswordLogin()}
-        {loginMethod === "face" && renderFaceIDLogin()}
-        {loginMethod === "fingerprint" && renderFingerprintLogin()}
-      </ScrollView>
+          {/* Content */}
+          {loginMethod === "password" && renderPasswordLogin()}
+          {loginMethod === "face" && renderFaceIDLogin()}
+          {loginMethod === "fingerprint" && renderFingerprintLogin()}
+        </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 }
@@ -263,12 +349,16 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.white,
   },
+  keyboardAvoidingView: {
+    flex: 1,
+  },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
     paddingHorizontal: Sizes.xl,
     paddingBottom: Sizes.xxl,
+    flexGrow: 1,
   },
   header: {
     alignItems: "center",
@@ -297,7 +387,8 @@ const styles = StyleSheet.create({
   },
   formContainer: {
     justifyContent: "center",
-    minHeight: height * 0.6,
+    minHeight: height * 0.5,
+    paddingBottom: Sizes.xl,
   },
   inputContainer: {
     flexDirection: "row",
@@ -363,70 +454,42 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins-Medium",
     color: Colors.primary,
   },
+  forgotPasswordContainer: {
+    alignItems: "center",
+    marginBottom: Sizes.lg,
+  },
+  forgotPasswordLink: {
+    fontSize: Sizes.fontSize.md,
+    fontFamily: "Poppins-Medium",
+    color: Colors.primary,
+    textDecorationLine: "underline",
+  },
+  biometricOptions: {
+    alignItems: "center",
+  },
   biometricOption: {
     alignItems: "center",
+    marginBottom: Sizes.sm,
   },
   biometricText: {
     fontSize: Sizes.fontSize.md,
     fontFamily: "Poppins-Medium",
     color: Colors.primary,
   },
+  biometricImage: {
+    width: 120,
+    height: 120,
+    resizeMode: "contain",
+  },
   biometricContainer: {
     justifyContent: "center",
     alignItems: "center",
-    minHeight: height * 0.6,
+    minHeight: height * 0.5,
+    paddingBottom: Sizes.xl,
   },
   biometricIconContainer: {
     marginBottom: Sizes.xxl,
     alignItems: "center",
-  },
-  faceIdIcon: {
-    width: 120,
-    height: 120,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  faceIdOutline: {
-    width: 100,
-    height: 100,
-    borderWidth: 2,
-    borderColor: Colors.primary,
-    borderRadius: 20,
-    justifyContent: "center",
-    alignItems: "center",
-    position: "relative",
-  },
-  faceIdScanArea: {
-    width: 80,
-    height: 60,
-    borderWidth: 1,
-    borderColor: Colors.primary,
-    borderRadius: 10,
-    borderStyle: "dashed",
-  },
-  fingerprintIcon: {
-    width: 120,
-    height: 120,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  fingerprintOutline: {
-    width: 80,
-    height: 100,
-    borderWidth: 2,
-    borderColor: Colors.primary,
-    borderRadius: 40,
-    justifyContent: "center",
-    alignItems: "center",
-    position: "relative",
-  },
-  fingerprintLines: {
-    width: 60,
-    height: 80,
-    borderWidth: 1,
-    borderColor: Colors.primary,
-    borderRadius: 30,
-    borderStyle: "dashed",
   },
   biometricInstruction: {
     fontSize: Sizes.fontSize.lg,
@@ -457,16 +520,9 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins-Medium",
     color: Colors.primary,
   },
-  loadingDots: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  loadingDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: Colors.white,
-    marginHorizontal: 2,
+  loadingImage: {
+    width: 24,
+    height: 24,
+    resizeMode: "contain",
   },
 });
