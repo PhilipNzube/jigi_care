@@ -32,8 +32,71 @@ export default function LoginScreen({ navigation }) {
     face: false,
     fingerprint: false,
   });
+  const [errors, setErrors] = useState({});
 
   const spinValue = useRef(new Animated.Value(0)).current;
+
+  // Validation functions
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const validatePassword = (password) => {
+    return password.length >= 6;
+  };
+
+  const validateLoginForm = () => {
+    const newErrors = {};
+
+    if (!validateEmail(email)) {
+      newErrors.email = "Please enter a valid email address";
+    }
+
+    if (!validatePassword(password)) {
+      newErrors.password = "Password must be at least 6 characters";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const isLoginFormValid = () => {
+    return (
+      validateEmail(email) &&
+      validatePassword(password) &&
+      email.trim() !== "" &&
+      password.trim() !== ""
+    );
+  };
+
+  // Real-time validation for individual fields
+  const validateField = (field, value) => {
+    const newErrors = { ...errors };
+
+    switch (field) {
+      case "email":
+        if (value.trim() === "") {
+          newErrors.email = "Email is required";
+        } else if (!validateEmail(value)) {
+          newErrors.email = "Please enter a valid email address";
+        } else {
+          delete newErrors.email;
+        }
+        break;
+      case "password":
+        if (value.trim() === "") {
+          newErrors.password = "Password is required";
+        } else if (!validatePassword(value)) {
+          newErrors.password = "Password must be at least 6 characters";
+        } else {
+          delete newErrors.password;
+        }
+        break;
+    }
+
+    setErrors(newErrors);
+  };
 
   useEffect(() => {
     checkAvailableBiometrics();
@@ -85,6 +148,9 @@ export default function LoginScreen({ navigation }) {
   };
 
   const handleLogin = async () => {
+    if (!validateLoginForm()) {
+      return;
+    }
     setIsLoading(true);
     // Simulate login process
     setTimeout(() => {
@@ -121,19 +187,27 @@ export default function LoginScreen({ navigation }) {
           <Ionicons
             name="mail-outline"
             size={20}
-            color={Colors.textSecondary}
+            color={errors.email ? Colors.error : Colors.textSecondary}
           />
         </View>
         <TextInput
-          style={styles.textInput}
+          style={[styles.textInput, errors.email && styles.textInputError]}
           placeholder="Email"
           placeholderTextColor={Colors.textSecondary}
           value={email}
-          onChangeText={setEmail}
+          onChangeText={(text) => {
+            setEmail(text);
+            validateField("email", text);
+          }}
           keyboardType="email-address"
           autoCapitalize="none"
         />
       </View>
+      {(errors.email || (email.trim() === "" && email.length > 0)) && (
+        <Text style={styles.errorText}>
+          {errors.email || "Email is required"}
+        </Text>
+      )}
 
       {/* Password Input */}
       <View style={styles.inputContainer}>
@@ -141,15 +215,18 @@ export default function LoginScreen({ navigation }) {
           <Ionicons
             name="lock-closed-outline"
             size={20}
-            color={Colors.textSecondary}
+            color={errors.password ? Colors.error : Colors.textSecondary}
           />
         </View>
         <TextInput
-          style={styles.textInput}
+          style={[styles.textInput, errors.password && styles.textInputError]}
           placeholder="Password"
           placeholderTextColor={Colors.textSecondary}
           value={password}
-          onChangeText={setPassword}
+          onChangeText={(text) => {
+            setPassword(text);
+            validateField("password", text);
+          }}
           secureTextEntry={!showPassword}
         />
         <TouchableOpacity
@@ -163,6 +240,11 @@ export default function LoginScreen({ navigation }) {
           />
         </TouchableOpacity>
       </View>
+      {(errors.password || (password.trim() === "" && password.length > 0)) && (
+        <Text style={styles.errorText}>
+          {errors.password || "Password is required"}
+        </Text>
+      )}
 
       {/* Forgot Password */}
       <TouchableOpacity style={styles.forgotPassword}>
@@ -173,10 +255,10 @@ export default function LoginScreen({ navigation }) {
       <TouchableOpacity
         style={[
           styles.loginButton,
-          email && password && styles.loginButtonActive,
+          isLoginFormValid() && styles.loginButtonActive,
         ]}
         onPress={handleLogin}
-        disabled={!email || !password || isLoading}
+        disabled={!isLoginFormValid() || isLoading}
       >
         {isLoading ? (
           <Animated.Image
@@ -200,6 +282,13 @@ export default function LoginScreen({ navigation }) {
         )}
       </TouchableOpacity>
 
+      {/* Help Text */}
+      {!isLoginFormValid() && (
+        <Text style={styles.helpText}>
+          Please enter a valid email and password to continue
+        </Text>
+      )}
+
       {/* Sign Up Link */}
       <View style={styles.signUpContainer}>
         <Text style={styles.signUpText}>Don't have an account? </Text>
@@ -209,7 +298,7 @@ export default function LoginScreen({ navigation }) {
       </View>
 
       {/* Forgot Password Link */}
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.forgotPasswordContainer}
         onPress={() => navigation.navigate("ForgotPassword")}
       >
@@ -409,6 +498,24 @@ const styles = StyleSheet.create({
     fontSize: Sizes.fontSize.md,
     fontFamily: "Poppins-Regular",
     color: Colors.textPrimary,
+  },
+  textInputError: {
+    color: Colors.error,
+  },
+  errorText: {
+    fontSize: Sizes.fontSize.sm,
+    fontFamily: "Poppins-Regular",
+    color: Colors.error,
+    marginTop: Sizes.xs,
+    marginBottom: Sizes.sm,
+  },
+  helpText: {
+    fontSize: Sizes.fontSize.sm,
+    fontFamily: "Poppins-Regular",
+    color: Colors.textSecondary,
+    textAlign: "center",
+    marginTop: Sizes.sm,
+    marginBottom: Sizes.lg,
   },
   eyeIcon: {
     padding: Sizes.sm,

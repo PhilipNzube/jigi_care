@@ -28,10 +28,116 @@ export default function SignUpScreen({ navigation }) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  
+  const [errors, setErrors] = useState({});
+
   const spinValue = useRef(new Animated.Value(0)).current;
 
+  // Validation functions
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const validatePassword = (password) => {
+    return password.length >= 8;
+  };
+
+  const validateFullName = (name) => {
+    return name.trim().length >= 2;
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+
+    if (!validateFullName(fullName)) {
+      newErrors.fullName = "Full name must be at least 2 characters";
+    }
+
+    if (!validateEmail(email)) {
+      newErrors.email = "Please enter a valid email address";
+    }
+
+    if (!validatePassword(password)) {
+      newErrors.password = "Password must be at least 8 characters";
+    }
+
+    if (password !== confirmPassword) {
+      newErrors.confirmPassword = "Passwords do not match";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // Real-time validation for individual fields
+  const validateField = (field, value) => {
+    const newErrors = { ...errors };
+
+    switch (field) {
+      case "fullName":
+        if (value.trim() === "") {
+          newErrors.fullName = "Full name is required";
+        } else if (!validateFullName(value)) {
+          newErrors.fullName = "Full name must be at least 2 characters";
+        } else {
+          delete newErrors.fullName;
+        }
+        break;
+      case "email":
+        if (value.trim() === "") {
+          newErrors.email = "Email is required";
+        } else if (!validateEmail(value)) {
+          newErrors.email = "Please enter a valid email address";
+        } else {
+          delete newErrors.email;
+        }
+        break;
+      case "password":
+        if (value.trim() === "") {
+          newErrors.password = "Password is required";
+        } else if (!validatePassword(value)) {
+          newErrors.password = "Password must be at least 8 characters";
+        } else {
+          delete newErrors.password;
+        }
+        // Also validate confirm password if it has a value
+        if (confirmPassword && confirmPassword !== value) {
+          newErrors.confirmPassword = "Passwords do not match";
+        } else if (confirmPassword && confirmPassword === value) {
+          delete newErrors.confirmPassword;
+        }
+        break;
+      case "confirmPassword":
+        if (value.trim() === "") {
+          newErrors.confirmPassword = "Please confirm your password";
+        } else if (value !== password) {
+          newErrors.confirmPassword = "Passwords do not match";
+        } else {
+          delete newErrors.confirmPassword;
+        }
+        break;
+    }
+
+    setErrors(newErrors);
+  };
+
+  const isFormValid = () => {
+    return (
+      validateFullName(fullName) &&
+      validateEmail(email) &&
+      validatePassword(password) &&
+      password === confirmPassword &&
+      fullName.trim() !== "" &&
+      email.trim() !== "" &&
+      password.trim() !== "" &&
+      confirmPassword.trim() !== ""
+    );
+  };
+
   const handleSignUp = () => {
+    if (!validateForm()) {
+      return;
+    }
     setIsLoading(true);
     // Simulate sign up process
     setTimeout(() => {
@@ -50,16 +156,14 @@ export default function SignUpScreen({ navigation }) {
     console.log("Apple sign up");
   };
 
-  const isFormValid = fullName && email && password && confirmPassword && password === confirmPassword;
-
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         style={styles.keyboardAvoidingView}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
       >
-        <ScrollView 
+        <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
@@ -84,92 +188,158 @@ export default function SignUpScreen({ navigation }) {
             {/* Full Name Input */}
             <View style={styles.inputContainer}>
               <View style={styles.inputIcon}>
-                <Ionicons name="person-outline" size={20} color={Colors.textSecondary} />
+                <Ionicons
+                  name="person-outline"
+                  size={20}
+                  color={errors.fullName ? Colors.error : Colors.textSecondary}
+                />
               </View>
               <TextInput
-                style={styles.textInput}
+                style={[
+                  styles.textInput,
+                  errors.fullName && styles.textInputError,
+                ]}
                 placeholder="Full Name"
                 placeholderTextColor={Colors.textSecondary}
                 value={fullName}
-                onChangeText={setFullName}
+                onChangeText={(text) => {
+                  setFullName(text);
+                  validateField("fullName", text);
+                }}
                 autoCapitalize="words"
               />
             </View>
+            {(errors.fullName ||
+              (fullName.trim() === "" && fullName.length > 0)) && (
+              <Text style={styles.errorText}>
+                {errors.fullName || "Full name is required"}
+              </Text>
+            )}
 
             {/* Email Input */}
             <View style={styles.inputContainer}>
               <View style={styles.inputIcon}>
-                <Ionicons name="mail-outline" size={20} color={Colors.textSecondary} />
+                <Ionicons
+                  name="mail-outline"
+                  size={20}
+                  color={errors.email ? Colors.error : Colors.textSecondary}
+                />
               </View>
               <TextInput
-                style={styles.textInput}
+                style={[
+                  styles.textInput,
+                  errors.email && styles.textInputError,
+                ]}
                 placeholder="Email"
                 placeholderTextColor={Colors.textSecondary}
                 value={email}
-                onChangeText={setEmail}
+                onChangeText={(text) => {
+                  setEmail(text);
+                  validateField("email", text);
+                }}
                 keyboardType="email-address"
                 autoCapitalize="none"
               />
             </View>
+            {(errors.email || (email.trim() === "" && email.length > 0)) && (
+              <Text style={styles.errorText}>
+                {errors.email || "Email is required"}
+              </Text>
+            )}
 
             {/* Password Input */}
             <View style={styles.inputContainer}>
               <View style={styles.inputIcon}>
-                <Ionicons name="lock-closed-outline" size={20} color={Colors.textSecondary} />
+                <Ionicons
+                  name="lock-closed-outline"
+                  size={20}
+                  color={errors.password ? Colors.error : Colors.textSecondary}
+                />
               </View>
               <TextInput
-                style={styles.textInput}
+                style={[
+                  styles.textInput,
+                  errors.password && styles.textInputError,
+                ]}
                 placeholder="Password"
                 placeholderTextColor={Colors.textSecondary}
                 value={password}
-                onChangeText={setPassword}
+                onChangeText={(text) => {
+                  setPassword(text);
+                  validateField("password", text);
+                }}
                 secureTextEntry={!showPassword}
               />
               <TouchableOpacity
                 onPress={() => setShowPassword(!showPassword)}
                 style={styles.eyeIcon}
               >
-                <Ionicons 
-                  name={showPassword ? "eye-off-outline" : "eye-outline"} 
-                  size={20} 
-                  color={Colors.textSecondary} 
+                <Ionicons
+                  name={showPassword ? "eye-off-outline" : "eye-outline"}
+                  size={20}
+                  color={Colors.textSecondary}
                 />
               </TouchableOpacity>
             </View>
+            {(errors.password ||
+              (password.trim() === "" && password.length > 0)) && (
+              <Text style={styles.errorText}>
+                {errors.password || "Password is required"}
+              </Text>
+            )}
 
             {/* Confirm Password Input */}
             <View style={styles.inputContainer}>
               <View style={styles.inputIcon}>
-                <Ionicons name="lock-closed-outline" size={20} color={Colors.textSecondary} />
+                <Ionicons
+                  name="lock-closed-outline"
+                  size={20}
+                  color={
+                    errors.confirmPassword ? Colors.error : Colors.textSecondary
+                  }
+                />
               </View>
               <TextInput
-                style={styles.textInput}
+                style={[
+                  styles.textInput,
+                  errors.confirmPassword && styles.textInputError,
+                ]}
                 placeholder="Confirm Password"
                 placeholderTextColor={Colors.textSecondary}
                 value={confirmPassword}
-                onChangeText={setConfirmPassword}
+                onChangeText={(text) => {
+                  setConfirmPassword(text);
+                  validateField("confirmPassword", text);
+                }}
                 secureTextEntry={!showConfirmPassword}
               />
               <TouchableOpacity
                 onPress={() => setShowConfirmPassword(!showConfirmPassword)}
                 style={styles.eyeIcon}
               >
-                <Ionicons 
-                  name={showConfirmPassword ? "eye-off-outline" : "eye-outline"} 
-                  size={20} 
-                  color={Colors.textSecondary} 
+                <Ionicons
+                  name={showConfirmPassword ? "eye-off-outline" : "eye-outline"}
+                  size={20}
+                  color={Colors.textSecondary}
                 />
               </TouchableOpacity>
             </View>
+            {(errors.confirmPassword ||
+              (confirmPassword.trim() === "" &&
+                confirmPassword.length > 0)) && (
+              <Text style={styles.errorText}>
+                {errors.confirmPassword || "Please confirm your password"}
+              </Text>
+            )}
 
             {/* Sign Up Button */}
             <TouchableOpacity
               style={[
                 styles.signUpButton,
-                isFormValid && styles.signUpButtonActive,
+                isFormValid() && styles.signUpButtonActive,
               ]}
               onPress={handleSignUp}
-              disabled={!isFormValid || isLoading}
+              disabled={!isFormValid() || isLoading}
             >
               {isLoading ? (
                 <Animated.Image
@@ -193,6 +363,13 @@ export default function SignUpScreen({ navigation }) {
               )}
             </TouchableOpacity>
 
+            {/* Help Text */}
+            {!isFormValid() && (
+              <Text style={styles.helpText}>
+                Please fill in all fields correctly to continue
+              </Text>
+            )}
+
             {/* Login Link */}
             <View style={styles.loginContainer}>
               <Text style={styles.loginText}>Already have an account? </Text>
@@ -209,12 +386,18 @@ export default function SignUpScreen({ navigation }) {
             </View>
 
             {/* Social Login Buttons */}
-            <TouchableOpacity style={styles.googleButton} onPress={handleGoogleSignUp}>
-              <Ionicons name="logo-google" size={20} color={Colors.textPrimary} />
+            <TouchableOpacity
+              style={styles.googleButton}
+              onPress={handleGoogleSignUp}
+            >
+              <Image source={Images.google} style={styles.googleIcon} />
               <Text style={styles.googleButtonText}>Continue with Google</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.appleButton} onPress={handleAppleSignUp}>
+            <TouchableOpacity
+              style={styles.appleButton}
+              onPress={handleAppleSignUp}
+            >
               <Ionicons name="logo-apple" size={20} color={Colors.white} />
               <Text style={styles.appleButtonText}>Continue with Apple</Text>
             </TouchableOpacity>
@@ -290,6 +473,24 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins-Regular",
     color: Colors.textPrimary,
   },
+  textInputError: {
+    color: Colors.error,
+  },
+  errorText: {
+    fontSize: Sizes.fontSize.sm,
+    fontFamily: "Poppins-Regular",
+    color: Colors.error,
+    marginTop: Sizes.xs,
+    marginBottom: Sizes.sm,
+  },
+  helpText: {
+    fontSize: Sizes.fontSize.sm,
+    fontFamily: "Poppins-Regular",
+    color: Colors.textSecondary,
+    textAlign: "center",
+    marginTop: Sizes.sm,
+    marginBottom: Sizes.lg,
+  },
   eyeIcon: {
     padding: Sizes.sm,
   },
@@ -352,7 +553,6 @@ const styles = StyleSheet.create({
   googleButton: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
     width: "100%",
     height: 56,
     backgroundColor: Colors.white,
@@ -360,26 +560,36 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.border,
     marginBottom: Sizes.md,
+    paddingHorizontal: Sizes.lg,
+  },
+  googleIcon: {
+    width: 20,
+    height: 20,
+    resizeMode: "contain",
   },
   googleButtonText: {
+    flex: 1,
     fontSize: Sizes.fontSize.md,
     fontFamily: "Poppins-Medium",
     color: Colors.textPrimary,
-    marginLeft: Sizes.sm,
+    textAlign: "center",
+    marginLeft: -20, // Negative margin to center text (compensate for icon width)
   },
   appleButton: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
     width: "100%",
     height: 56,
     backgroundColor: Colors.black,
     borderRadius: 28,
+    paddingHorizontal: Sizes.lg,
   },
   appleButtonText: {
+    flex: 1,
     fontSize: Sizes.fontSize.md,
     fontFamily: "Poppins-Medium",
     color: Colors.white,
-    marginLeft: Sizes.sm,
+    textAlign: "center",
+    marginLeft: -20, // Negative margin to center text (compensate for icon width)
   },
 });

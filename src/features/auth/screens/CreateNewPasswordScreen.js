@@ -27,7 +27,7 @@ export default function CreateNewPasswordScreen({ navigation, route }) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const spinValue = useRef(new Animated.Value(0)).current;
 
   const handleResetPassword = () => {
@@ -39,16 +39,17 @@ export default function CreateNewPasswordScreen({ navigation, route }) {
     }, 2000);
   };
 
-  const isFormValid = password && confirmPassword && password === confirmPassword;
+  const isFormValid =
+    password && confirmPassword && password === confirmPassword;
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         style={styles.keyboardAvoidingView}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
       >
-        <ScrollView 
+        <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
@@ -57,11 +58,15 @@ export default function CreateNewPasswordScreen({ navigation, route }) {
           {/* Header */}
           <View style={styles.header}>
             {/* Back Button */}
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.backButton}
               onPress={() => navigation.goBack()}
             >
-              <Ionicons name="chevron-back" size={24} color={Colors.textPrimary} />
+              <Ionicons
+                name="chevron-back"
+                size={24}
+                color={Colors.textPrimary}
+              />
             </TouchableOpacity>
 
             {/* Logo */}
@@ -74,7 +79,7 @@ export default function CreateNewPasswordScreen({ navigation, route }) {
           <View style={styles.contentContainer}>
             {/* Title */}
             <Text style={styles.title}>Create New Password</Text>
-            
+
             {/* Description */}
             <Text style={styles.description}>
               We've sent a 6-digit code to {email}
@@ -83,7 +88,11 @@ export default function CreateNewPasswordScreen({ navigation, route }) {
             {/* Password Input */}
             <View style={styles.inputContainer}>
               <View style={styles.inputIcon}>
-                <Ionicons name="lock-closed-outline" size={20} color={Colors.textSecondary} />
+                <Ionicons
+                  name="lock-closed-outline"
+                  size={20}
+                  color={Colors.textSecondary}
+                />
               </View>
               <TextInput
                 style={styles.textInput}
@@ -97,10 +106,10 @@ export default function CreateNewPasswordScreen({ navigation, route }) {
                 onPress={() => setShowPassword(!showPassword)}
                 style={styles.eyeIcon}
               >
-                <Ionicons 
-                  name={showPassword ? "eye-off-outline" : "eye-outline"} 
-                  size={20} 
-                  color={Colors.textSecondary} 
+                <Ionicons
+                  name={showPassword ? "eye-off-outline" : "eye-outline"}
+                  size={20}
+                  color={Colors.textSecondary}
                 />
               </TouchableOpacity>
             </View>
@@ -108,7 +117,11 @@ export default function CreateNewPasswordScreen({ navigation, route }) {
             {/* Confirm Password Input */}
             <View style={styles.inputContainer}>
               <View style={styles.inputIcon}>
-                <Ionicons name="lock-closed-outline" size={20} color={Colors.textSecondary} />
+                <Ionicons
+                  name="lock-closed-outline"
+                  size={20}
+                  color={Colors.textSecondary}
+                />
               </View>
               <TextInput
                 style={styles.textInput}
@@ -122,10 +135,10 @@ export default function CreateNewPasswordScreen({ navigation, route }) {
                 onPress={() => setShowConfirmPassword(!showConfirmPassword)}
                 style={styles.eyeIcon}
               >
-                <Ionicons 
-                  name={showConfirmPassword ? "eye-off-outline" : "eye-outline"} 
-                  size={20} 
-                  color={Colors.textSecondary} 
+                <Ionicons
+                  name={showConfirmPassword ? "eye-off-outline" : "eye-outline"}
+                  size={20}
+                  color={Colors.textSecondary}
                 />
               </TouchableOpacity>
             </View>

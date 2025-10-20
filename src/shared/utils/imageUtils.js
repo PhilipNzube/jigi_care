@@ -29,6 +29,9 @@ export const Images = {
 
   // Loading images
   loader: require("../../../assets/images/loader.png"),
+
+  // Social login images
+  google: require("../../../assets/images/google.png"),
 };
 
 // Helper function to get image source
