@@ -1,69 +1,39 @@
 import React from "react";
-import { View, StyleSheet } from "react-native";
+import { View, StyleSheet, TouchableOpacity } from "react-native";
 import { Colors, Sizes } from "../constants";
 
-const Card = ({
+export default function Card({
   children,
   style,
-  padding = "md",
-  margin = "sm",
+  onPress,
   shadow = true,
-  ...props
-}) => {
-  const cardStyle = [
-    styles.card,
-    styles[`padding${padding.charAt(0).toUpperCase() + padding.slice(1)}`],
-    styles[`margin${margin.charAt(0).toUpperCase() + margin.slice(1)}`],
-    shadow && styles.shadow,
-    style,
-  ];
+  padding = Sizes.lg,
+}) {
+  const CardComponent = onPress ? TouchableOpacity : View;
 
   return (
-    <View style={cardStyle} {...props}>
+    <CardComponent
+      style={[styles.card, shadow && styles.cardShadow, { padding }, style]}
+      onPress={onPress}
+    >
       {children}
-    </View>
+    </CardComponent>
   );
-};
+}
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: Colors.surface,
-    borderRadius: Sizes.radius.lg,
+    backgroundColor: Colors.white,
+    borderRadius: 12,
   },
-
-  // Padding variants
-  paddingSm: {
-    padding: Sizes.sm,
-  },
-  paddingMd: {
-    padding: Sizes.md,
-  },
-  paddingLg: {
-    padding: Sizes.lg,
-  },
-
-  // Margin variants
-  marginSm: {
-    margin: Sizes.sm,
-  },
-  marginMd: {
-    margin: Sizes.md,
-  },
-  marginLg: {
-    margin: Sizes.lg,
-  },
-
-  // Shadow
-  shadow: {
-    shadowColor: Colors.black,
+  cardShadow: {
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 2,
     },
     shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowRadius: 4,
+    elevation: 3,
   },
 });
-
-export default Card;

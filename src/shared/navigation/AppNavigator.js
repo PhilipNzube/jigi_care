@@ -14,8 +14,7 @@ import ForgotPasswordScreen from "../../features/auth/screens/ForgotPasswordScre
 import EmailVerificationScreen from "../../features/auth/screens/EmailVerificationScreen";
 import CreateNewPasswordScreen from "../../features/auth/screens/CreateNewPasswordScreen";
 import PersonalizationScreen from "../../features/auth/screens/PersonalizationScreen";
-import HomeScreen from "../../features/profile/screens/HomeScreen";
-import ProfileScreen from "../../features/profile/screens/ProfileScreen";
+import MainAppNavigator from "./MainAppNavigator";
 
 const Stack = createStackNavigator();
 
@@ -57,34 +56,5 @@ export default function AppNavigator() {
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>
-  );
-}
-
-// Separate navigator for the main app
-function MainAppNavigator() {
-  return (
-    <Stack.Navigator
-      initialRouteName="Home"
-      screenOptions={{
-        headerStyle: {
-          backgroundColor: "#2196F3",
-        },
-        headerTintColor: "#fff",
-        headerTitleStyle: {
-          fontWeight: "bold",
-        },
-      }}
-    >
-      <Stack.Screen
-        name="Home"
-        component={HomeScreen}
-        options={{ title: "JijiCare" }}
-      />
-      <Stack.Screen
-        name="Profile"
-        component={ProfileScreen}
-        options={{ title: "Profile" }}
-      />
-    </Stack.Navigator>
   );
 }

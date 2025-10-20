@@ -32,6 +32,17 @@ export const Images = {
 
   // Social login images
   google: require("../../../assets/images/google.png"),
+  // Navigation Icons
+  homeIcon: require("../../../assets/images/home_icon.png"),
+  homeIconActive: require("../../../assets/images/home_icon_active.png"),
+  consultIcon: require("../../../assets/images/consult_icon.png"),
+  consultIconActive: require("../../../assets/images/consult_icon_active.png"),
+  medicationIcon: require("../../../assets/images/medication_icon.png"),
+  medicationIconActive: require("../../../assets/images/medication_icon_active.png"),
+  profileIcon: require("../../../assets/images/profile_icon.png"),
+  profileIconActive: require("../../../assets/images/profile_icon_active.png"),
+  // Health Content
+  healthTips: require("../../../assets/images/health_tips.png"),
 };
 
 // Helper function to get image source
