@@ -247,7 +247,10 @@ export default function LoginScreen({ navigation }) {
       )}
 
       {/* Forgot Password */}
-      <TouchableOpacity style={styles.forgotPassword}>
+      <TouchableOpacity
+        style={styles.forgotPassword}
+        onPress={() => navigation.navigate("ForgotPassword")}
+      >
         <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
       </TouchableOpacity>
 
@@ -283,11 +286,11 @@ export default function LoginScreen({ navigation }) {
       </TouchableOpacity>
 
       {/* Help Text */}
-      {!isLoginFormValid() && (
+      {/* {!isLoginFormValid() && (
         <Text style={styles.helpText}>
           Please enter a valid email and password to continue
         </Text>
-      )}
+      )} */}
 
       {/* Sign Up Link */}
       <View style={styles.signUpContainer}>
@@ -296,14 +299,6 @@ export default function LoginScreen({ navigation }) {
           <Text style={styles.signUpLink}>Sign up</Text>
         </TouchableOpacity>
       </View>
-
-      {/* Forgot Password Link */}
-      <TouchableOpacity
-        style={styles.forgotPasswordContainer}
-        onPress={() => navigation.navigate("ForgotPassword")}
-      >
-        <Text style={styles.forgotPasswordLink}>Forgot Password?</Text>
-      </TouchableOpacity>
 
       {/* Biometric Options */}
       <View style={styles.biometricOptions}>

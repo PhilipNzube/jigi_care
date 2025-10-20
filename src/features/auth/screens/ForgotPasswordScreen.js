@@ -21,8 +21,52 @@ const { width, height } = Dimensions.get("window");
 export default function ForgotPasswordScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const [email, setEmail] = useState("");
+  const [errors, setErrors] = useState({});
+
+  // Validation functions
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+
+    if (!validateEmail(email)) {
+      newErrors.email = "Please enter a valid email address";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const isFormValid = () => {
+    return validateEmail(email) && email.trim() !== "";
+  };
+
+  // Real-time validation for email field
+  const validateField = (field, value) => {
+    const newErrors = { ...errors };
+
+    switch (field) {
+      case "email":
+        if (value.trim() === "") {
+          newErrors.email = "Email is required";
+        } else if (!validateEmail(value)) {
+          newErrors.email = "Please enter a valid email address";
+        } else {
+          delete newErrors.email;
+        }
+        break;
+    }
+
+    setErrors(newErrors);
+  };
 
   const handleSendCode = () => {
+    if (!validateForm()) {
+      return;
+    }
     // Navigate to email verification screen with forgot password context
     navigation.navigate("EmailVerification", { email, from: "forgotPassword" });
   };
@@ -77,31 +121,49 @@ export default function ForgotPasswordScreen({ navigation }) {
                 <Ionicons
                   name="mail-outline"
                   size={20}
-                  color={Colors.textSecondary}
+                  color={errors.email ? Colors.error : Colors.textSecondary}
                 />
               </View>
               <TextInput
-                style={styles.textInput}
+                style={[
+                  styles.textInput,
+                  errors.email && styles.textInputError,
+                ]}
                 placeholder="Email"
                 placeholderTextColor={Colors.textSecondary}
                 value={email}
-                onChangeText={setEmail}
+                onChangeText={(text) => {
+                  setEmail(text);
+                  validateField("email", text);
+                }}
                 keyboardType="email-address"
                 autoCapitalize="none"
               />
             </View>
+            {(errors.email || (email.trim() === "" && email.length > 0)) && (
+              <Text style={styles.errorText}>
+                {errors.email || "Email is required"}
+              </Text>
+            )}
 
             {/* Send Code Button */}
             <TouchableOpacity
               style={[
                 styles.sendCodeButton,
-                email && styles.sendCodeButtonActive,
+                isFormValid() && styles.sendCodeButtonActive,
               ]}
               onPress={handleSendCode}
-              disabled={!email}
+              disabled={!isFormValid()}
             >
               <Text style={styles.sendCodeButtonText}>Send Code</Text>
             </TouchableOpacity>
+
+            {/* Help Text */}
+            {/* {!isFormValid() && (
+              <Text style={styles.helpText}>
+                Please enter a valid email address to continue
+              </Text>
+            )} */}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -183,6 +245,24 @@ const styles = StyleSheet.create({
     fontSize: Sizes.fontSize.md,
     fontFamily: "Poppins-Regular",
     color: Colors.textPrimary,
+  },
+  textInputError: {
+    color: Colors.error,
+  },
+  errorText: {
+    fontSize: Sizes.fontSize.sm,
+    fontFamily: "Poppins-Regular",
+    color: Colors.error,
+    marginTop: Sizes.xs,
+    marginBottom: Sizes.sm,
+  },
+  helpText: {
+    fontSize: Sizes.fontSize.sm,
+    fontFamily: "Poppins-Regular",
+    color: Colors.textSecondary,
+    textAlign: "center",
+    marginTop: Sizes.sm,
+    marginBottom: Sizes.lg,
   },
   sendCodeButton: {
     width: "100%",

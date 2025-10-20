@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -27,10 +27,100 @@ export default function CreateNewPasswordScreen({ navigation, route }) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [errors, setErrors] = useState({});
 
   const spinValue = useRef(new Animated.Value(0)).current;
 
+  useEffect(() => {
+    if (isLoading) {
+      startSpinning();
+    } else {
+      stopSpinning();
+    }
+  }, [isLoading]);
+
+  const startSpinning = () => {
+    spinValue.setValue(0);
+    Animated.loop(
+      Animated.timing(spinValue, {
+        toValue: 1,
+        duration: 1000,
+        useNativeDriver: true,
+      })
+    ).start();
+  };
+
+  const stopSpinning = () => {
+    spinValue.stopAnimation();
+  };
+
+  // Validation functions
+  const validatePassword = (password) => {
+    return password.length >= 8;
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+
+    if (!validatePassword(password)) {
+      newErrors.password = "Password must be at least 8 characters";
+    }
+
+    if (password !== confirmPassword) {
+      newErrors.confirmPassword = "Passwords do not match";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const isFormValid = () => {
+    return (
+      validatePassword(password) &&
+      password === confirmPassword &&
+      password.trim() !== "" &&
+      confirmPassword.trim() !== ""
+    );
+  };
+
+  // Real-time validation for individual fields
+  const validateField = (field, value) => {
+    const newErrors = { ...errors };
+
+    switch (field) {
+      case "password":
+        if (value.trim() === "") {
+          newErrors.password = "Password is required";
+        } else if (!validatePassword(value)) {
+          newErrors.password = "Password must be at least 8 characters";
+        } else {
+          delete newErrors.password;
+        }
+        // Also validate confirm password if it has a value
+        if (confirmPassword && confirmPassword !== value) {
+          newErrors.confirmPassword = "Passwords do not match";
+        } else if (confirmPassword && confirmPassword === value) {
+          delete newErrors.confirmPassword;
+        }
+        break;
+      case "confirmPassword":
+        if (value.trim() === "") {
+          newErrors.confirmPassword = "Please confirm your password";
+        } else if (value !== password) {
+          newErrors.confirmPassword = "Passwords do not match";
+        } else {
+          delete newErrors.confirmPassword;
+        }
+        break;
+    }
+
+    setErrors(newErrors);
+  };
+
   const handleResetPassword = () => {
+    if (!validateForm()) {
+      return;
+    }
     setIsLoading(true);
     // Simulate password reset process
     setTimeout(() => {
@@ -38,9 +128,6 @@ export default function CreateNewPasswordScreen({ navigation, route }) {
       navigation.navigate("Login");
     }, 2000);
   };
-
-  const isFormValid =
-    password && confirmPassword && password === confirmPassword;
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -82,7 +169,7 @@ export default function CreateNewPasswordScreen({ navigation, route }) {
 
             {/* Description */}
             <Text style={styles.description}>
-              We've sent a 6-digit code to {email}
+              Please enter matching passwords with at least 8 characters
             </Text>
 
             {/* Password Input */}
@@ -91,15 +178,21 @@ export default function CreateNewPasswordScreen({ navigation, route }) {
                 <Ionicons
                   name="lock-closed-outline"
                   size={20}
-                  color={Colors.textSecondary}
+                  color={errors.password ? Colors.error : Colors.textSecondary}
                 />
               </View>
               <TextInput
-                style={styles.textInput}
+                style={[
+                  styles.textInput,
+                  errors.password && styles.textInputError,
+                ]}
                 placeholder="Password"
                 placeholderTextColor={Colors.textSecondary}
                 value={password}
-                onChangeText={setPassword}
+                onChangeText={(text) => {
+                  setPassword(text);
+                  validateField("password", text);
+                }}
                 secureTextEntry={!showPassword}
               />
               <TouchableOpacity
@@ -113,6 +206,12 @@ export default function CreateNewPasswordScreen({ navigation, route }) {
                 />
               </TouchableOpacity>
             </View>
+            {(errors.password ||
+              (password.trim() === "" && password.length > 0)) && (
+              <Text style={styles.errorText}>
+                {errors.password || "Password is required"}
+              </Text>
+            )}
 
             {/* Confirm Password Input */}
             <View style={styles.inputContainer}>
@@ -120,15 +219,23 @@ export default function CreateNewPasswordScreen({ navigation, route }) {
                 <Ionicons
                   name="lock-closed-outline"
                   size={20}
-                  color={Colors.textSecondary}
+                  color={
+                    errors.confirmPassword ? Colors.error : Colors.textSecondary
+                  }
                 />
               </View>
               <TextInput
-                style={styles.textInput}
+                style={[
+                  styles.textInput,
+                  errors.confirmPassword && styles.textInputError,
+                ]}
                 placeholder="Confirm Password"
                 placeholderTextColor={Colors.textSecondary}
                 value={confirmPassword}
-                onChangeText={setConfirmPassword}
+                onChangeText={(text) => {
+                  setConfirmPassword(text);
+                  validateField("confirmPassword", text);
+                }}
                 secureTextEntry={!showConfirmPassword}
               />
               <TouchableOpacity
@@ -142,15 +249,22 @@ export default function CreateNewPasswordScreen({ navigation, route }) {
                 />
               </TouchableOpacity>
             </View>
+            {(errors.confirmPassword ||
+              (confirmPassword.trim() === "" &&
+                confirmPassword.length > 0)) && (
+              <Text style={styles.errorText}>
+                {errors.confirmPassword || "Please confirm your password"}
+              </Text>
+            )}
 
             {/* Reset Password Button */}
             <TouchableOpacity
               style={[
                 styles.resetButton,
-                isFormValid && styles.resetButtonActive,
+                isFormValid() && styles.resetButtonActive,
               ]}
               onPress={handleResetPassword}
-              disabled={!isFormValid || isLoading}
+              disabled={!isFormValid() || isLoading}
             >
               {isLoading ? (
                 <Animated.Image
@@ -173,6 +287,13 @@ export default function CreateNewPasswordScreen({ navigation, route }) {
                 <Text style={styles.resetButtonText}>Reset Password</Text>
               )}
             </TouchableOpacity>
+
+            {/* Help Text */}
+            {/* {!isFormValid() && (
+              <Text style={styles.helpText}>
+                Please enter matching passwords with at least 8 characters
+              </Text>
+            )} */}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -254,6 +375,24 @@ const styles = StyleSheet.create({
     fontSize: Sizes.fontSize.md,
     fontFamily: "Poppins-Regular",
     color: Colors.textPrimary,
+  },
+  textInputError: {
+    color: Colors.error,
+  },
+  errorText: {
+    fontSize: Sizes.fontSize.sm,
+    fontFamily: "Poppins-Regular",
+    color: Colors.error,
+    marginTop: Sizes.xs,
+    marginBottom: Sizes.sm,
+  },
+  helpText: {
+    fontSize: Sizes.fontSize.sm,
+    fontFamily: "Poppins-Regular",
+    color: Colors.textSecondary,
+    textAlign: "center",
+    marginTop: Sizes.sm,
+    marginBottom: Sizes.lg,
   },
   eyeIcon: {
     padding: Sizes.sm,

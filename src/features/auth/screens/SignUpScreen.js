@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -31,6 +31,29 @@ export default function SignUpScreen({ navigation }) {
   const [errors, setErrors] = useState({});
 
   const spinValue = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (isLoading) {
+      startSpinning();
+    } else {
+      stopSpinning();
+    }
+  }, [isLoading]);
+
+  const startSpinning = () => {
+    spinValue.setValue(0);
+    Animated.loop(
+      Animated.timing(spinValue, {
+        toValue: 1,
+        duration: 1000,
+        useNativeDriver: true,
+      })
+    ).start();
+  };
+
+  const stopSpinning = () => {
+    spinValue.stopAnimation();
+  };
 
   // Validation functions
   const validateEmail = (email) => {
