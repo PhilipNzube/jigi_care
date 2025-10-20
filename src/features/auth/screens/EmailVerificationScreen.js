@@ -94,7 +94,7 @@ export default function EmailVerificationScreen({ navigation, route }) {
     }
   };
 
-  const isCodeComplete = code.length === 6;
+  const isCodeComplete = code.length === 4;
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -148,7 +148,7 @@ export default function EmailVerificationScreen({ navigation, route }) {
             {/* Code Input Fields */}
             <View style={styles.codeContainer}>
               <OtpInput
-                numberOfDigits={6}
+                numberOfDigits={4}
                 value={code}
                 onTextChange={handleCodeChange}
                 focusColor={Colors.primary}

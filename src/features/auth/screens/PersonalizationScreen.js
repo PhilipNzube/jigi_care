@@ -28,6 +28,8 @@ export default function PersonalizationScreen({ navigation }) {
   const [isLoading, setIsLoading] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showGenderPicker, setShowGenderPicker] = useState(false);
+  const [showPermissions, setShowPermissions] = useState(false);
+  const [currentPermission, setCurrentPermission] = useState("notifications"); // "notifications" or "location"
   const [selectedDate, setSelectedDate] = useState(new Date());
 
   const genderOptions = ["Male", "Female", "Other", "Prefer not to say"];
@@ -103,15 +105,47 @@ export default function PersonalizationScreen({ navigation }) {
   };
 
   const handleContinue = () => {
-    setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
-      navigation.navigate("MainApp");
-    }, 2000);
+    if (!showPermissions) {
+      // First continue - show permissions modal
+      setIsLoading(true);
+      setTimeout(() => {
+        setIsLoading(false);
+        setShowPermissions(true);
+        setCurrentPermission("notifications");
+      }, 2000);
+    } else {
+      // Second continue - go to home
+      setIsLoading(true);
+      setTimeout(() => {
+        setIsLoading(false);
+        navigation.navigate("MainApp");
+      }, 2000);
+    }
   };
 
   const handleSkip = () => {
+    navigation.navigate("MainApp");
+  };
+
+  const handleNotificationAllow = () => {
+    // Handle notification permission - move to location permission
+    setCurrentPermission("location");
+  };
+
+  const handleNotificationSkip = () => {
+    // Skip notification permission - move to location permission
+    setCurrentPermission("location");
+  };
+
+  const handleLocationAllow = () => {
+    // Handle location permission - go to home
+    setShowPermissions(false);
+    navigation.navigate("MainApp");
+  };
+
+  const handleLocationSkip = () => {
+    // Skip location permission - go to home
+    setShowPermissions(false);
     navigation.navigate("MainApp");
   };
 
@@ -158,6 +192,68 @@ export default function PersonalizationScreen({ navigation }) {
               </TouchableOpacity>
             ))}
           </View>
+        </View>
+      </View>
+    </Modal>
+  );
+
+  const renderPermissionsModal = () => (
+    <Modal
+      visible={showPermissions}
+      transparent={true}
+      animationType="fade"
+      onRequestClose={() => setShowPermissions(false)}
+    >
+      <View style={styles.permissionsOverlay}>
+        <View style={styles.permissionsContainer}>
+          {currentPermission === "notifications" && (
+            <View style={styles.permissionCard}>
+              <Text style={styles.permissionTitle}>Stay Updated</Text>
+              <Text style={styles.permissionDescription}>
+                Get reminders for appointments and health tips.
+              </Text>
+              <View style={styles.permissionActions}>
+                <TouchableOpacity
+                  style={styles.allowButton}
+                  onPress={handleNotificationAllow}
+                >
+                  <Text style={styles.allowButtonText}>Allow</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.skipButton}
+                  onPress={handleNotificationSkip}
+                >
+                  <Text style={styles.skipText}>Skip</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+
+          {currentPermission === "location" && (
+            <>
+              <View style={styles.permissionCard}>
+                <Text style={styles.permissionTitle}>Find Nearby Care</Text>
+                <Text style={styles.permissionDescription}>
+                  Enable location to connect with pharmacies and labs around
+                  you.
+                </Text>
+                <View style={styles.permissionActions}>
+                  <TouchableOpacity
+                    style={styles.allowButton}
+                    onPress={handleLocationAllow}
+                  >
+                    <Text style={styles.allowButtonText}>Allow</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.skipButton}
+                    onPress={handleLocationSkip}
+                  >
+                    <Text style={styles.skipText}>Skip</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </>
+          )}
         </View>
       </View>
     </Modal>
@@ -458,6 +554,7 @@ export default function PersonalizationScreen({ navigation }) {
 
       {renderGenderPicker()}
       {renderDatePicker()}
+      {renderPermissionsModal()}
     </KeyboardAvoidingView>
   );
 }
@@ -591,8 +688,8 @@ const styles = StyleSheet.create({
     color: Colors.white,
   },
   loadingImage: {
-    width: 24,
-    height: 24,
+    width: 32,
+    height: 32,
   },
   skipButton: {
     fontSize: 16,
@@ -716,5 +813,83 @@ const styles = StyleSheet.create({
   selectedDateOptionText: {
     color: Colors.textPrimary,
     fontFamily: "Poppins-SemiBold",
+  },
+  // Permissions Modal Styles
+  permissionsOverlay: {
+    flex: 1,
+    backgroundColor: "#2C2C2C",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: Sizes.lg,
+  },
+  permissionsContainer: {
+    width: "100%",
+    maxWidth: 400,
+    alignItems: "center",
+  },
+  permissionCard: {
+    backgroundColor: Colors.white,
+    borderRadius: 16,
+    padding: Sizes.xl,
+    marginBottom: Sizes.lg,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  permissionTitle: {
+    fontSize: 24,
+    fontFamily: "Poppins-Bold",
+    color: Colors.textPrimary,
+    marginBottom: Sizes.sm,
+  },
+  permissionDescription: {
+    fontSize: 16,
+    fontFamily: "Poppins-Regular",
+    color: Colors.textSecondary,
+    marginBottom: Sizes.xl,
+    lineHeight: 22,
+  },
+  permissionActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  allowButton: {
+    backgroundColor: Colors.primary,
+    paddingVertical: Sizes.md,
+    paddingHorizontal: Sizes.xl,
+    borderRadius: 50,
+    flex: 0.4,
+    alignItems: "center",
+  },
+  allowButtonText: {
+    fontSize: 16,
+    fontFamily: "Poppins-SemiBold",
+    color: Colors.white,
+  },
+  skipButton: {
+    backgroundColor: Colors.white,
+    paddingVertical: Sizes.md,
+    paddingHorizontal: Sizes.xl,
+    borderRadius: 50,
+    flex: 0.5,
+    alignItems: "center",
+  },
+  skipText: {
+    fontSize: 16,
+    fontFamily: "Poppins-Medium",
+    color: Colors.primary,
+  },
+  locationLabel: {
+    fontSize: 14,
+    fontFamily: "Poppins-Medium",
+    color: Colors.textSecondary,
+    marginBottom: Sizes.sm,
+    marginLeft: Sizes.sm,
   },
 });
