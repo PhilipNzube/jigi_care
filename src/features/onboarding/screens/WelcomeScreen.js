@@ -22,8 +22,7 @@ export default function WelcomeScreen({ navigation }) {
   };
 
   const handleLogin = () => {
-    // Navigate to login screen (you can implement this later)
-    console.log("Navigate to login");
+    navigation.navigate("Login");
   };
 
   return (

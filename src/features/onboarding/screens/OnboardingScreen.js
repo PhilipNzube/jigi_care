@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: Sizes.xl,
-    paddingTop: Sizes.xl,
+    paddingTop: Sizes.sm,
   },
   slideTitle: {
     fontSize: 28,
@@ -193,7 +193,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: Sizes.lg,
     paddingHorizontal: Sizes.xl,
   },
   paginationDot: {
@@ -228,6 +227,6 @@ const styles = StyleSheet.create({
   skipText: {
     fontSize: Sizes.fontSize.md,
     fontFamily: "Poppins-Medium",
-    color: Colors.textSecondary,
+    color: Colors.primary,
   },
 });

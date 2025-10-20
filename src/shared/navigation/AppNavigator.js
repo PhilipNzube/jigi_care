@@ -8,6 +8,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import AppSplashScreen from "../../features/onboarding/screens/AppSplashScreen";
 import OnboardingScreen from "../../features/onboarding/screens/OnboardingScreen";
 import WelcomeScreen from "../../features/onboarding/screens/WelcomeScreen";
+import LoginScreen from "../../features/auth/screens/LoginScreen";
 import HomeScreen from "../../features/profile/screens/HomeScreen";
 import ProfileScreen from "../../features/profile/screens/ProfileScreen";
 
@@ -25,6 +26,7 @@ export default function AppNavigator() {
           <Stack.Screen name="Splash" component={AppSplashScreen} />
           <Stack.Screen name="Onboarding" component={OnboardingScreen} />
           <Stack.Screen name="Welcome" component={WelcomeScreen} />
+          <Stack.Screen name="Login" component={LoginScreen} />
           <Stack.Screen
             name="MainApp"
             component={MainAppNavigator}
