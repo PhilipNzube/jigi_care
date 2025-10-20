@@ -23,18 +23,18 @@ export default function ForgotPasswordScreen({ navigation }) {
   const [email, setEmail] = useState("");
 
   const handleSendCode = () => {
-    // Navigate to email verification screen
-    navigation.navigate("EmailVerification", { email });
+    // Navigate to email verification screen with forgot password context
+    navigation.navigate("EmailVerification", { email, from: "forgotPassword" });
   };
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         style={styles.keyboardAvoidingView}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
       >
-        <ScrollView 
+        <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
@@ -43,11 +43,15 @@ export default function ForgotPasswordScreen({ navigation }) {
           {/* Header */}
           <View style={styles.header}>
             {/* Back Button */}
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.backButton}
               onPress={() => navigation.goBack()}
             >
-              <Ionicons name="chevron-back" size={24} color={Colors.textPrimary} />
+              <Ionicons
+                name="chevron-back"
+                size={24}
+                color={Colors.textPrimary}
+              />
             </TouchableOpacity>
 
             {/* Logo */}
@@ -60,16 +64,21 @@ export default function ForgotPasswordScreen({ navigation }) {
           <View style={styles.contentContainer}>
             {/* Title */}
             <Text style={styles.title}>Reset Password</Text>
-            
+
             {/* Description */}
             <Text style={styles.description}>
-              Enter your email and we'll send you a 6-digit code to reset your password
+              Enter your email and we'll send you a 6-digit code to reset your
+              password
             </Text>
 
             {/* Email Input */}
             <View style={styles.inputContainer}>
               <View style={styles.inputIcon}>
-                <Ionicons name="mail-outline" size={20} color={Colors.textSecondary} />
+                <Ionicons
+                  name="mail-outline"
+                  size={20}
+                  color={Colors.textSecondary}
+                />
               </View>
               <TextInput
                 style={styles.textInput}
@@ -124,7 +133,8 @@ const styles = StyleSheet.create({
   },
   backButton: {
     position: "absolute",
-    left: 0,
+    left: -Sizes.sm,
+    top: -Sizes.sm,
     zIndex: 1,
     padding: Sizes.sm,
   },

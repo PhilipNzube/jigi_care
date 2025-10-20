@@ -204,7 +204,8 @@ const styles = StyleSheet.create({
   },
   backButton: {
     position: "absolute",
-    left: 0,
+    left: -Sizes.sm,
+    top: -Sizes.sm,
     zIndex: 1,
     padding: Sizes.sm,
   },
@@ -274,8 +275,8 @@ const styles = StyleSheet.create({
     color: Colors.white,
   },
   loadingImage: {
-    width: 24,
-    height: 24,
+    width: 32,
+    height: 32,
     resizeMode: "contain",
   },
 });

@@ -628,8 +628,8 @@ const styles = StyleSheet.create({
     color: Colors.primary,
   },
   loadingImage: {
-    width: 24,
-    height: 24,
+    width: 32,
+    height: 32,
     resizeMode: "contain",
   },
 });

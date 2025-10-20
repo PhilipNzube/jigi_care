@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  TextInput,
   TouchableOpacity,
   Image,
   Dimensions,
@@ -14,6 +13,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { OtpInput } from "react-native-otp-entry";
 import { Colors, Sizes } from "../../../shared/constants";
 import { Images } from "../../../shared/utils/imageUtils";
 
@@ -21,14 +21,13 @@ const { width, height } = Dimensions.get("window");
 
 export default function EmailVerificationScreen({ navigation, route }) {
   const insets = useSafeAreaInsets();
-  const { email = "youremail@gmail.com" } = route.params || {};
-  const [code, setCode] = useState(["", "", "", "", "", ""]);
+  const { email = "youremail@gmail.com", from = "signup" } = route.params || {};
+  const [code, setCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [resendTimer, setResendTimer] = useState(50);
   const [canResend, setCanResend] = useState(false);
-  
+
   const spinValue = useRef(new Animated.Value(0)).current;
-  const inputRefs = useRef([]);
 
   useEffect(() => {
     // Start countdown timer
@@ -68,21 +67,8 @@ export default function EmailVerificationScreen({ navigation, route }) {
     spinValue.stopAnimation();
   };
 
-  const handleCodeChange = (text, index) => {
-    const newCode = [...code];
-    newCode[index] = text;
-    setCode(newCode);
-
-    // Auto-focus next input
-    if (text && index < 5) {
-      inputRefs.current[index + 1]?.focus();
-    }
-  };
-
-  const handleKeyPress = (key, index) => {
-    if (key === "Backspace" && !code[index] && index > 0) {
-      inputRefs.current[index - 1]?.focus();
-    }
+  const handleCodeChange = (text) => {
+    setCode(text);
   };
 
   const handleVerifyCode = () => {
@@ -90,7 +76,13 @@ export default function EmailVerificationScreen({ navigation, route }) {
     // Simulate verification process
     setTimeout(() => {
       setIsLoading(false);
-      navigation.navigate("CreateNewPassword", { email });
+      // Route based on where the verification was invoked from
+      if (from === "forgotPassword") {
+        navigation.navigate("CreateNewPassword", { email });
+      } else {
+        // Default to main app for signup flow
+        navigation.replace("MainApp");
+      }
     }, 2000);
   };
 
@@ -102,16 +94,16 @@ export default function EmailVerificationScreen({ navigation, route }) {
     }
   };
 
-  const isCodeComplete = code.every(digit => digit !== "");
+  const isCodeComplete = code.length === 6;
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         style={styles.keyboardAvoidingView}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
       >
-        <ScrollView 
+        <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
@@ -120,11 +112,15 @@ export default function EmailVerificationScreen({ navigation, route }) {
           {/* Header */}
           <View style={styles.header}>
             {/* Back Button */}
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.backButton}
               onPress={() => navigation.goBack()}
             >
-              <Ionicons name="chevron-back" size={24} color={Colors.textPrimary} />
+              <Ionicons
+                name="chevron-back"
+                size={24}
+                color={Colors.textPrimary}
+              />
             </TouchableOpacity>
 
             {/* Logo */}
@@ -136,33 +132,38 @@ export default function EmailVerificationScreen({ navigation, route }) {
           {/* Content */}
           <View style={styles.contentContainer}>
             {/* Title */}
-            <Text style={styles.title}>Check your Email</Text>
-            
+            <Text style={styles.title}>
+              {from === "forgotPassword"
+                ? "Check your Email"
+                : "Verify your Email"}
+            </Text>
+
             {/* Description */}
             <Text style={styles.description}>
-              We've sent a 6-digit code to {email}
+              {from === "forgotPassword"
+                ? `We've sent a 6-digit code to ${email} to reset your password`
+                : `We've sent a 6-digit code to ${email} to verify your account`}
             </Text>
 
             {/* Code Input Fields */}
             <View style={styles.codeContainer}>
-              {code.map((digit, index) => (
-                <TextInput
-                  key={index}
-                  ref={(ref) => (inputRefs.current[index] = ref)}
-                  style={[
-                    styles.codeInput,
-                    digit && styles.codeInputFilled,
-                    index === 0 && !digit && styles.codeInputActive,
-                  ]}
-                  value={digit}
-                  onChangeText={(text) => handleCodeChange(text, index)}
-                  onKeyPress={({ nativeEvent }) => handleKeyPress(nativeEvent.key, index)}
-                  keyboardType="numeric"
-                  maxLength={1}
-                  textAlign="center"
-                  selectTextOnFocus
-                />
-              ))}
+              <OtpInput
+                numberOfDigits={6}
+                value={code}
+                onTextChange={handleCodeChange}
+                focusColor={Colors.primary}
+                focusStickBlinkingDuration={500}
+                textInputProps={{
+                  accessibilityLabel: "One-Time Password",
+                }}
+                theme={{
+                  containerStyle: styles.otpContainer,
+                  pinCodeContainerStyle: styles.otpInput,
+                  pinCodeTextStyle: styles.otpText,
+                  focusStickStyle: styles.focusStick,
+                  focusedPinCodeContainerStyle: styles.otpInputFocused,
+                }}
+              />
             </View>
 
             {/* Verify Code Button */}
@@ -199,21 +200,25 @@ export default function EmailVerificationScreen({ navigation, route }) {
             {/* Secondary Actions */}
             <View style={styles.secondaryActions}>
               <TouchableOpacity style={styles.secondaryButton}>
-                <Text style={styles.secondaryButtonText}>Use another email</Text>
+                <Text style={styles.secondaryButtonText}>
+                  Use another email
+                </Text>
               </TouchableOpacity>
 
               <View style={styles.resendContainer}>
                 <Text style={styles.resendText}>
                   Resend Code in {resendTimer}s{" "}
                 </Text>
-                <TouchableOpacity 
+                <TouchableOpacity
                   onPress={handleResendCode}
                   disabled={!canResend}
                 >
-                  <Text style={[
-                    styles.resendLink,
-                    !canResend && styles.resendLinkDisabled
-                  ]}>
+                  <Text
+                    style={[
+                      styles.resendLink,
+                      !canResend && styles.resendLinkDisabled,
+                    ]}
+                  >
                     Resend
                   </Text>
                 </TouchableOpacity>
@@ -250,7 +255,8 @@ const styles = StyleSheet.create({
   },
   backButton: {
     position: "absolute",
-    left: 0,
+    left: -Sizes.sm,
+    top: -Sizes.sm,
     zIndex: 1,
     padding: Sizes.sm,
   },
@@ -284,30 +290,34 @@ const styles = StyleSheet.create({
     marginBottom: Sizes.xxl,
   },
   codeContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
     marginBottom: Sizes.xxl,
-    paddingHorizontal: Sizes.lg,
+    alignItems: "center",
   },
-  codeInput: {
+  otpContainer: {
+    width: "100%",
+    justifyContent: "center",
+  },
+  otpInput: {
     width: 50,
     height: 50,
     borderRadius: 25,
     borderWidth: 1,
     borderColor: Colors.primaryLight,
     backgroundColor: Colors.white,
-    fontSize: Sizes.fontSize.lg,
-    fontFamily: "Poppins-Bold",
-    color: Colors.textPrimary,
-    textAlign: "center",
+    marginHorizontal: 8,
   },
-  codeInputActive: {
+  otpInputFocused: {
     borderColor: Colors.primary,
     borderWidth: 2,
   },
-  codeInputFilled: {
-    borderColor: Colors.primary,
-    backgroundColor: Colors.white,
+  otpText: {
+    fontSize: Sizes.fontSize.lg,
+    fontFamily: "Poppins-Bold",
+    color: Colors.textPrimary,
+  },
+  focusStick: {
+    backgroundColor: Colors.primary,
+    width: 2,
   },
   verifyButton: {
     width: "100%",
@@ -327,8 +337,8 @@ const styles = StyleSheet.create({
     color: Colors.white,
   },
   loadingImage: {
-    width: 24,
-    height: 24,
+    width: 32,
+    height: 32,
     resizeMode: "contain",
   },
   secondaryActions: {

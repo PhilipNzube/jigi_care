@@ -142,7 +142,7 @@ export default function SignUpScreen({ navigation }) {
     // Simulate sign up process
     setTimeout(() => {
       setIsLoading(false);
-      navigation.navigate("EmailVerification", { email });
+      navigation.navigate("EmailVerification", { email, from: "signup" });
     }, 2000);
   };
 
@@ -513,8 +513,8 @@ const styles = StyleSheet.create({
     color: Colors.white,
   },
   loadingImage: {
-    width: 24,
-    height: 24,
+    width: 32,
+    height: 32,
     resizeMode: "contain",
   },
   loginContainer: {
