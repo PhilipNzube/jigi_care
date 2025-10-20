@@ -80,8 +80,8 @@ export default function EmailVerificationScreen({ navigation, route }) {
       if (from === "forgotPassword") {
         navigation.navigate("CreateNewPassword", { email });
       } else {
-        // Default to main app for signup flow
-        navigation.replace("MainApp");
+        // Default to personalization for signup flow
+        navigation.navigate("Personalization");
       }
     }, 2000);
   };

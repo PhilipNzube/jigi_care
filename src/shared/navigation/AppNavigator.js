@@ -13,6 +13,7 @@ import SignUpScreen from "../../features/auth/screens/SignUpScreen";
 import ForgotPasswordScreen from "../../features/auth/screens/ForgotPasswordScreen";
 import EmailVerificationScreen from "../../features/auth/screens/EmailVerificationScreen";
 import CreateNewPasswordScreen from "../../features/auth/screens/CreateNewPasswordScreen";
+import PersonalizationScreen from "../../features/auth/screens/PersonalizationScreen";
 import HomeScreen from "../../features/profile/screens/HomeScreen";
 import ProfileScreen from "../../features/profile/screens/ProfileScreen";
 
@@ -31,10 +32,23 @@ export default function AppNavigator() {
           <Stack.Screen name="Onboarding" component={OnboardingScreen} />
           <Stack.Screen name="Welcome" component={WelcomeScreen} />
           <Stack.Screen name="Login" component={LoginScreen} />
-        <Stack.Screen name="SignUp" component={SignUpScreen} />
-        <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
-        <Stack.Screen name="EmailVerification" component={EmailVerificationScreen} />
-        <Stack.Screen name="CreateNewPassword" component={CreateNewPasswordScreen} />
+          <Stack.Screen name="SignUp" component={SignUpScreen} />
+          <Stack.Screen
+            name="ForgotPassword"
+            component={ForgotPasswordScreen}
+          />
+          <Stack.Screen
+            name="EmailVerification"
+            component={EmailVerificationScreen}
+          />
+          <Stack.Screen
+            name="CreateNewPassword"
+            component={CreateNewPasswordScreen}
+          />
+          <Stack.Screen
+            name="Personalization"
+            component={PersonalizationScreen}
+          />
           <Stack.Screen
             name="MainApp"
             component={MainAppNavigator}
