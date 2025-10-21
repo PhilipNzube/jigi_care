@@ -35,6 +35,7 @@ export default function LoginScreen({ navigation }) {
   const [errors, setErrors] = useState({});
 
   const spinValue = useRef(new Animated.Value(0)).current;
+  const isAuthenticating = useRef(false);
 
   // Validation functions
   const validateEmail = (email) => {
@@ -160,7 +161,23 @@ export default function LoginScreen({ navigation }) {
   };
 
   const handleBiometricLogin = async (method) => {
+    // Prevent multiple simultaneous authentication attempts
+    if (isAuthenticating.current) {
+      return;
+    }
+
     try {
+      isAuthenticating.current = true;
+
+      // Check if biometric authentication is available
+      const hasHardware = await LocalAuthentication.hasHardwareAsync();
+      const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+
+      if (!hasHardware || !isEnrolled) {
+        alert("Biometric authentication is not available on this device");
+        return;
+      }
+
       // Authenticate using biometrics
       const result = await LocalAuthentication.authenticateAsync({
         promptMessage:
@@ -168,14 +185,27 @@ export default function LoginScreen({ navigation }) {
             ? "Authenticate with Face ID"
             : "Authenticate with Fingerprint",
         fallbackLabel: "Use Password",
+        disableDeviceFallback: false,
       });
 
       if (result.success) {
         navigation.replace("MainApp");
+      } else {
+        // User cancelled or authentication failed
+        console.log("Biometric authentication cancelled or failed");
       }
     } catch (error) {
       console.error("Biometric authentication error:", error);
-      alert("Biometric authentication failed");
+      // Only show alert if it's not a cancellation error and not an activity error
+      if (
+        error.message &&
+        !error.message.includes("cancelled") &&
+        !error.message.includes("activity is no longer available")
+      ) {
+        alert("Biometric authentication failed. Please try again.");
+      }
+    } finally {
+      isAuthenticating.current = false;
     }
   };
 

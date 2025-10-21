@@ -3,67 +3,76 @@ import { View, StyleSheet, ScrollView, SafeAreaView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 // Import components
-import Header from "../components/Header";
-import AppointmentCard from "../components/AppointmentCard";
-import PaginationDots from "../components/PaginationDots";
-import QuickActionsSection from "../components/QuickActionsSection";
-import HealthTipsSection from "../components/HealthTipsSection";
-import UpcomingAppointmentsSection from "../components/UpcomingAppointmentsSection";
+import HeroSection from "../components/HeroSection";
+import QuickActionsGrid from "../components/QuickActionsGrid";
+import HealthTipsCarousel from "../components/HealthTipsCarousel";
+import UpcomingAppointmentsList from "../components/UpcomingAppointmentsList";
+import FloatingActionButton from "../components/FloatingActionButton";
+import ConnectingModal from "../components/ConnectingModal";
+import ChatBotInterface from "../components/ChatBotInterface";
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
-  const [currentAppointmentState, setCurrentAppointmentState] = useState(0);
+  const [showConnectingModal, setShowConnectingModal] = useState(false);
+  const [showChatBotInterface, setShowChatBotInterface] = useState(false);
+  const [isChatMode, setIsChatMode] = useState(false);
 
-  // Sample data
-  const appointmentStates = [
-    {
-      type: "no_appointments",
-      title: "Your Appointments",
-      message: "No appointments yet.",
-      buttonText: "Book an appointment",
-      buttonAction: () => console.log("Book appointment"),
-    },
-    {
-      type: "next_appointment",
-      title: "Next Appointment",
-      dateTime: "Thursday, Sep 25. 11:00 AM",
-      doctor: {
-        name: "Dr. Philip Benson",
-        specialty: "Cardiologist",
-      },
-    },
-    {
-      type: "time_for_appointment",
-      title: "Time for your appointment",
-      doctorTime: "Dr. Sarah - Today 10:00 AM",
-      buttonText: "Join Now",
-      buttonAction: () => console.log("Join appointment"),
-    },
-  ];
+  const handleChatPress = () => {
+    console.log("Chat button pressed, isChatMode:", isChatMode);
+    if (isChatMode) {
+      // Close chat and return to normal state
+      console.log("Closing chat bot interface");
+      setShowChatBotInterface(false);
+      setIsChatMode(false);
+    } else {
+      // Show connecting modal first
+      console.log("Showing connecting modal");
+      setShowConnectingModal(true);
 
-  const currentState = appointmentStates[currentAppointmentState];
+      // After 3 seconds, hide connecting modal and show chat bot interface
+      setTimeout(() => {
+        console.log("Transitioning to chat bot interface");
+        setShowConnectingModal(false);
+        setShowChatBotInterface(true);
+        setIsChatMode(true);
+      }, 3000);
+    }
+  };
+
+  const handleCloseChat = () => {
+    setShowChatBotInterface(false);
+    setIsChatMode(false);
+  };
+
+  console.log(
+    "HomeScreen render - showConnectingModal:",
+    showConnectingModal,
+    "showChatBotInterface:",
+    showChatBotInterface,
+    "isChatMode:",
+    isChatMode
+  );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
       >
-        <Header insets={insets} />
-        <AppointmentCard
-          currentState={currentState}
-          onStateChange={setCurrentAppointmentState}
-        />
-        <PaginationDots
-          totalDots={appointmentStates.length}
-          activeIndex={currentAppointmentState}
-          onDotPress={setCurrentAppointmentState}
-        />
-        <QuickActionsSection />
-        <HealthTipsSection />
-        <UpcomingAppointmentsSection />
+        <HeroSection insets={insets} />
+        <QuickActionsGrid />
+        <HealthTipsCarousel />
+        <UpcomingAppointmentsList />
       </ScrollView>
-    </SafeAreaView>
+      <FloatingActionButton onPress={handleChatPress} isChatMode={isChatMode} />
+
+      <ConnectingModal visible={showConnectingModal} doctorName="Dr. Sarah" />
+
+      <ChatBotInterface
+        visible={showChatBotInterface}
+        onClose={handleCloseChat}
+      />
+    </View>
   );
 }
 

@@ -2,8 +2,8 @@ import React, { useState } from "react";
 import { View, StyleSheet, TouchableOpacity, Text, Image } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { Colors, Sizes } from "../../../shared/constants";
-import { Images } from "../../../shared/utils/imageUtils";
+import { Colors, Sizes } from "../constants";
+import { Images } from "../utils/imageUtils";
 
 // Import screens
 import HomeScreen from "../../features/home/screens/HomeScreen";
@@ -19,29 +19,29 @@ export default function MainAppNavigator() {
     {
       id: "home",
       label: "Home",
-      icon: "home-outline",
-      activeIcon: "home",
+      icon: Images.homeIcon,
+      activeIcon: Images.homeIconActive,
       component: HomeScreen,
     },
     {
       id: "consult",
       label: "Consult",
-      icon: "calendar-outline",
-      activeIcon: "calendar",
+      icon: Images.consultIcon,
+      activeIcon: Images.consultIconActive,
       component: ConsultScreen,
     },
     {
       id: "medication",
       label: "Medication",
-      icon: "medical-outline",
-      activeIcon: "medical",
+      icon: Images.medicationIcon,
+      activeIcon: Images.medicationIconActive,
       component: MedicationScreen,
     },
     {
       id: "profile",
       label: "Profile",
-      icon: "person-outline",
-      activeIcon: "person",
+      icon: Images.profileIcon,
+      activeIcon: Images.profileIconActive,
       component: ProfileScreen,
     },
   ];
@@ -54,10 +54,10 @@ export default function MainAppNavigator() {
           style={styles.navItem}
           onPress={() => setActiveTab(tab.id)}
         >
-          <Ionicons
-            name={activeTab === tab.id ? tab.activeIcon : tab.icon}
-            size={24}
-            color={activeTab === tab.id ? Colors.primary : Colors.textSecondary}
+          <Image
+            source={activeTab === tab.id ? tab.activeIcon : tab.icon}
+            style={styles.navIcon}
+            resizeMode="contain"
           />
           <Text
             style={[
@@ -108,6 +108,10 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     paddingVertical: Sizes.sm,
+  },
+  navIcon: {
+    width: 24,
+    height: 24,
   },
   navLabel: {
     fontSize: 12,

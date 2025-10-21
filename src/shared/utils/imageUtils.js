@@ -43,6 +43,15 @@ export const Images = {
   profileIconActive: require("../../../assets/images/profile_icon_active.png"),
   // Health Content
   healthTips: require("../../../assets/images/health_tips.png"),
+
+  // Background images
+  bgImg: require("../../../assets/images/bg_img.png"),
+
+  // Quick action images
+  consult: require("../../../assets/images/consult.png"),
+  medications: require("../../../assets/images/medications.png"),
+  labTest: require("../../../assets/images/lab_test.png"),
+  healthMonitoring: require("../../../assets/images/health_monitoring.png"),
 };
 
 // Helper function to get image source
