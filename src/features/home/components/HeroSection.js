@@ -15,7 +15,7 @@ import { Images } from "../../../shared/utils/imageUtils";
 
 const { width, height } = Dimensions.get("window");
 
-export default function HeroSection({ insets }) {
+export default function HeroSection({ insets, navigation }) {
   const [currentSlide, setCurrentSlide] = useState(0);
   const scrollViewRef = useRef(null);
 
@@ -89,7 +89,10 @@ export default function HeroSection({ insets }) {
               </View>
             </View>
             <View style={styles.notificationContainer}>
-              <TouchableOpacity style={styles.notificationButton}>
+              <TouchableOpacity
+                style={styles.notificationButton}
+                onPress={() => navigation.navigate("Notifications")}
+              >
                 <Ionicons
                   name="notifications-outline"
                   size={24}

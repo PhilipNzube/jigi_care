@@ -112,7 +112,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#0098B3",
     paddingVertical: Sizes.md,
     paddingHorizontal: Sizes.xl,
-    borderRadius: 25,
+    borderRadius: 50,
     minWidth: 200,
     alignItems: "center",
     justifyContent: "center",

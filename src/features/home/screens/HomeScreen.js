@@ -11,7 +11,7 @@ import FloatingActionButton from "../components/FloatingActionButton";
 import ConnectingModal from "../components/ConnectingModal";
 import ChatBotInterface from "../components/ChatBotInterface";
 
-export default function HomeScreen() {
+export default function HomeScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const [showConnectingModal, setShowConnectingModal] = useState(false);
   const [showChatBotInterface, setShowChatBotInterface] = useState(false);
@@ -59,7 +59,7 @@ export default function HomeScreen() {
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
       >
-        <HeroSection insets={insets} />
+        <HeroSection insets={insets} navigation={navigation} />
         <QuickActionsGrid />
         <HealthTipsCarousel />
         <UpcomingAppointmentsList />

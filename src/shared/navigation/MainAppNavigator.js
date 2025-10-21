@@ -11,7 +11,7 @@ import ConsultScreen from "../../features/consult/screens/ConsultScreen";
 import MedicationScreen from "../../features/medications/screens/MedicationScreen";
 import ProfileScreen from "../../features/profile/screens/ProfileScreen";
 
-export default function MainAppNavigator() {
+export default function MainAppNavigator({ navigation }) {
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState("home");
 
@@ -82,7 +82,7 @@ export default function MainAppNavigator() {
   return (
     <View style={styles.container}>
       <View style={styles.content}>
-        <ActiveComponent />
+        <ActiveComponent navigation={navigation} />
       </View>
       {renderBottomNavigation()}
     </View>
