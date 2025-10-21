@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { View, StyleSheet, TouchableOpacity, Text, Image } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { createStackNavigator } from "@react-navigation/stack";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../constants";
 import { Images } from "../utils/imageUtils";
@@ -10,8 +11,12 @@ import HomeScreen from "../../features/home/screens/HomeScreen";
 import ConsultScreen from "../../features/consult/screens/ConsultScreen";
 import MedicationScreen from "../../features/medications/screens/MedicationScreen";
 import ProfileScreen from "../../features/profile/screens/ProfileScreen";
+import DoctorProfileScreen from "../../features/consult/screens/DoctorProfileScreen";
 
-export default function MainAppNavigator({ navigation }) {
+const Stack = createStackNavigator();
+
+// Bottom Tab Navigator Component
+function BottomTabNavigator({ navigation }) {
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState("home");
 
@@ -86,6 +91,15 @@ export default function MainAppNavigator({ navigation }) {
       </View>
       {renderBottomNavigation()}
     </View>
+  );
+}
+
+export default function MainAppNavigator() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="BottomTabs" component={BottomTabNavigator} />
+      <Stack.Screen name="DoctorProfile" component={DoctorProfileScreen} />
+    </Stack.Navigator>
   );
 }
 

@@ -1,16 +1,62 @@
-import React from "react";
-import { View, Text, StyleSheet, SafeAreaView } from "react-native";
+import React, { useState } from "react";
+import { View, StyleSheet, ScrollView, SafeAreaView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, Sizes } from "../../../shared/constants";
 
-export default function ConsultScreen() {
+// Import components
+import ConsultationsHeader from "../components/ConsultationsHeader";
+import SearchBar from "../components/SearchBar";
+import SpecialtySection from "../components/SpecialtySection";
+import AvailableDoctorsSection from "../components/AvailableDoctorsSection";
+import EmergencySection from "../components/EmergencySection";
+
+export default function ConsultScreen({ navigation }) {
+  const [searchQuery, setSearchQuery] = useState("");
   const insets = useSafeAreaInsets();
+
+  const handleSearch = (query) => {
+    setSearchQuery(query);
+    // Implement search functionality
+  };
+
+  const handleDoctorPress = (doctor) => {
+    console.log("Doctor pressed:", doctor.name);
+    // Navigate to doctor details or booking
+  };
+
+  const handleSpecialtyPress = (specialty) => {
+    console.log("Specialty pressed:", specialty.name);
+    // Filter doctors by specialty
+  };
 
   return (
     <SafeAreaView style={[styles.container, { paddingTop: insets.top }]}>
-      <View style={styles.content}>
-        <Text style={styles.title}>Consult Screen</Text>
-        <Text style={styles.subtitle}>Coming Soon</Text>
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        {/* Header */}
+        <ConsultationsHeader />
+
+        {/* Search Bar */}
+        <SearchBar value={searchQuery} onChangeText={handleSearch} />
+
+        {/* Choose Specialty Section */}
+        <SpecialtySection onSpecialtyPress={handleSpecialtyPress} />
+
+        {/* Available Doctors Section */}
+        <AvailableDoctorsSection
+          onDoctorPress={handleDoctorPress}
+          navigation={navigation}
+        />
+      </ScrollView>
+
+      {/* Emergency Section - Sticky to bottom */}
+      <View
+        style={[styles.emergencyContainer, { paddingBottom: insets.bottom }]}
+      >
+        <EmergencySection />
       </View>
     </SafeAreaView>
   );
@@ -19,23 +65,15 @@ export default function ConsultScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: "#F5F5F5",
   },
-  content: {
+  scrollView: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: Sizes.lg,
   },
-  title: {
-    fontSize: 24,
-    fontFamily: "Poppins-Bold",
-    color: Colors.textPrimary,
-    marginBottom: Sizes.sm,
+  scrollContent: {
+    paddingBottom: 100, // Space for emergency section
   },
-  subtitle: {
-    fontSize: 16,
-    fontFamily: "Poppins-Regular",
-    color: Colors.textSecondary,
+  emergencyContainer: {
+    backgroundColor: "#F5F5F5",
   },
 });

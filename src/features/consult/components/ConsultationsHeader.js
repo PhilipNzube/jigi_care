@@ -15,7 +15,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: Sizes.lg,
-    paddingVertical: Sizes.md,
     backgroundColor: Colors.white,
   },
   title: {

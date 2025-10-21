@@ -1,7 +1,7 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
 import { Colors, Sizes } from "../../../shared/constants";
+import { Images } from "../../../shared/utils/imageUtils";
 
 export default function EmergencySection() {
   const handleEmergencyCall = () => {
@@ -13,7 +13,11 @@ export default function EmergencySection() {
     <View style={styles.container}>
       <View style={styles.emergencyCard}>
         <View style={styles.emergencyIcon}>
-          <Ionicons name="warning" size={20} color={Colors.white} />
+          <Image
+            source={Images.emergency}
+            style={styles.emergencyImage}
+            resizeMode="contain"
+          />
         </View>
 
         <View style={styles.emergencyContent}>
@@ -49,24 +53,30 @@ const styles = StyleSheet.create({
   emergencyCard: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FFE5E5",
+    backgroundColor: "#E732320A",
     borderRadius: 12,
+    borderWidth: 0.5,
+    borderColor: "#FAD1D1",
     padding: Sizes.md,
   },
   emergencyIcon: {
     width: 40,
     height: 40,
     borderRadius: 8,
-    backgroundColor: "#FF6B6B",
+    backgroundColor: "#EA4D4D",
     justifyContent: "center",
     alignItems: "center",
     marginRight: Sizes.md,
+  },
+  emergencyImage: {
+    width: 20,
+    height: 20,
   },
   emergencyContent: {
     flex: 1,
   },
   emergencyTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontFamily: "Poppins-Bold",
     color: Colors.black,
     marginBottom: Sizes.xs,
@@ -79,15 +89,13 @@ const styles = StyleSheet.create({
   },
   emergencyButton: {
     backgroundColor: Colors.white,
-    borderRadius: 8,
+    borderRadius: 25,
     paddingHorizontal: Sizes.md,
     paddingVertical: Sizes.sm,
-    borderWidth: 1,
-    borderColor: "#FF6B6B",
   },
   emergencyButtonText: {
     fontSize: 14,
     fontFamily: "Poppins-SemiBold",
-    color: "#FF6B6B",
+    color: "#EA4D4D",
   },
 });

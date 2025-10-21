@@ -1,12 +1,9 @@
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import { Sizes } from "../../../shared/constants";
+import { Colors, Sizes } from "../../../shared/constants";
 import DoctorCard from "./DoctorCard";
 
-export default function AvailableDoctorsSection({
-  onDoctorPress,
-  onViewAllPress,
-}) {
+export default function AvailableDoctorsSection({ onDoctorPress, navigation }) {
   const doctors = [
     {
       id: 1,
@@ -36,9 +33,6 @@ export default function AvailableDoctorsSection({
     <View style={styles.container}>
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Available Doctors</Text>
-        <TouchableOpacity onPress={onViewAllPress}>
-          <Text style={styles.viewAllText}>View all</Text>
-        </TouchableOpacity>
       </View>
 
       <View style={styles.doctorsList}>
@@ -47,6 +41,7 @@ export default function AvailableDoctorsSection({
             key={doctor.id}
             doctor={doctor}
             onPress={() => onDoctorPress(doctor)}
+            navigation={navigation}
           />
         ))}
       </View>
@@ -60,21 +55,13 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
   },
   sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
     marginHorizontal: Sizes.lg,
     marginBottom: Sizes.md,
   },
   sectionTitle: {
     fontSize: 18,
-    fontFamily: "Poppins-Bold",
+    fontFamily: "Poppins-Medium",
     color: Colors.black,
-  },
-  viewAllText: {
-    fontSize: 14,
-    fontFamily: "Poppins-SemiBold",
-    color: "#0098B3",
   },
   doctorsList: {
     paddingHorizontal: Sizes.lg,

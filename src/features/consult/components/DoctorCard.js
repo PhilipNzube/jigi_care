@@ -3,9 +3,9 @@ import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
 
-export default function DoctorCard({ doctor, onPress }) {
+export default function DoctorCard({ doctor, onPress, navigation }) {
   return (
-    <TouchableOpacity style={styles.card} onPress={onPress}>
+    <View style={styles.card}>
       {/* Availability Status */}
       <View style={styles.availabilityContainer}>
         <View style={styles.availabilityDot} />
@@ -14,24 +14,19 @@ export default function DoctorCard({ doctor, onPress }) {
 
       {/* Doctor Info */}
       <View style={styles.doctorInfo}>
-        <View style={styles.doctorImageContainer}>
-          <Image
-            source={{
-              uri: `https://ui-avatars.com/api/?name=${doctor.name}&background=0098B3&color=fff&size=60`,
-            }}
-            style={styles.doctorImage}
-          />
+        <View style={styles.doctorMainInfo}>
+          <View style={styles.doctorProfileImageContainer}>
+            <Ionicons name="person" size={25} color={Colors.primary} />
+          </View>
+          <View style={styles.doctorDetails}>
+            <Text style={styles.doctorName}>{doctor.name}</Text>
+            <Text style={styles.doctorSpecialty}>{doctor.specialty}</Text>
+            <Text style={styles.doctorLanguages}>
+              <Ionicons name="chatbubble-outline" size={14} color="#666" />{" "}
+              {doctor.languages}
+            </Text>
+          </View>
         </View>
-
-        <View style={styles.doctorDetails}>
-          <Text style={styles.doctorName}>{doctor.name}</Text>
-          <Text style={styles.doctorSpecialty}>{doctor.specialty}</Text>
-          <Text style={styles.doctorLanguages}>
-            <Ionicons name="chatbubble-outline" size={14} color="#666" />{" "}
-            {doctor.languages}
-          </Text>
-        </View>
-
         <View style={styles.doctorStats}>
           <View style={styles.ratingContainer}>
             <Ionicons name="star" size={16} color="#FFD700" />
@@ -39,14 +34,16 @@ export default function DoctorCard({ doctor, onPress }) {
           </View>
           <Text style={styles.experienceText}>{doctor.experience}</Text>
           <Text style={styles.priceText}>{doctor.price}</Text>
+          {/* Book Now Button */}
+          <TouchableOpacity
+            style={styles.bookButton}
+            onPress={() => navigation.navigate("DoctorProfile", { doctor })}
+          >
+            <Text style={styles.bookButtonText}>Book Now</Text>
+          </TouchableOpacity>
         </View>
       </View>
-
-      {/* Book Now Button */}
-      <TouchableOpacity style={styles.bookButton} onPress={onPress}>
-        <Text style={styles.bookButtonText}>Book Now</Text>
-      </TouchableOpacity>
-    </TouchableOpacity>
+    </View>
   );
 }
 
@@ -54,8 +51,8 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: Colors.white,
     borderRadius: 12,
-    padding: Sizes.lg,
-    marginBottom: Sizes.sm,
+    padding: Sizes.sm,
+    marginBottom: Sizes.md,
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
@@ -68,7 +65,7 @@ const styles = StyleSheet.create({
   availabilityContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: Sizes.md,
+    margin: Sizes.md,
   },
   availabilityDot: {
     width: 8,
@@ -83,17 +80,23 @@ const styles = StyleSheet.create({
     color: "#4CAF50",
   },
   doctorInfo: {
+    backgroundColor: "#F2F2F2",
+    borderRadius: 8,
+    padding: Sizes.md,
+  },
+  doctorMainInfo: {
     flexDirection: "row",
     alignItems: "flex-start",
     marginBottom: Sizes.md,
   },
-  doctorImageContainer: {
-    marginRight: Sizes.md,
-  },
-  doctorImage: {
-    width: 60,
-    height: 60,
+  doctorProfileImageContainer: {
+    width: 40,
+    height: 40,
     borderRadius: 30,
+    backgroundColor: "#E3F2FD",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: Sizes.md,
   },
   doctorDetails: {
     flex: 1,
@@ -142,9 +145,11 @@ const styles = StyleSheet.create({
   },
   bookButton: {
     backgroundColor: "#0098B3",
-    borderRadius: 8,
+    borderRadius: 30,
     paddingVertical: Sizes.md,
     alignItems: "center",
+    width: "100%",
+    marginTop: Sizes.sm,
   },
   bookButtonText: {
     fontSize: 16,

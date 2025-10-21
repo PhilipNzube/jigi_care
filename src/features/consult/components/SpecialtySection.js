@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   ImageBackground,
 } from "react-native";
-import { Sizes } from "../../../shared/constants";
+import { Colors, Sizes } from "../../../shared/constants";
 import { Images } from "../../../shared/utils/imageUtils";
 
 export default function SpecialtySection({ onSpecialtyPress }) {
@@ -79,7 +79,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontFamily: "Poppins-Bold",
+    fontFamily: "Poppins-Medium",
     color: Colors.black,
     marginHorizontal: Sizes.lg,
     marginBottom: Sizes.md,
@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
     padding: Sizes.md,
   },
   specialtyName: {
-    fontSize: 16,
+    fontSize: 14,
     fontFamily: "Poppins-Bold",
     color: Colors.white,
     marginBottom: Sizes.xs,

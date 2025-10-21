@@ -89,7 +89,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 20,
-    fontFamily: "Poppins-Bold",
+    fontFamily: "Poppins-Medium",
     color: Colors.textPrimary,
     marginBottom: Sizes.lg,
     paddingHorizontal: Sizes.lg,

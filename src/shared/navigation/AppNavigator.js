@@ -16,7 +16,6 @@ import CreateNewPasswordScreen from "../../features/auth/screens/CreateNewPasswo
 import PersonalizationScreen from "../../features/auth/screens/PersonalizationScreen";
 import MainAppNavigator from "./MainAppNavigator";
 import NotificationsScreen from "../../features/notifications/screens/NotificationsScreen";
-import ConsultationsScreen from "../../features/consult/screens/ConsultationsScreen";
 
 const Stack = createStackNavigator();
 
@@ -58,11 +57,6 @@ export default function AppNavigator() {
           <Stack.Screen
             name="Notifications"
             component={NotificationsScreen}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="Consultations"
-            component={ConsultationsScreen}
             options={{ headerShown: false }}
           />
         </Stack.Navigator>

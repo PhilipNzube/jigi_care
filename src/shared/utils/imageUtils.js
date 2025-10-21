@@ -52,6 +52,9 @@ export const Images = {
   medications: require("../../../assets/images/medications.png"),
   labTest: require("../../../assets/images/lab_test.png"),
   healthMonitoring: require("../../../assets/images/health_monitoring.png"),
+
+  // Emergency image
+  emergency: require("../../../assets/images/emergency.png"),
 };
 
 // Helper function to get image source
