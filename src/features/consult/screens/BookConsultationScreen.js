@@ -1,10 +1,13 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   StyleSheet,
   ScrollView,
   ImageBackground,
   Dimensions,
+  Text,
+  TouchableOpacity,
+  TextInput,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, Sizes } from "../../../shared/constants";
@@ -15,37 +18,58 @@ const { height } = Dimensions.get("window");
 // Import components
 import DoctorProfileHeader from "../components/DoctorProfileHeader";
 import DoctorProfileCard from "../components/DoctorProfileCard";
-import AboutSection from "../components/AboutSection";
-import EducationSection from "../components/EducationSection";
-import CertificationsSection from "../components/CertificationsSection";
-import WorkingHoursSection from "../components/WorkingHoursSection";
-import PatientsReviewSection from "../components/PatientsReviewSection";
-import BookNowButton from "../components/BookNowButton";
+import DateSelectionSection from "../components/DateSelectionSection";
+import TimeSelectionSection from "../components/TimeSelectionSection";
+import SymptomsInputSection from "../components/SymptomsInputSection";
+import PaymentSummarySection from "../components/PaymentSummarySection";
+import BookConsultationButton from "../components/BookConsultationButton";
 
-export default function DoctorProfileScreen({ route, navigation }) {
+export default function BookConsultationScreen({ navigation, route }) {
   const insets = useSafeAreaInsets();
-  const { doctor } = route.params || {};
-
-  // Default doctor data if none provided
-  const defaultDoctor = {
+  const doctor = route.params?.doctor || {
     name: "Dr. Sarah Olukoya",
     specialty: "Neurologist",
-    rating: 4.8,
+    rating: "4.8",
     experience: "7+ years experience",
     languages: "English",
     price: "₦4,000/session",
-    isAvailable: true,
   };
 
-  const doctorData = doctor || defaultDoctor;
+  const [selectedDate, setSelectedDate] = useState("");
+  const [selectedTime, setSelectedTime] = useState("");
+  const [symptoms, setSymptoms] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Validation function
+  const isFormValid = () => {
+    return selectedDate && selectedTime && symptoms.trim().length > 0;
+  };
 
   const handleBackPress = () => {
     navigation.goBack();
   };
 
-  const handleBookNow = () => {
-    console.log("Book now pressed for:", doctorData.name);
-    // Implement booking functionality
+  const handleDateSelect = (date) => {
+    setSelectedDate(date);
+  };
+
+  const handleTimeSelect = (time) => {
+    setSelectedTime(time);
+  };
+
+  const handleSymptomsChange = (text) => {
+    setSymptoms(text);
+  };
+
+  const handleBookConsultation = async () => {
+    setIsLoading(true);
+
+    // Simulate booking process
+    setTimeout(() => {
+      setIsLoading(false);
+      // Navigate to confirmation or back to home
+      navigation.navigate("Home");
+    }, 3000);
   };
 
   return (
@@ -61,7 +85,10 @@ export default function DoctorProfileScreen({ route, navigation }) {
           resizeMode="cover"
         >
           {/* Header */}
-          <DoctorProfileHeader onBackPress={handleBackPress} />
+          <DoctorProfileHeader
+            onBackPress={handleBackPress}
+            title="Book Consultation"
+          />
 
           {/* Doctor Profile Card - Compact like home screen */}
           <DoctorProfileCard doctor={doctor} />
@@ -71,23 +98,32 @@ export default function DoctorProfileScreen({ route, navigation }) {
         <View style={styles.contentWrapper}>
           {/* Content Sections */}
           <View style={styles.contentContainer}>
-            <AboutSection doctor={doctor} />
-            <EducationSection doctor={doctor} />
-            <CertificationsSection doctor={doctor} />
-            <WorkingHoursSection doctor={doctor} />
-            <PatientsReviewSection doctor={doctor} />
+            <DateSelectionSection
+              selectedDate={selectedDate}
+              onDateSelect={handleDateSelect}
+            />
+            <TimeSelectionSection
+              selectedTime={selectedTime}
+              onTimeSelect={handleTimeSelect}
+            />
+            <SymptomsInputSection
+              symptoms={symptoms}
+              onSymptomsChange={handleSymptomsChange}
+            />
+            <PaymentSummarySection doctor={doctor} />
           </View>
         </View>
       </ScrollView>
 
-      {/* Book Now Button - Sticky to bottom */}
+      {/* Book Consultation Button - Sticky to bottom */}
       <View
         style={[styles.bookButtonContainer, { paddingBottom: insets.bottom }]}
       >
-        <BookNowButton
+        <BookConsultationButton
           doctor={doctor}
-          onPress={handleBookNow}
-          navigation={navigation}
+          onPress={handleBookConsultation}
+          isLoading={isLoading}
+          isDisabled={!isFormValid()}
         />
       </View>
     </View>

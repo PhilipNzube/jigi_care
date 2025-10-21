@@ -3,13 +3,16 @@ import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
 
-export default function DoctorProfileHeader({ onBackPress }) {
+export default function DoctorProfileHeader({
+  onBackPress,
+  title = "Doctor Profile",
+}) {
   return (
     <View style={styles.header}>
       <TouchableOpacity style={styles.backButton} onPress={onBackPress}>
         <Ionicons name="chevron-back" size={24} color={Colors.white} />
       </TouchableOpacity>
-      <Text style={styles.title}>Doctor Profile</Text>
+      <Text style={styles.title}>{title}</Text>
       <TouchableOpacity style={styles.favoriteButton}>
         <Ionicons name="heart-outline" size={24} color={Colors.white} />
       </TouchableOpacity>
@@ -25,15 +28,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: Sizes.xs,
     paddingVertical: Sizes.md,
     marginHorizontal: Sizes.lg,
-    marginTop: Sizes.md,
+    marginTop: Sizes.sm,
     borderRadius: 16,
     borderColor: "rgba(255, 255, 255, 0.2)",
   },
   backButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    borderRadius: 10,
+    backgroundColor: "#FFFFFF14",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -47,8 +50,8 @@ const styles = StyleSheet.create({
   favoriteButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    borderRadius: 10,
+    backgroundColor: "#FFFFFF14",
     justifyContent: "center",
     alignItems: "center",
   },

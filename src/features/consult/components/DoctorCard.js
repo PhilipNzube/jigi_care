@@ -77,7 +77,6 @@ const styles = StyleSheet.create({
   availabilityText: {
     fontSize: 12,
     fontFamily: "Poppins-SemiBold",
-    color: "#4CAF50",
   },
   doctorInfo: {
     backgroundColor: "#F2F2F2",

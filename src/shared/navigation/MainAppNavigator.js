@@ -12,6 +12,7 @@ import ConsultScreen from "../../features/consult/screens/ConsultScreen";
 import MedicationScreen from "../../features/medications/screens/MedicationScreen";
 import ProfileScreen from "../../features/profile/screens/ProfileScreen";
 import DoctorProfileScreen from "../../features/consult/screens/DoctorProfileScreen";
+import BookConsultationScreen from "../../features/consult/screens/BookConsultationScreen";
 
 const Stack = createStackNavigator();
 
@@ -99,6 +100,10 @@ export default function MainAppNavigator() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="BottomTabs" component={BottomTabNavigator} />
       <Stack.Screen name="DoctorProfile" component={DoctorProfileScreen} />
+      <Stack.Screen
+        name="BookConsultation"
+        component={BookConsultationScreen}
+      />
     </Stack.Navigator>
   );
 }

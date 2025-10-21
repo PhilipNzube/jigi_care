@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, StyleSheet, ScrollView, SafeAreaView } from "react-native";
+import { View, StyleSheet, ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, Sizes } from "../../../shared/constants";
 
@@ -30,17 +30,17 @@ export default function ConsultScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={styles.container}>
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
         {/* Header */}
-        <ConsultationsHeader />
-
-        {/* Search Bar */}
-        <SearchBar value={searchQuery} onChangeText={handleSearch} />
+        <View style={[styles.headerContainer, { paddingTop: insets.top }]}>
+          <ConsultationsHeader />
+          <SearchBar value={searchQuery} onChangeText={handleSearch} />
+        </View>
 
         {/* Choose Specialty Section */}
         <SpecialtySection onSpecialtyPress={handleSpecialtyPress} />
@@ -58,7 +58,7 @@ export default function ConsultScreen({ navigation }) {
       >
         <EmergencySection />
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -72,6 +72,9 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: 100, // Space for emergency section
+  },
+  headerContainer: {
+    backgroundColor: "#F5F5F5",
   },
   emergencyContainer: {
     backgroundColor: "#F5F5F5",

@@ -1,6 +1,9 @@
 import React, { useState } from "react";
-import { View, StyleSheet, ScrollView, SafeAreaView } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { View, StyleSheet, ScrollView } from "react-native";
+import {
+  useSafeAreaInsets,
+  SafeAreaView,
+} from "react-native-safe-area-context";
 
 // Import components
 import HeroSection from "../components/HeroSection";

@@ -44,7 +44,7 @@ export default function DoctorProfileCard({ doctor }) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    backgroundColor: "#FFFFFF1F",
     borderRadius: 16,
     marginHorizontal: Sizes.lg,
     marginTop: Sizes.sm,
@@ -55,7 +55,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 3,
+    elevation: 1,
   },
   doctorInfo: {
     flexDirection: "row",
@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   doctorName: {
-    fontSize: 16,
+    fontSize: 14,
     fontFamily: "Poppins-Bold",
     color: Colors.white,
     marginBottom: Sizes.xs,
