@@ -13,13 +13,39 @@ import MedicationScreen from "../../features/medications/screens/MedicationScree
 import ProfileScreen from "../../features/profile/screens/ProfileScreen";
 import DoctorProfileScreen from "../../features/consult/screens/DoctorProfileScreen";
 import BookConsultationScreen from "../../features/consult/screens/BookConsultationScreen";
+import ChatPage from "../../features/consult/screens/ChatPage";
+import VoiceCallPage from "../../features/consult/screens/VoiceCallPage";
+import VideoCallPage from "../../features/consult/screens/VideoCallPage";
+import ConsultationSummaryPage from "../../features/consult/screens/ConsultationSummaryPage";
+import PaymentMethodScreen from "../../features/payment/screens/PaymentMethodScreen";
+import CardPaymentScreen from "../../features/payment/screens/CardPaymentScreen";
+import BankTransferScreen from "../../features/payment/screens/BankTransferScreen";
+import USSDPaymentScreen from "../../features/payment/screens/USSDPaymentScreen";
+import CartScreen from "../../features/medications/screens/CartScreen";
+import ShippingAddressScreen from "../../features/medications/screens/ShippingAddressScreen";
+import OrderDetailsModal from "../../features/medications/modals/OrderDetailsModal";
+import EditProfileScreen from "../../features/profile/screens/EditProfileScreen";
+import ProfileSettingsScreen from "../../features/profile/screens/ProfileSettingsScreen";
+import HealthMonitoringScreen from "../../features/health/screens/HealthMonitoringScreen";
+import AddReadingScreen from "../../features/health/screens/AddReadingScreen";
+import LabTestScreen from "../../features/health/screens/LabTestScreen";
+import BookLabTestScreen from "../../features/health/screens/BookLabTestScreen";
+import LabResultsScreen from "../../features/health/screens/LabResultsScreen";
+import TestResultDetailsScreen from "../../features/health/screens/TestResultDetailsScreen";
 
 const Stack = createStackNavigator();
 
 // Bottom Tab Navigator Component
-function BottomTabNavigator({ navigation }) {
+function BottomTabNavigator({ navigation, route }) {
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState("home");
+
+  // Handle tab switching from navigation params
+  React.useEffect(() => {
+    if (route?.params?.screen) {
+      setActiveTab(route.params.screen);
+    }
+  }, [route?.params?.screen]);
 
   const tabs = [
     {
@@ -103,6 +129,34 @@ export default function MainAppNavigator() {
       <Stack.Screen
         name="BookConsultation"
         component={BookConsultationScreen}
+      />
+      <Stack.Screen name="ChatPage" component={ChatPage} />
+      <Stack.Screen name="VoiceCall" component={VoiceCallPage} />
+      <Stack.Screen name="VideoCall" component={VideoCallPage} />
+      <Stack.Screen
+        name="ConsultationSummary"
+        component={ConsultationSummaryPage}
+      />
+      <Stack.Screen name="PaymentMethod" component={PaymentMethodScreen} />
+      <Stack.Screen name="CardPayment" component={CardPaymentScreen} />
+      <Stack.Screen name="BankTransfer" component={BankTransferScreen} />
+      <Stack.Screen name="USSDPayment" component={USSDPaymentScreen} />
+      <Stack.Screen name="Cart" component={CartScreen} />
+      <Stack.Screen name="ShippingAddress" component={ShippingAddressScreen} />
+      <Stack.Screen name="OrderDetails" component={OrderDetailsModal} />
+      <Stack.Screen name="EditProfile" component={EditProfileScreen} />
+      <Stack.Screen name="ProfileSettings" component={ProfileSettingsScreen} />
+      <Stack.Screen
+        name="HealthMonitoring"
+        component={HealthMonitoringScreen}
+      />
+      <Stack.Screen name="AddReading" component={AddReadingScreen} />
+      <Stack.Screen name="LabTest" component={LabTestScreen} />
+      <Stack.Screen name="BookLabTest" component={BookLabTestScreen} />
+      <Stack.Screen name="LabResults" component={LabResultsScreen} />
+      <Stack.Screen
+        name="TestResultDetails"
+        component={TestResultDetailsScreen}
       />
     </Stack.Navigator>
   );

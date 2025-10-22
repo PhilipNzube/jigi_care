@@ -55,6 +55,9 @@ export const Images = {
 
   // Emergency image
   emergency: require("../../../assets/images/emergency.png"),
+
+  // Booking image
+  booking: require("../../../assets/images/booking.png"),
 };
 
 // Helper function to get image source

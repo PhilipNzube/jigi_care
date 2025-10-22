@@ -12,7 +12,7 @@ import { Images } from "../../../shared/utils/imageUtils";
 
 const { width } = Dimensions.get("window");
 
-export default function QuickActionsGrid() {
+export default function QuickActionsGrid({ navigation }) {
   const quickActions = [
     {
       id: "consult",
@@ -44,12 +44,39 @@ export default function QuickActionsGrid() {
     },
   ];
 
+  const handleActionPress = (actionId) => {
+    switch (actionId) {
+      case "consult":
+        // Navigate to consult tab
+        navigation.navigate("BottomTabs", { screen: "consult" });
+        break;
+      case "medication":
+        // Navigate to medication tab
+        navigation.navigate("BottomTabs", { screen: "medication" });
+        break;
+      case "lab_test":
+        // Navigate to lab test screen
+        navigation.navigate("LabTest");
+        break;
+      case "health_monitoring":
+        // Navigate to health monitoring screen
+        navigation.navigate("HealthMonitoring");
+        break;
+      default:
+        console.log("Unknown action:", actionId);
+    }
+  };
+
   return (
     <View style={styles.quickActionsSection}>
       <Text style={styles.sectionTitle}>Quick actions</Text>
       <View style={styles.quickActionsGrid}>
         {quickActions.map((action) => (
-          <TouchableOpacity key={action.id} style={styles.quickActionCard}>
+          <TouchableOpacity
+            key={action.id}
+            style={styles.quickActionCard}
+            onPress={() => handleActionPress(action.id)}
+          >
             <View style={styles.actionImageContainer}>
               <Image source={action.image} style={styles.actionImage} />
             </View>

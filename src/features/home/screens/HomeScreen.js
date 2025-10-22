@@ -63,9 +63,9 @@ export default function HomeScreen({ navigation }) {
         showsVerticalScrollIndicator={false}
       >
         <HeroSection insets={insets} navigation={navigation} />
-        <QuickActionsGrid />
+        <QuickActionsGrid navigation={navigation} />
         <HealthTipsCarousel />
-        <UpcomingAppointmentsList />
+        <UpcomingAppointmentsList navigation={navigation} />
       </ScrollView>
       <FloatingActionButton onPress={handleChatPress} isChatMode={isChatMode} />
 

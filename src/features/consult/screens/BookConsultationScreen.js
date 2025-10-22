@@ -67,9 +67,17 @@ export default function BookConsultationScreen({ navigation, route }) {
     // Simulate booking process
     setTimeout(() => {
       setIsLoading(false);
-      // Navigate to confirmation or back to home
-      navigation.navigate("Home");
-    }, 3000);
+      // Navigate to payment method selection
+      navigation.navigate("PaymentMethod", {
+        amount: "₦4,500",
+        doctor: doctor,
+        bookingDetails: {
+          date: selectedDate,
+          time: selectedTime,
+          symptoms: symptoms,
+        },
+      });
+    }, 2000);
   };
 
   return (

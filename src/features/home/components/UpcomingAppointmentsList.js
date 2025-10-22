@@ -9,7 +9,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
 
-export default function UpcomingAppointmentsList() {
+export default function UpcomingAppointmentsList({ navigation }) {
   const upcomingAppointments = [
     {
       id: 1,
@@ -39,7 +39,13 @@ export default function UpcomingAppointmentsList() {
       <Text style={styles.sectionTitle}>Upcoming Appointments</Text>
       <View style={styles.appointmentsContainer}>
         {upcomingAppointments.map((appointment) => (
-          <View key={appointment.id} style={styles.appointmentCard}>
+          <TouchableOpacity
+            key={appointment.id}
+            style={styles.appointmentCard}
+            onPress={() =>
+              navigation.navigate("ChatPage", { doctor: appointment.doctor })
+            }
+          >
             <Text style={styles.appointmentDateTime}>
               {appointment.date} • {appointment.time}
             </Text>
@@ -60,7 +66,7 @@ export default function UpcomingAppointmentsList() {
                 </Text>
               </View>
             </View>
-          </View>
+          </TouchableOpacity>
         ))}
       </View>
     </View>
