@@ -15,6 +15,8 @@ export default function TabNavigation({ activeTab, onTabChange }) {
         >
           <Text
             style={[styles.tabText, activeTab === tab && styles.activeTabText]}
+            numberOfLines={1}
+            ellipsizeMode="tail"
           >
             {tab}
           </Text>
@@ -60,6 +62,3 @@ const styles = StyleSheet.create({
     color: "#0098B3",
   },
 });
-
-
-

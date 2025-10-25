@@ -7,10 +7,23 @@ export default function PrescriptionCard({ prescription }) {
   const progressPercentage =
     (prescription.pillsRemaining / prescription.totalPills) * 100;
 
+  const getStatusTextColor = (status) => {
+    switch (status.toLowerCase()) {
+      case "active":
+        return "#0098B3"; // Light blue
+      case "running low":
+        return "#FF8C00"; // Orange
+      case "refill needed":
+        return "#E74C3C"; // Red
+      default:
+        return Colors.grey;
+    }
+  };
+
   return (
     <View style={styles.container}>
       <TouchableOpacity style={styles.menuButton}>
-        <Ionicons name="ellipsis-horizontal" size={16} color={Colors.grey} />
+        <Ionicons name="ellipsis-horizontal" size={20} color="#EBEBEB" />
       </TouchableOpacity>
 
       <View style={styles.content}>
@@ -28,7 +41,14 @@ export default function PrescriptionCard({ prescription }) {
                   { backgroundColor: prescription.statusColor },
                 ]}
               >
-                <Text style={styles.statusText}>{prescription.status}</Text>
+                <Text
+                  style={[
+                    styles.statusText,
+                    { color: getStatusTextColor(prescription.status) },
+                  ]}
+                >
+                  {prescription.status}
+                </Text>
               </View>
             </View>
 
@@ -75,7 +95,7 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: Colors.white,
     borderRadius: 12,
-    padding: Sizes.md,
+    padding: Sizes.sm,
     marginBottom: Sizes.md,
     shadowColor: Colors.black,
     shadowOffset: {
@@ -84,16 +104,15 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 3,
+    elevation: 1,
   },
   menuButton: {
-    position: "absolute",
-    top: Sizes.sm,
-    left: Sizes.sm,
-    zIndex: 1,
+    marginLeft: Sizes.sm,
   },
   content: {
-    marginTop: Sizes.sm,
+    padding: Sizes.md,
+    borderRadius: 8,
+    backgroundColor: "#F2F2F2",
   },
   medicationInfo: {
     flexDirection: "row",
@@ -119,7 +138,7 @@ const styles = StyleSheet.create({
   },
   medicationName: {
     fontSize: 16,
-    fontFamily: "Poppins-Bold",
+    fontFamily: "Poppins-Medium",
     color: Colors.black,
     flex: 1,
   },
@@ -131,18 +150,17 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 12,
     fontFamily: "Poppins-Medium",
-    color: Colors.white,
   },
   dosage: {
-    fontSize: 14,
+    fontSize: 12,
     fontFamily: "Poppins-Regular",
-    color: Colors.grey,
+    color: "#5B6B62",
     marginBottom: 2,
   },
   doctor: {
-    fontSize: 14,
+    fontSize: 12,
     fontFamily: "Poppins-Regular",
-    color: Colors.grey,
+    color: "#5B6B62",
   },
   pillsInfo: {
     marginTop: Sizes.sm,
@@ -153,14 +171,14 @@ const styles = StyleSheet.create({
     marginBottom: Sizes.xs,
   },
   pillsLabel: {
-    fontSize: 14,
+    fontSize: 12,
     fontFamily: "Poppins-Regular",
     color: Colors.grey,
   },
   pillsCount: {
-    fontSize: 14,
+    fontSize: 12,
     fontFamily: "Poppins-Medium",
-    color: Colors.grey,
+    color: "#5B6B62",
   },
   progressBar: {
     marginBottom: Sizes.xs,
@@ -185,11 +203,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#E91E63",
   },
   refillDate: {
-    fontSize: 14,
+    fontSize: 12,
     fontFamily: "Poppins-Regular",
-    color: Colors.grey,
+    color: "#5B6B62",
   },
 });
-
-
-

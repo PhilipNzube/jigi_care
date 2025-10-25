@@ -55,12 +55,11 @@ export default function HistoryTab({ navigation }) {
         </View>
       </View>
 
-      <Text style={styles.sectionTitle}>Order History</Text>
-
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
       >
+        <Text style={styles.sectionTitle}>Order History</Text>
         {filteredOrders.map((order) => (
           <OrderHistoryCard
             key={order.id}
@@ -76,16 +75,28 @@ export default function HistoryTab({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: "#F5F5F5",
     paddingHorizontal: Sizes.lg,
   },
   searchContainer: {
     marginBottom: Sizes.md,
+    backgroundColor: Colors.white,
+    borderRadius: 12,
+    padding: Sizes.sm,
+    shadowColor: Colors.black,
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 1,
   },
   searchBar: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: Colors.white,
-    borderRadius: 25,
+    backgroundColor: "#F2F2F2",
+    borderRadius: 8,
     paddingHorizontal: Sizes.md,
     paddingVertical: Sizes.sm,
     borderWidth: 1,
@@ -100,7 +111,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontFamily: "Poppins-Bold",
+    fontFamily: "Poppins-Medium",
     color: Colors.black,
     marginBottom: Sizes.md,
   },
@@ -108,6 +119,3 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 });
-
-
-
