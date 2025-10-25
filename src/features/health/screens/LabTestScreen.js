@@ -12,6 +12,11 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
 import { Images } from "../../../shared/utils/imageUtils";
+import CategoryFilters from "../components/CategoryFilters";
+import SearchBar from "../components/SearchBar";
+import FeatureCards from "../components/FeatureCards";
+import PopularTestsSection from "../components/PopularTestsSection";
+import RecentResultsSection from "../components/RecentResultsSection";
 
 export default function LabTestScreen({ navigation }) {
   const [selectedCategory, setSelectedCategory] = useState("all");
@@ -90,87 +95,6 @@ export default function LabTestScreen({ navigation }) {
     console.log("Navigate to lab centers");
   };
 
-  const renderCategoryButton = (category) => (
-    <TouchableOpacity
-      key={category.id}
-      style={[
-        styles.categoryButton,
-        selectedCategory === category.id && styles.selectedCategoryButton,
-      ]}
-      onPress={() => setSelectedCategory(category.id)}
-    >
-      <Text
-        style={[
-          styles.categoryButtonText,
-          selectedCategory === category.id && styles.selectedCategoryButtonText,
-        ]}
-      >
-        {category.name}
-      </Text>
-    </TouchableOpacity>
-  );
-
-  const renderTestCard = (test) => (
-    <TouchableOpacity
-      key={test.id}
-      style={styles.testCard}
-      onPress={() => handleBookTest(test)}
-    >
-      <View style={styles.testHeader}>
-        <View style={styles.testInfo}>
-          <View style={styles.testIcon}>
-            <Ionicons name="time" size={16} color={Colors.textSecondary} />
-            <Text style={styles.testDuration}>{test.duration}</Text>
-          </View>
-          <View style={styles.testIcon}>
-            <Ionicons
-              name="information-circle"
-              size={16}
-              color={Colors.textSecondary}
-            />
-            <Text style={styles.testPreparation}>{test.preparation}</Text>
-          </View>
-        </View>
-      </View>
-
-      <View style={styles.testContent}>
-        <Image source={test.image} style={styles.testImage} />
-        <View style={styles.testDetails}>
-          <Text style={styles.testName}>{test.name}</Text>
-          <Text style={styles.testDescription}>{test.description}</Text>
-        </View>
-        <Text style={styles.testPrice}>{test.price}</Text>
-      </View>
-
-      <TouchableOpacity
-        style={styles.bookButton}
-        onPress={() => handleBookTest(test)}
-      >
-        <Text style={styles.bookButtonText}>Book Now</Text>
-      </TouchableOpacity>
-    </TouchableOpacity>
-  );
-
-  const renderResultCard = (result) => (
-    <View key={result.id} style={styles.resultCard}>
-      <Text style={styles.resultDate}>{result.date}</Text>
-      <View style={styles.resultContent}>
-        <View style={styles.resultInfo}>
-          <Text style={styles.resultTestName}>{result.testName}</Text>
-          <Text style={styles.resultDoctor}>{result.doctor}</Text>
-        </View>
-        <View
-          style={[styles.resultStatus, { backgroundColor: result.statusColor }]}
-        >
-          <Text style={styles.resultStatusText}>{result.status}</Text>
-        </View>
-      </View>
-      <TouchableOpacity style={styles.viewResultButton}>
-        <Text style={styles.viewResultButtonText}>View Result</Text>
-      </TouchableOpacity>
-    </View>
-  );
-
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -184,77 +108,33 @@ export default function LabTestScreen({ navigation }) {
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Category Filters */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.categoriesContainer}
-        >
-          {categories.map(renderCategoryButton)}
-        </ScrollView>
+        <CategoryFilters
+          categories={categories}
+          selectedCategory={selectedCategory}
+          onCategorySelect={setSelectedCategory}
+        />
 
-        {/* Search Bar */}
-        <View style={styles.searchContainer}>
-          <Ionicons name="search" size={20} color={Colors.textSecondary} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search for doctors or specialties"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            placeholderTextColor={Colors.textSecondary}
-          />
-        </View>
+        <SearchBar
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          placeholder="Search for doctors or specialties"
+        />
 
-        {/* Feature Cards */}
-        <View style={styles.featureCards}>
-          <TouchableOpacity
-            style={styles.featureCard}
-            onPress={handleMyResults}
-          >
-            <View style={styles.featureIcon}>
-              <Ionicons name="document-text" size={24} color={Colors.primary} />
-            </View>
-            <Text style={styles.featureTitle}>My Results</Text>
-            <Text style={styles.featureDescription}>
-              Check and review your laboratory results
-            </Text>
-          </TouchableOpacity>
+        <FeatureCards
+          onMyResults={handleMyResults}
+          onLabCenters={handleLabCenters}
+        />
 
-          <TouchableOpacity
-            style={styles.featureCard}
-            onPress={handleLabCenters}
-          >
-            <View style={styles.featureIcon}>
-              <Ionicons name="location" size={24} color={Colors.primary} />
-            </View>
-            <Text style={styles.featureTitle}>Lab Centers</Text>
-            <Text style={styles.featureDescription}>
-              Locate nearby lab centers
-            </Text>
-          </TouchableOpacity>
-        </View>
+        <PopularTestsSection
+          tests={popularTests}
+          onBookTest={handleBookTest}
+          onViewAll={handleViewResults}
+        />
 
-        {/* Popular Tests Section */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Popular Tests</Text>
-            <TouchableOpacity onPress={handleViewResults}>
-              <Text style={styles.viewAllText}>View all</Text>
-            </TouchableOpacity>
-          </View>
-          {popularTests.map(renderTestCard)}
-        </View>
-
-        {/* Recent Results Section */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Recent Results</Text>
-            <TouchableOpacity onPress={handleViewResults}>
-              <Text style={styles.viewAllText}>View all</Text>
-            </TouchableOpacity>
-          </View>
-          {recentResults.map(renderResultCard)}
-        </View>
+        <RecentResultsSection
+          results={recentResults}
+          onViewAll={handleViewResults}
+        />
       </ScrollView>
     </SafeAreaView>
   );

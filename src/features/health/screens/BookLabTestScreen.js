@@ -12,6 +12,11 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
 import { Images } from "../../../shared/utils/imageUtils";
+import TestDetailsCard from "../components/TestDetailsCard";
+import DateSelector from "../components/DateSelector";
+import TimeSelector from "../components/TimeSelector";
+import CollectionTypeSelector from "../components/CollectionTypeSelector";
+import PaymentSummary from "../components/PaymentSummary";
 
 export default function BookLabTestScreen({ navigation, route }) {
   const { test } = route.params || {};
@@ -66,46 +71,6 @@ export default function BookLabTestScreen({ navigation, route }) {
     alert(`Test booked successfully!\nTotal: ₦${totalAmount.toLocaleString()}`);
   };
 
-  const renderDateButton = (date) => (
-    <TouchableOpacity
-      key={date.id}
-      style={[
-        styles.dateButton,
-        selectedDate === date.id && styles.selectedDateButton,
-      ]}
-      onPress={() => setSelectedDate(date.id)}
-    >
-      <Text
-        style={[
-          styles.dateButtonText,
-          selectedDate === date.id && styles.selectedDateButtonText,
-        ]}
-      >
-        {date.label}
-      </Text>
-    </TouchableOpacity>
-  );
-
-  const renderTimeButton = (time) => (
-    <TouchableOpacity
-      key={time}
-      style={[
-        styles.timeButton,
-        selectedTime === time && styles.selectedTimeButton,
-      ]}
-      onPress={() => setSelectedTime(time)}
-    >
-      <Text
-        style={[
-          styles.timeButtonText,
-          selectedTime === time && styles.selectedTimeButtonText,
-        ]}
-      >
-        {time}
-      </Text>
-    </TouchableOpacity>
-  );
-
   return (
     <View style={styles.container}>
       <ImageBackground
@@ -124,29 +89,7 @@ export default function BookLabTestScreen({ navigation, route }) {
             <Text style={styles.headerTitle}>Book Lab Test</Text>
           </View>
 
-          {/* Test Information Card */}
-          <View style={styles.testInfoCard}>
-            <Image source={currentTest.image} style={styles.testImage} />
-            <View style={styles.testInfo}>
-              <Text style={styles.testName}>{currentTest.name}</Text>
-              <Text style={styles.testDescription}>
-                {currentTest.description}
-              </Text>
-              <Text style={styles.testPrice}>{currentTest.price}</Text>
-            </View>
-          </View>
-
-          {/* Test Details */}
-          <View style={styles.testDetailsCard}>
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Test Duration:</Text>
-              <Text style={styles.detailValue}>{currentTest.duration}</Text>
-            </View>
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Preparation:</Text>
-              <Text style={styles.detailValue}>{currentTest.preparation}</Text>
-            </View>
-          </View>
+          <TestDetailsCard test={currentTest} />
         </SafeAreaView>
       </ImageBackground>
 
@@ -156,95 +99,30 @@ export default function BookLabTestScreen({ navigation, route }) {
           style={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {/* Date Selection */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Select Date</Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={styles.datesContainer}
-            >
-              {dates.map(renderDateButton)}
-            </ScrollView>
-          </View>
+          <DateSelector
+            dates={dates}
+            selectedDate={selectedDate}
+            onDateSelect={setSelectedDate}
+          />
 
-          {/* Time Selection */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Select Time</Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={styles.timesContainer}
-            >
-              {timeSlots.map(renderTimeButton)}
-            </ScrollView>
-          </View>
+          <TimeSelector
+            timeSlots={timeSlots}
+            selectedTime={selectedTime}
+            onTimeSelect={setSelectedTime}
+          />
 
-          {/* Collection Type */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Collection Type</Text>
-            <View style={styles.collectionOptions}>
-              <TouchableOpacity
-                style={[
-                  styles.collectionOption,
-                  collectionType === "home" && styles.selectedCollectionOption,
-                ]}
-                onPress={() => setCollectionType("home")}
-              >
-                <View style={styles.radioButton}>
-                  {collectionType === "home" && (
-                    <View style={styles.radioButtonSelected} />
-                  )}
-                </View>
-                <Text style={styles.collectionOptionText}>
-                  Home Collection (+₦{homeCollectionFee.toLocaleString()})
-                </Text>
-              </TouchableOpacity>
+          <CollectionTypeSelector
+            collectionType={collectionType}
+            onCollectionTypeChange={setCollectionType}
+            homeCollectionFee={homeCollectionFee}
+          />
 
-              <TouchableOpacity
-                style={[
-                  styles.collectionOption,
-                  collectionType === "lab" && styles.selectedCollectionOption,
-                ]}
-                onPress={() => setCollectionType("lab")}
-              >
-                <View style={styles.radioButton}>
-                  {collectionType === "lab" && (
-                    <View style={styles.radioButtonSelected} />
-                  )}
-                </View>
-                <Text style={styles.collectionOptionText}>
-                  Visit Lab Centre
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Payment Summary */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Payment Summary</Text>
-            <View style={styles.paymentSummary}>
-              <View style={styles.paymentRow}>
-                <Text style={styles.paymentLabel}>Consultation Fee</Text>
-                <Text style={styles.paymentValue}>{currentTest.price}</Text>
-              </View>
-              {collectionType === "home" && (
-                <View style={styles.paymentRow}>
-                  <Text style={styles.paymentLabel}>Home Collection</Text>
-                  <Text style={styles.paymentValue}>
-                    ₦{homeCollectionFee.toLocaleString()}
-                  </Text>
-                </View>
-              )}
-              <View style={styles.paymentDivider} />
-              <View style={styles.paymentRow}>
-                <Text style={styles.paymentTotalLabel}>Total</Text>
-                <Text style={styles.paymentTotalValue}>
-                  ₦{totalAmount.toLocaleString()}
-                </Text>
-              </View>
-            </View>
-          </View>
+          <PaymentSummary
+            testPrice={currentTest.price}
+            collectionType={collectionType}
+            homeCollectionFee={homeCollectionFee}
+            totalAmount={totalAmount}
+          />
         </ScrollView>
 
         {/* Book Button */}
