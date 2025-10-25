@@ -178,3 +178,6 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins-Bold",
   },
 });
+
+
+

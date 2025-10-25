@@ -139,3 +139,6 @@ const styles = StyleSheet.create({
     paddingTop: Sizes.lg,
   },
 });
+
+
+
