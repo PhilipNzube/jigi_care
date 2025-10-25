@@ -609,8 +609,8 @@ const styles = StyleSheet.create({
     color: Colors.primary,
   },
   biometricImage: {
-    width: 120,
-    height: 120,
+    width: 100,
+    height: 100,
     resizeMode: "contain",
   },
   biometricContainer: {

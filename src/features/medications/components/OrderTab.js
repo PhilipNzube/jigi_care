@@ -133,36 +133,24 @@ export default function OrderTab({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F5F5F5",
     paddingHorizontal: Sizes.lg,
   },
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
     marginBottom: Sizes.md,
-    backgroundColor: Colors.white,
-    borderRadius: 12,
-    padding: Sizes.sm,
-    shadowColor: Colors.black,
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 1,
   },
   searchBar: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F2F2F2",
-    borderRadius: 8,
+    backgroundColor: Colors.white,
+    borderRadius: 25,
     paddingHorizontal: Sizes.md,
     paddingVertical: Sizes.sm,
     marginRight: Sizes.sm,
     borderWidth: 1,
-    borderColor: "#E0E0E0",
+    borderColor: "#0098B3",
   },
   searchInput: {
     flex: 1,
@@ -174,8 +162,6 @@ const styles = StyleSheet.create({
   cartButton: {
     position: "relative",
     padding: Sizes.sm,
-    backgroundColor: "#F2F2F2",
-    borderRadius: 8,
   },
   cartBadge: {
     position: "absolute",
@@ -198,17 +184,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     paddingVertical: Sizes.xl * 2,
-    backgroundColor: Colors.white,
-    borderRadius: 12,
-    marginTop: Sizes.sm,
-    shadowColor: Colors.black,
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 1,
   },
   emptyTitle: {
     fontSize: 18,

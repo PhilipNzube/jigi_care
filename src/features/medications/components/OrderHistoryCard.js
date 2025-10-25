@@ -4,6 +4,21 @@ import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
 
 export default function OrderHistoryCard({ order, navigation }) {
+  const getStatusTextColor = (status) => {
+    switch (status.toLowerCase()) {
+      case "delivered":
+        return "#4CAF50"; // Green
+      case "in transit":
+        return "#FF9800"; // Orange
+      case "processing":
+        return "#2196F3"; // Blue
+      case "cancelled":
+        return "#F44336"; // Red
+      default:
+        return Colors.white;
+    }
+  };
+
   const handleViewDetails = () => {
     // For now, we'll just show an alert since OrderDetailsModal is a modal
     // In a real app, you might want to pass the order data differently
@@ -21,7 +36,7 @@ export default function OrderHistoryCard({ order, navigation }) {
   return (
     <View style={styles.container}>
       <TouchableOpacity style={styles.menuButton}>
-        <Ionicons name="ellipsis-horizontal" size={16} color={Colors.grey} />
+        <Ionicons name="ellipsis-horizontal" size={20} color="#EBEBEB" />
       </TouchableOpacity>
 
       <View style={styles.content}>
@@ -36,7 +51,14 @@ export default function OrderHistoryCard({ order, navigation }) {
           <View
             style={[styles.statusTag, { backgroundColor: order.statusColor }]}
           >
-            <Text style={styles.statusText}>{order.status}</Text>
+            <Text
+              style={[
+                styles.statusText,
+                { color: getStatusTextColor(order.status) },
+              ]}
+            >
+              {order.status}
+            </Text>
           </View>
         </View>
 
@@ -87,7 +109,7 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: Colors.white,
     borderRadius: 12,
-    padding: Sizes.md,
+    padding: Sizes.sm,
     marginBottom: Sizes.md,
     shadowColor: Colors.black,
     shadowOffset: {
@@ -96,16 +118,15 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 3,
+    elevation: 1,
   },
   menuButton: {
-    position: "absolute",
-    top: Sizes.sm,
-    left: Sizes.sm,
-    zIndex: 1,
+    marginLeft: Sizes.sm,
   },
   content: {
-    marginTop: Sizes.sm,
+    padding: Sizes.md,
+    borderRadius: 8,
+    backgroundColor: "#F2F2F2",
   },
   orderHeader: {
     flexDirection: "row",
@@ -118,20 +139,20 @@ const styles = StyleSheet.create({
   },
   orderId: {
     fontSize: 16,
-    fontFamily: "Poppins-Bold",
+    fontFamily: "Poppins-Medium",
     color: Colors.black,
     marginBottom: 4,
   },
   orderDate: {
-    fontSize: 14,
+    fontSize: 12,
     fontFamily: "Poppins-Regular",
-    color: Colors.grey,
+    color: "#5B6B62",
     marginBottom: 2,
   },
   trackingId: {
-    fontSize: 14,
+    fontSize: 12,
     fontFamily: "Poppins-Regular",
-    color: Colors.grey,
+    color: "#5B6B62",
   },
   statusTag: {
     paddingHorizontal: Sizes.sm,
@@ -141,14 +162,13 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 12,
     fontFamily: "Poppins-Medium",
-    color: Colors.white,
   },
   itemsSection: {
     marginBottom: Sizes.md,
   },
   itemsTitle: {
     fontSize: 16,
-    fontFamily: "Poppins-Bold",
+    fontFamily: "Poppins-Medium",
     color: Colors.black,
     marginBottom: Sizes.sm,
   },
@@ -158,15 +178,15 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   itemName: {
-    fontSize: 14,
+    fontSize: 12,
     fontFamily: "Poppins-Regular",
-    color: Colors.black,
+    color: "#5B6B62",
     flex: 1,
   },
   itemPrice: {
-    fontSize: 14,
+    fontSize: 12,
     fontFamily: "Poppins-Medium",
-    color: Colors.black,
+    color: "#5B6B62",
   },
   actionButtons: {
     flexDirection: "row",

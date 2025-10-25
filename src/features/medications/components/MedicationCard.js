@@ -6,10 +6,25 @@ import { Colors, Sizes } from "../../../shared/constants";
 export default function MedicationCard({ medication, onAddToCart }) {
   const isOutOfStock = medication.status === "Out of Stock";
 
+  const getStatusTextColor = (status) => {
+    switch (status.toLowerCase()) {
+      case "in stock":
+        return "#4CAF50"; // Green
+      case "out of stock":
+        return "#F44336"; // Red
+      case "low stock":
+        return "#FF9800"; // Orange
+      case "discontinued":
+        return "#9E9E9E"; // Grey
+      default:
+        return Colors.white;
+    }
+  };
+
   return (
     <View style={styles.container}>
       <TouchableOpacity style={styles.menuButton}>
-        <Ionicons name="ellipsis-horizontal" size={16} color={Colors.grey} />
+        <Ionicons name="ellipsis-horizontal" size={20} color="#EBEBEB" />
       </TouchableOpacity>
 
       <View style={styles.content}>
@@ -30,7 +45,7 @@ export default function MedicationCard({ medication, onAddToCart }) {
                 <Text
                   style={[
                     styles.statusText,
-                    { color: isOutOfStock ? "#F44336" : Colors.white },
+                    { color: getStatusTextColor(medication.status) },
                   ]}
                 >
                   {medication.status}
@@ -74,7 +89,7 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: Colors.white,
     borderRadius: 12,
-    padding: Sizes.md,
+    padding: Sizes.sm,
     marginBottom: Sizes.md,
     shadowColor: Colors.black,
     shadowOffset: {
@@ -83,16 +98,15 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 3,
+    elevation: 1,
   },
   menuButton: {
-    position: "absolute",
-    top: Sizes.sm,
-    left: Sizes.sm,
-    zIndex: 1,
+    marginLeft: Sizes.sm,
   },
   content: {
-    marginTop: Sizes.sm,
+    padding: Sizes.md,
+    borderRadius: 8,
+    backgroundColor: "#F2F2F2",
   },
   medicationInfo: {
     flexDirection: "row",
@@ -118,7 +132,7 @@ const styles = StyleSheet.create({
   },
   medicationName: {
     fontSize: 16,
-    fontFamily: "Poppins-Bold",
+    fontFamily: "Poppins-Medium",
     color: Colors.black,
     flex: 1,
   },
@@ -137,26 +151,26 @@ const styles = StyleSheet.create({
     marginBottom: Sizes.xs,
   },
   rating: {
-    fontSize: 14,
+    fontSize: 12,
     fontFamily: "Poppins-Medium",
-    color: Colors.grey,
+    color: "#5B6B62",
     marginLeft: 4,
   },
   dosage: {
-    fontSize: 14,
+    fontSize: 12,
     fontFamily: "Poppins-Regular",
-    color: Colors.grey,
+    color: "#5B6B62",
     marginBottom: 2,
   },
   description: {
-    fontSize: 14,
+    fontSize: 12,
     fontFamily: "Poppins-Regular",
-    color: Colors.grey,
+    color: "#5B6B62",
     marginBottom: Sizes.xs,
   },
   price: {
     fontSize: 16,
-    fontFamily: "Poppins-Bold",
+    fontFamily: "Poppins-Medium",
     color: Colors.black,
   },
   addToCartButton: {
@@ -178,6 +192,3 @@ const styles = StyleSheet.create({
     color: "#808080",
   },
 });
-
-
-

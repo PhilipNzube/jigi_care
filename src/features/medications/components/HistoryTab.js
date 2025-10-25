@@ -75,28 +75,16 @@ export default function HistoryTab({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F5F5F5",
     paddingHorizontal: Sizes.lg,
   },
   searchContainer: {
     marginBottom: Sizes.md,
-    backgroundColor: Colors.white,
-    borderRadius: 12,
-    padding: Sizes.sm,
-    shadowColor: Colors.black,
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 1,
   },
   searchBar: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F2F2F2",
-    borderRadius: 8,
+    backgroundColor: Colors.white,
+    borderRadius: 25,
     paddingHorizontal: Sizes.md,
     paddingVertical: Sizes.sm,
     borderWidth: 1,
