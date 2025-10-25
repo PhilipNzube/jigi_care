@@ -9,19 +9,16 @@ export default function StatsCards() {
       icon: "calendar",
       count: "16",
       label: "Appointments",
-      color: "#E91E63",
     },
     {
-      icon: "document-text",
+      icon: "bar-chart",
       count: "5",
       label: "Reports",
-      color: "#E91E63",
     },
     {
       icon: "medical",
       count: "3",
       label: "Active Meds",
-      color: "#E91E63",
     },
   ];
 
@@ -29,8 +26,8 @@ export default function StatsCards() {
     <View style={styles.container}>
       {stats.map((stat, index) => (
         <View key={index} style={styles.card}>
-          <View style={[styles.iconContainer, { backgroundColor: stat.color }]}>
-            <Ionicons name={stat.icon} size={24} color={Colors.white} />
+          <View style={styles.iconContainer}>
+            <Ionicons name={stat.icon} size={24} color="#E02478" />
           </View>
           <Text style={styles.count}>{stat.count}</Text>
           <Text style={styles.label}>{stat.label}</Text>
@@ -61,7 +58,7 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 3,
+    elevation: 1,
   },
   iconContainer: {
     width: 40,
@@ -70,9 +67,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginBottom: Sizes.sm,
+    backgroundColor: "#E024780F",
   },
   count: {
-    fontSize: 24,
+    fontSize: 20,
     fontFamily: "Poppins-Bold",
     color: Colors.black,
     marginBottom: 4,
@@ -84,6 +82,3 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 });
-
-
-

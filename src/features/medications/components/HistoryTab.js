@@ -6,6 +6,7 @@ import OrderHistoryCard from "./OrderHistoryCard";
 
 export default function HistoryTab({ navigation }) {
   const [searchQuery, setSearchQuery] = useState("");
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
 
   const orders = [
     {
@@ -13,7 +14,7 @@ export default function HistoryTab({ navigation }) {
       date: "Sep 25th, 2025 • 10:05 AM",
       trackingId: "LM98765432",
       status: "Delivered",
-      statusColor: "#4CAF50",
+      statusColor: "#009A4914",
       items: [
         { name: "Metformin 500mg", quantity: 1, price: 2500 },
         { name: "Lisinopril 10mg", quantity: 3, price: 7500 },
@@ -25,7 +26,7 @@ export default function HistoryTab({ navigation }) {
       date: "Sep 20th, 2025 • 2:30 PM",
       trackingId: "LM98765433",
       status: "In transit",
-      statusColor: "#FF9800",
+      statusColor: "#E0247814",
       items: [
         { name: "Acetaminophen 500mg", quantity: 2, price: 10400 },
         { name: "Omega-3 1000mg", quantity: 1, price: 3100 },
@@ -43,7 +44,9 @@ export default function HistoryTab({ navigation }) {
   return (
     <View style={styles.container}>
       <View style={styles.searchContainer}>
-        <View style={styles.searchBar}>
+        <View
+          style={[styles.searchBar, isSearchFocused && styles.searchBarFocused]}
+        >
           <Ionicons name="search" size={20} color={Colors.grey} />
           <TextInput
             style={styles.searchInput}
@@ -51,6 +54,8 @@ export default function HistoryTab({ navigation }) {
             placeholderTextColor={Colors.grey}
             value={searchQuery}
             onChangeText={setSearchQuery}
+            onFocus={() => setIsSearchFocused(true)}
+            onBlur={() => setIsSearchFocused(false)}
           />
         </View>
       </View>
@@ -84,11 +89,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: Colors.white,
-    borderRadius: 25,
+    borderRadius: 50,
     paddingHorizontal: Sizes.md,
-    paddingVertical: Sizes.sm,
+    paddingVertical: Sizes.xs,
     borderWidth: 1,
-    borderColor: "#E0E0E0",
+    borderColor: "transparent",
+  },
+  searchBarFocused: {
+    borderColor: "#0098B3",
   },
   searchInput: {
     flex: 1,

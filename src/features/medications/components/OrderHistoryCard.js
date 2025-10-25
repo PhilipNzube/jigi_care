@@ -195,8 +195,6 @@ const styles = StyleSheet.create({
   viewDetailsButton: {
     flex: 1,
     backgroundColor: Colors.white,
-    borderWidth: 1,
-    borderColor: "#0098B3",
     paddingVertical: Sizes.sm,
     paddingHorizontal: Sizes.md,
     borderRadius: 20,
@@ -206,7 +204,7 @@ const styles = StyleSheet.create({
   viewDetailsText: {
     color: "#0098B3",
     fontSize: 14,
-    fontFamily: "Poppins-Bold",
+    fontFamily: "Poppins-Medium",
   },
   reorderButton: {
     flex: 1,
@@ -219,7 +217,7 @@ const styles = StyleSheet.create({
   reorderText: {
     color: Colors.white,
     fontSize: 14,
-    fontFamily: "Poppins-Bold",
+    fontFamily: "Poppins-Medium",
   },
   trackButton: {
     flex: 1,

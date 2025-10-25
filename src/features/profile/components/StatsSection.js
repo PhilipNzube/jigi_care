@@ -25,7 +25,13 @@ export default function StatsSection() {
   return (
     <View style={styles.container}>
       {stats.map((stat, index) => (
-        <View key={index} style={styles.statCard}>
+        <View
+          key={index}
+          style={[
+            styles.statCard,
+            index === stats.length - 1 && styles.lastStatCard,
+          ]}
+        >
           <Text style={styles.value}>{stat.value}</Text>
           <View style={styles.labelContainer}>
             <Ionicons name={stat.icon} size={16} color={Colors.grey} />
@@ -39,23 +45,31 @@ export default function StatsSection() {
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingHorizontal: Sizes.lg,
+    backgroundColor: Colors.white,
+    borderRadius: 8,
+    marginHorizontal: Sizes.lg,
     marginBottom: Sizes.lg,
+    padding: Sizes.md,
+    shadowColor: Colors.black,
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   statCard: {
     flex: 1,
-    backgroundColor: "rgba(255, 255, 255, 0.15)",
-    borderRadius: 12,
-    padding: Sizes.md,
     alignItems: "center",
-    marginHorizontal: Sizes.xs,
+    paddingVertical: Sizes.sm,
+    borderRightWidth: 1,
+    borderRightColor: "#E0E0E0",
   },
   value: {
     fontSize: 18,
     fontFamily: "Poppins-Bold",
-    color: Colors.white,
+    color: Colors.black,
     marginBottom: Sizes.xs,
   },
   labelContainer: {
@@ -65,10 +79,10 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 12,
     fontFamily: "Poppins-Regular",
-    color: Colors.white,
+    color: Colors.grey,
     marginLeft: 4,
   },
+  lastStatCard: {
+    borderRightWidth: 0,
+  },
 });
-
-
-

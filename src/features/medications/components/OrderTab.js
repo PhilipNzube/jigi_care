@@ -15,6 +15,7 @@ import RequestMedicationModal from "../modals/RequestMedicationModal";
 export default function OrderTab({ navigation }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [showRequestModal, setShowRequestModal] = useState(false);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
 
   const medications = [
     {
@@ -25,7 +26,7 @@ export default function OrderTab({ navigation }) {
       description: "Pain reliever and fever reducer",
       price: 5200,
       status: "In stock",
-      statusColor: "#4CAF50",
+      statusColor: "#009A4914",
       image: "acetaminophen",
     },
     {
@@ -36,7 +37,7 @@ export default function OrderTab({ navigation }) {
       description: "Antihistamine for allergy symptoms",
       price: 8500,
       status: "Out of Stock",
-      statusColor: "#F44336",
+      statusColor: "#EA4D4D14",
       image: "equate",
     },
     {
@@ -47,7 +48,7 @@ export default function OrderTab({ navigation }) {
       description: "Fish oil supplement for heart health",
       price: 3100,
       status: "In stock",
-      statusColor: "#4CAF50",
+      statusColor: "#009A4914",
       image: "omega3",
     },
     {
@@ -58,7 +59,7 @@ export default function OrderTab({ navigation }) {
       description: "Pain relief and anti-inflammatory",
       price: 2500,
       status: "In stock",
-      statusColor: "#4CAF50",
+      statusColor: "#009A4914",
       image: "ibuprofen",
     },
   ];
@@ -74,7 +75,9 @@ export default function OrderTab({ navigation }) {
   return (
     <View style={styles.container}>
       <View style={styles.searchContainer}>
-        <View style={styles.searchBar}>
+        <View
+          style={[styles.searchBar, isSearchFocused && styles.searchBarFocused]}
+        >
           <Ionicons name="search" size={20} color={Colors.grey} />
           <TextInput
             style={styles.searchInput}
@@ -82,6 +85,8 @@ export default function OrderTab({ navigation }) {
             placeholderTextColor={Colors.grey}
             value={searchQuery}
             onChangeText={setSearchQuery}
+            onFocus={() => setIsSearchFocused(true)}
+            onBlur={() => setIsSearchFocused(false)}
           />
         </View>
         <TouchableOpacity
@@ -145,11 +150,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: Colors.white,
-    borderRadius: 25,
+    borderRadius: 50,
     paddingHorizontal: Sizes.md,
-    paddingVertical: Sizes.sm,
+    paddingVertical: Sizes.xs,
     marginRight: Sizes.sm,
     borderWidth: 1,
+    borderColor: "transparent",
+  },
+  searchBarFocused: {
     borderColor: "#0098B3",
   },
   searchInput: {

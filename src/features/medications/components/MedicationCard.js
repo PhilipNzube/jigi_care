@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
   addToCartText: {
     color: Colors.white,
     fontSize: 14,
-    fontFamily: "Poppins-Bold",
+    fontFamily: "Poppins-Medium",
   },
   disabledText: {
     color: "#808080",

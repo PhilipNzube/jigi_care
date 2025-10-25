@@ -3,25 +3,21 @@ import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
 
-export default function SettingsSection({
-  onMedicalHistory,
-  onPrivacyPreferences,
-  onHelpSupport,
-}) {
+export default function SettingsSection({ onMedicalHistory, onPrivacyPreferences, onHelpSupport }) {
   const settings = [
     {
-      id: "medicalHistory",
-      label: "Medical History",
+      id: 1,
+      title: "Medical History",
       onPress: onMedicalHistory,
     },
     {
-      id: "privacyPreferences",
-      label: "Privacy Preferences",
+      id: 2,
+      title: "Privacy Preferences",
       onPress: onPrivacyPreferences,
     },
     {
-      id: "helpSupport",
-      label: "Help & Support",
+      id: 3,
+      title: "Help & Support",
       onPress: onHelpSupport,
     },
   ];
@@ -29,20 +25,16 @@ export default function SettingsSection({
   return (
     <View style={styles.container}>
       <Text style={styles.sectionTitle}>Settings</Text>
-
+      
       <View style={styles.card}>
         {settings.map((setting, index) => (
-          <TouchableOpacity
-            key={setting.id}
-            style={[
-              styles.settingItem,
-              index === settings.length - 1 && styles.lastSettingItem,
-            ]}
-            onPress={setting.onPress}
-          >
-            <Text style={styles.settingLabel}>{setting.label}</Text>
-            <Ionicons name="chevron-forward" size={20} color={Colors.grey} />
-          </TouchableOpacity>
+          <View key={setting.id}>
+            <TouchableOpacity style={styles.settingItem} onPress={setting.onPress}>
+              <Text style={styles.settingTitle}>{setting.title}</Text>
+              <Ionicons name="chevron-forward" size={20} color={Colors.grey} />
+            </TouchableOpacity>
+            {index < settings.length - 1 && <View style={styles.divider} />}
+          </View>
         ))}
       </View>
     </View>
@@ -61,7 +53,8 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: Colors.white,
-    borderRadius: 12,
+    borderRadius: 8,
+    padding: Sizes.md,
     shadowColor: Colors.black,
     shadowOffset: {
       width: 0,
@@ -73,22 +66,18 @@ const styles = StyleSheet.create({
   },
   settingItem: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: Sizes.md,
-    paddingHorizontal: Sizes.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E0E0E0",
+    justifyContent: "space-between",
+    paddingVertical: Sizes.sm,
   },
-  lastSettingItem: {
-    borderBottomWidth: 0,
-  },
-  settingLabel: {
+  settingTitle: {
     fontSize: 16,
-    fontFamily: "Poppins-Regular",
+    fontFamily: "Poppins-Medium",
     color: Colors.black,
   },
+  divider: {
+    height: 1,
+    backgroundColor: "#E0E0E0",
+    marginVertical: Sizes.sm,
+  },
 });
-
-
-

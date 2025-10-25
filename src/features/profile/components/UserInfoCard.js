@@ -46,8 +46,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   userName: {
-    fontSize: 20,
-    fontFamily: "Poppins-Bold",
+    fontSize: 18,
+    fontFamily: "Poppins-Medium",
     color: Colors.white,
     marginBottom: 4,
   },
@@ -63,9 +63,11 @@ const styles = StyleSheet.create({
     color: Colors.white,
   },
   editButton: {
-    padding: Sizes.sm,
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    justifyContent: "center",
+    alignItems: "center",
   },
 });
-
-
-

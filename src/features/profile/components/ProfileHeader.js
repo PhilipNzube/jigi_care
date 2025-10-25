@@ -7,9 +7,6 @@ export default function ProfileHeader({ onSettings }) {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Profile</Text>
-      <TouchableOpacity style={styles.settingsButton} onPress={onSettings}>
-        <Ionicons name="settings-outline" size={24} color={Colors.white} />
-      </TouchableOpacity>
     </View>
   );
 }
@@ -17,7 +14,7 @@ export default function ProfileHeader({ onSettings }) {
 const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: Sizes.lg,
     paddingVertical: Sizes.md,
@@ -31,6 +28,3 @@ const styles = StyleSheet.create({
     padding: Sizes.xs,
   },
 });
-
-
-

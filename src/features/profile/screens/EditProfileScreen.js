@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  ImageBackground,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -72,14 +71,17 @@ export default function EditProfileScreen({ navigation }) {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <ImageBackground source={Images.bgImg} style={styles.backgroundImage}>
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+      >
         <EditProfileHeader />
         <ProfilePictureSection />
         <StatsSection />
-      </ImageBackground>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <ProfileFieldsList onFieldPress={handleFieldPress} />
+        <View style={styles.content}>
+          <ProfileFieldsList onFieldPress={handleFieldPress} />
+        </View>
       </ScrollView>
 
       <UpdateDataModal
@@ -128,17 +130,14 @@ export default function EditProfileScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F5F5F5",
+    backgroundColor: "#F2F2F2",
   },
-  backgroundImage: {
-    height: 250,
+  scrollView: {
+    flex: 1,
   },
   content: {
-    flex: 1,
     paddingHorizontal: Sizes.lg,
     paddingTop: Sizes.lg,
+    paddingBottom: Sizes.xl,
   },
 });
-
-
-

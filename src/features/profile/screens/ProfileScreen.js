@@ -13,8 +13,12 @@ import { Colors, Sizes } from "../../../shared/constants";
 import { Images } from "../../../shared/utils/imageUtils";
 import ProfileHeader from "../components/ProfileHeader";
 import UserInfoCard from "../components/UserInfoCard";
+import HealthMetricsSection from "../components/HealthMetricsSection";
 import StatsCards from "../components/StatsCards";
+import RecentActivitySection from "../components/RecentActivitySection";
 import SecuritySection from "../components/SecuritySection";
+import EmergencyContactsSection from "../components/EmergencyContactsSection";
+import SettingsSection from "../components/SettingsSection";
 import LogoutButton from "../components/LogoutButton";
 import LogoutModal from "../modals/LogoutModal";
 
@@ -34,17 +38,45 @@ export default function ProfileScreen({ navigation }) {
     setShowLogoutModal(true);
   };
 
+  const handleMedicalHistory = () => {
+    // Navigate to medical history
+    console.log("Navigate to Medical History");
+  };
+
+  const handlePrivacyPreferences = () => {
+    // Navigate to privacy preferences
+    console.log("Navigate to Privacy Preferences");
+  };
+
+  const handleHelpSupport = () => {
+    // Navigate to help & support
+    console.log("Navigate to Help & Support");
+  };
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <ImageBackground source={Images.bgImg} style={styles.backgroundImage}>
-        <ProfileHeader onSettings={handleSettings} />
-        <UserInfoCard onEdit={handleEditProfile} />
-        <StatsCards />
-      </ImageBackground>
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+      >
+        <ImageBackground source={Images.bgImg} style={styles.backgroundImage}>
+          <ProfileHeader onSettings={handleSettings} />
+          <UserInfoCard onEdit={handleEditProfile} />
+          <HealthMetricsSection />
+        </ImageBackground>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <SecuritySection />
-        <LogoutButton onPress={handleLogout} />
+        <View style={styles.content}>
+          <StatsCards />
+          <RecentActivitySection />
+          <SecuritySection />
+          <EmergencyContactsSection />
+          <SettingsSection
+            onMedicalHistory={handleMedicalHistory}
+            onPrivacyPreferences={handlePrivacyPreferences}
+            onHelpSupport={handleHelpSupport}
+          />
+          <LogoutButton onPress={handleLogout} />
+        </View>
       </ScrollView>
 
       <LogoutModal
@@ -64,12 +96,19 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#F5F5F5",
   },
+  scrollView: {
+    flex: 1,
+  },
   backgroundImage: {
-    height: 300,
+    height: 370,
   },
   content: {
-    flex: 1,
+    backgroundColor: Colors.white,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     paddingHorizontal: Sizes.lg,
     paddingTop: Sizes.lg,
+    paddingBottom: Sizes.xl,
+    marginTop: -24,
   },
 });

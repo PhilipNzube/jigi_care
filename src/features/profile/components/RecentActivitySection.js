@@ -27,15 +27,12 @@ export default function RecentActivitySection() {
 
       <View style={styles.card}>
         {activities.map((activity, index) => (
-          <View
-            key={activity.id}
-            style={[
-              styles.activityItem,
-              index === activities.length - 1 && styles.lastActivityItem,
-            ]}
-          >
-            <Text style={styles.activityTitle}>{activity.title}</Text>
-            <Text style={styles.activityDate}>{activity.date}</Text>
+          <View key={activity.id}>
+            <View style={styles.activityItem}>
+              <Text style={styles.activityTitle}>{activity.title}</Text>
+              <Text style={styles.activityDate}>{activity.date}</Text>
+            </View>
+            {index < activities.length - 1 && <View style={styles.divider} />}
           </View>
         ))}
       </View>
@@ -56,6 +53,7 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: Colors.white,
     borderRadius: 12,
+    padding: Sizes.md,
     shadowColor: Colors.black,
     shadowOffset: {
       width: 0,
@@ -66,17 +64,11 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   activityItem: {
-    paddingVertical: Sizes.md,
-    paddingHorizontal: Sizes.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E0E0E0",
-  },
-  lastActivityItem: {
-    borderBottomWidth: 0,
+    paddingVertical: Sizes.sm,
   },
   activityTitle: {
     fontSize: 16,
-    fontFamily: "Poppins-Regular",
+    fontFamily: "Poppins-Medium",
     color: Colors.black,
     marginBottom: 4,
   },
@@ -85,7 +77,9 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins-Regular",
     color: Colors.grey,
   },
+  divider: {
+    height: 1,
+    backgroundColor: "#E0E0E0",
+    marginVertical: Sizes.sm,
+  },
 });
-
-
-

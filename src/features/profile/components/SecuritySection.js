@@ -22,6 +22,8 @@ export default function SecuritySection() {
           </View>
         </View>
 
+        <View style={styles.divider} />
+
         <View style={styles.securityItem}>
           <View style={styles.iconContainer}>
             <Ionicons name="shield-checkmark" size={20} color="#E91E63" />
@@ -101,17 +103,19 @@ const styles = StyleSheet.create({
     position: "relative",
   },
   activeTag: {
-    backgroundColor: "#0098B3",
+    backgroundColor: "#E0F7FA",
     paddingHorizontal: Sizes.sm,
     paddingVertical: 4,
     borderRadius: 12,
   },
   activeText: {
-    color: Colors.white,
+    color: "#0098B3",
     fontSize: 12,
     fontFamily: "Poppins-Medium",
   },
+  divider: {
+    height: 1,
+    backgroundColor: "#E0E0E0",
+    marginVertical: Sizes.sm,
+  },
 });
-
-
-
