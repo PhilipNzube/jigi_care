@@ -8,9 +8,11 @@ import {
   TextInput,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, Sizes } from "../../../shared/constants";
 
 export default function UpdateEmailModal({ visible, onClose }) {
+  const insets = useSafeAreaInsets();
   const [email, setEmail] = useState("youremail@example.com");
 
   const handleVerify = () => {
@@ -27,7 +29,12 @@ export default function UpdateEmailModal({ visible, onClose }) {
     >
       <View style={styles.overlay}>
         <TouchableOpacity style={styles.overlayTouchable} onPress={onClose} />
-        <View style={styles.modal}>
+        <View
+          style={[
+            styles.modal,
+            { paddingBottom: Math.max(insets.bottom, Sizes.xl) },
+          ]}
+        >
           <View style={styles.header}>
             <Text style={styles.title}>UPDATE EMAIL</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
@@ -76,7 +83,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontFamily: "Poppins-Bold",
+    fontFamily: "Poppins-Medium",
     color: Colors.grey,
   },
   closeButton: {
@@ -111,6 +118,3 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins-Bold",
   },
 });
-
-
-

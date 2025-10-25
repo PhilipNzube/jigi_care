@@ -8,9 +8,11 @@ import {
   TextInput,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, Sizes } from "../../../shared/constants";
 
 export default function EmergencyContactModal({ visible, onClose }) {
+  const insets = useSafeAreaInsets();
   const [fullName, setFullName] = useState("Tim Bod");
   const [phone, setPhone] = useState("800 0000 000");
   const [relationship, setRelationship] = useState("Spouse");
@@ -29,7 +31,12 @@ export default function EmergencyContactModal({ visible, onClose }) {
     >
       <View style={styles.overlay}>
         <TouchableOpacity style={styles.overlayTouchable} onPress={onClose} />
-        <View style={styles.modal}>
+        <View
+          style={[
+            styles.modal,
+            { paddingBottom: Math.max(insets.bottom, Sizes.xl) },
+          ]}
+        >
           <View style={styles.header}>
             <Text style={styles.title}>EMERGENCY CONTACT</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
@@ -120,7 +127,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontFamily: "Poppins-Bold",
+    fontFamily: "Poppins-Medium",
     color: Colors.grey,
   },
   closeButton: {
@@ -135,7 +142,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontFamily: "Poppins-Regular",
-    color: Colors.grey,
+    color: "#999999",
     marginBottom: Sizes.sm,
   },
   inputContainer: {
@@ -179,6 +186,3 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins-Bold",
   },
 });
-
-
-

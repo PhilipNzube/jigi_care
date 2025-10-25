@@ -24,32 +24,37 @@ export default function StatsSection() {
 
   return (
     <View style={styles.container}>
-      {stats.map((stat, index) => (
-        <View
-          key={index}
-          style={[
-            styles.statCard,
-            index === stats.length - 1 && styles.lastStatCard,
-          ]}
-        >
-          <Text style={styles.value}>{stat.value}</Text>
-          <View style={styles.labelContainer}>
-            <Ionicons name={stat.icon} size={16} color={Colors.grey} />
-            <Text style={styles.label}>{stat.label}</Text>
-          </View>
+      <View style={styles.card}>
+        <View style={styles.content}>
+          {stats.map((stat, index) => (
+            <View
+              key={index}
+              style={[
+                styles.statCard,
+                index === stats.length - 1 && styles.lastStatCard,
+              ]}
+            >
+              <Text style={styles.value}>{stat.value}</Text>
+              <View style={styles.labelContainer}>
+                <Ionicons name={stat.icon} size={16} color={Colors.grey} />
+                <Text style={styles.label}>{stat.label}</Text>
+              </View>
+            </View>
+          ))}
         </View>
-      ))}
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: Colors.white,
-    borderRadius: 8,
-    marginHorizontal: Sizes.lg,
     marginBottom: Sizes.lg,
-    padding: Sizes.md,
+  },
+  card: {
+    backgroundColor: Colors.white,
+    borderRadius: 12,
+    padding: Sizes.sm,
     shadowColor: Colors.black,
     shadowOffset: {
       width: 0,
@@ -57,7 +62,15 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 3,
+    elevation: 1,
+  },
+  content: {
+    padding: Sizes.md,
+    borderRadius: 8,
+    backgroundColor: "#F2F2F2",
+    flexDirection: "row",
+    justifyContent: "space-around",
+    alignItems: "center",
   },
   statCard: {
     flex: 1,

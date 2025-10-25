@@ -6,34 +6,35 @@ import { Colors, Sizes } from "../../../shared/constants";
 export default function SecuritySection() {
   return (
     <View style={styles.container}>
-      <Text style={styles.sectionTitle}>Security</Text>
-
       <View style={styles.card}>
-        <View style={styles.securityItem}>
-          <View style={styles.iconContainer}>
-            <Ionicons name="finger-print" size={20} color="#0098B3" />
+        <Text style={styles.sectionTitle}>Security</Text>
+        <View style={styles.content}>
+          <View style={styles.securityItem}>
+            <View style={styles.iconContainer}>
+              <Ionicons name="finger-print" size={20} color="#0098B3" />
+            </View>
+            <View style={styles.textContainer}>
+              <Text style={styles.title}>Biometric Log in</Text>
+              <Text style={styles.subtitle}>Use fingerprint or face id</Text>
+            </View>
+            <View style={styles.toggleContainer}>
+              <View style={styles.toggleOff} />
+            </View>
           </View>
-          <View style={styles.textContainer}>
-            <Text style={styles.title}>Biometric Log in</Text>
-            <Text style={styles.subtitle}>Use fingerprint or face id</Text>
-          </View>
-          <View style={styles.toggleContainer}>
-            <View style={styles.toggleOff} />
-          </View>
-        </View>
 
-        <View style={styles.divider} />
+          <View style={styles.divider} />
 
-        <View style={styles.securityItem}>
-          <View style={styles.iconContainer}>
-            <Ionicons name="shield-checkmark" size={20} color="#E91E63" />
-          </View>
-          <View style={styles.textContainer}>
-            <Text style={styles.title}>Data Encryption</Text>
-            <Text style={styles.subtitle}>HIPAA compliant encryption</Text>
-          </View>
-          <View style={styles.activeTag}>
-            <Text style={styles.activeText}>Active</Text>
+          <View style={styles.securityItem}>
+            <View style={styles.iconContainer}>
+              <Ionicons name="shield-checkmark" size={20} color="#E91E63" />
+            </View>
+            <View style={styles.textContainer}>
+              <Text style={styles.title}>Data Encryption</Text>
+              <Text style={styles.subtitle}>HIPAA compliant encryption</Text>
+            </View>
+            <View style={styles.activeTag}>
+              <Text style={styles.activeText}>Active</Text>
+            </View>
           </View>
         </View>
       </View>
@@ -47,14 +48,14 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontFamily: "Poppins-Bold",
+    fontFamily: "Poppins-Medium",
     color: Colors.black,
-    marginBottom: Sizes.md,
+    marginLeft: Sizes.sm,
   },
   card: {
     backgroundColor: Colors.white,
     borderRadius: 12,
-    padding: Sizes.md,
+    padding: Sizes.sm,
     shadowColor: Colors.black,
     shadowOffset: {
       width: 0,
@@ -62,7 +63,12 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 3,
+    elevation: 1,
+  },
+  content: {
+    padding: Sizes.md,
+    borderRadius: 8,
+    backgroundColor: "#F2F2F2",
   },
   securityItem: {
     flexDirection: "row",
@@ -83,14 +89,14 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 16,
-    fontFamily: "Poppins-Bold",
+    fontFamily: "Poppins-Medium",
     color: Colors.black,
     marginBottom: 2,
   },
   subtitle: {
     fontSize: 14,
     fontFamily: "Poppins-Regular",
-    color: Colors.grey,
+    color: "#666666",
   },
   toggleContainer: {
     marginLeft: Sizes.sm,

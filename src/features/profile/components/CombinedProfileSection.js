@@ -3,7 +3,25 @@ import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
 
-export default function ProfileFieldsList({ onFieldPress }) {
+export default function CombinedProfileSection({ onFieldPress }) {
+  const stats = [
+    {
+      icon: "scale",
+      value: "64.00 kg",
+      label: "Weight",
+    },
+    {
+      icon: "resize",
+      value: "5.80 ft",
+      label: "Height",
+    },
+    {
+      icon: "water",
+      value: "0+",
+      label: "Blood Type",
+    },
+  ];
+
   const fields = [
     {
       id: "fullName",
@@ -35,12 +53,39 @@ export default function ProfileFieldsList({ onFieldPress }) {
       label: "Gender",
       value: "Male",
     },
+    {
+      id: "address",
+      label: "Address",
+      value: "432 Jakande Estate, Lagos",
+    },
+    {
+      id: "emergencyContact",
+      label: "Emergency Contact",
+      value: "John Doe (+234 1000 000 000)",
+    },
   ];
 
   return (
     <View style={styles.container}>
       <View style={styles.card}>
-        <View style={styles.content}>
+        <View style={styles.statsSection}>
+          {stats.map((stat, index) => (
+            <View
+              key={index}
+              style={[
+                styles.statCard,
+                index === stats.length - 1 && styles.lastStatCard,
+              ]}
+            >
+              <Text style={styles.value}>{stat.value}</Text>
+              <View style={styles.labelContainer}>
+                <Ionicons name={stat.icon} size={16} color="#999999" />
+                <Text style={styles.label}>{stat.label}</Text>
+              </View>
+            </View>
+          ))}
+        </View>
+        <View style={styles.fieldsSection}>
           {fields.map((field, index) => (
             <View key={field.id}>
               <TouchableOpacity
@@ -57,7 +102,9 @@ export default function ProfileFieldsList({ onFieldPress }) {
                   color={Colors.grey}
                 />
               </TouchableOpacity>
-              {index < fields.length - 1 && <View style={styles.divider} />}
+              {index < fields.length - 1 && (
+                <View style={styles.fieldDivider} />
+              )}
             </View>
           ))}
         </View>
@@ -83,7 +130,45 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 1,
   },
-  content: {
+  statsSection: {
+    padding: Sizes.md,
+    borderRadius: 8,
+    flexDirection: "row",
+    justifyContent: "space-around",
+    alignItems: "center",
+  },
+  statCard: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: Sizes.sm,
+    borderRightWidth: 1,
+    borderRightColor: "#E0E0E0",
+  },
+  lastStatCard: {
+    borderRightWidth: 0,
+  },
+  value: {
+    fontSize: 16,
+    fontFamily: "Poppins-Bold",
+    color: Colors.black,
+    marginBottom: Sizes.xs,
+  },
+  labelContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  label: {
+    fontSize: 12,
+    fontFamily: "Poppins-Regular",
+    color: "#999999",
+    marginLeft: 4,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: "#E0E0E0",
+    marginVertical: Sizes.sm,
+  },
+  fieldsSection: {
     padding: Sizes.md,
     borderRadius: 8,
     backgroundColor: "#F2F2F2",
@@ -99,16 +184,16 @@ const styles = StyleSheet.create({
   },
   fieldLabel: {
     fontSize: 16,
-    fontFamily: "Poppins-Bold",
+    fontFamily: "Poppins-Medium",
     color: Colors.black,
     marginBottom: 4,
   },
   fieldValue: {
     fontSize: 14,
     fontFamily: "Poppins-Regular",
-    color: "#666666",
+    color: "#999999",
   },
-  divider: {
+  fieldDivider: {
     height: 1,
     backgroundColor: "#E0E0E0",
     marginVertical: Sizes.sm,

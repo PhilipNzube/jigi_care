@@ -46,9 +46,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   joinedText: {
-    fontSize: 14,
+    fontSize: 12,
     fontFamily: "Poppins-Regular",
-    color: Colors.grey,
+    color: "#999999",
     marginBottom: 2,
   },
   dateText: {
@@ -57,6 +57,3 @@ const styles = StyleSheet.create({
     color: Colors.grey,
   },
 });
-
-
-

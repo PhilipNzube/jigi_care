@@ -67,14 +67,14 @@ export default function ProfileScreen({ navigation }) {
 
         <View style={styles.content}>
           <StatsCards />
-          <RecentActivitySection />
           <SecuritySection />
-          <EmergencyContactsSection />
           <SettingsSection
             onMedicalHistory={handleMedicalHistory}
             onPrivacyPreferences={handlePrivacyPreferences}
             onHelpSupport={handleHelpSupport}
           />
+          <RecentActivitySection />
+          <EmergencyContactsSection />
           <LogoutButton onPress={handleLogout} />
         </View>
       </ScrollView>

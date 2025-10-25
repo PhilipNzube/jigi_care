@@ -8,9 +8,11 @@ import {
   ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, Sizes } from "../../../shared/constants";
 
 export default function DatePickerModal({ visible, onClose }) {
+  const insets = useSafeAreaInsets();
   const [selectedDate, setSelectedDate] = useState("September 17 2021");
 
   const months = [
@@ -45,7 +47,12 @@ export default function DatePickerModal({ visible, onClose }) {
     >
       <View style={styles.overlay}>
         <TouchableOpacity style={styles.overlayTouchable} onPress={onClose} />
-        <View style={styles.modal}>
+        <View
+          style={[
+            styles.modal,
+            { paddingBottom: Math.max(insets.bottom, Sizes.xl) },
+          ]}
+        >
           <View style={styles.pickerContainer}>
             <ScrollView
               style={styles.pickerColumn}
@@ -190,6 +197,3 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins-Bold",
   },
 });
-
-
-

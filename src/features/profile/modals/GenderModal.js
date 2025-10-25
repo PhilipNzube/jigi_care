@@ -5,17 +5,26 @@ import {
   StyleSheet,
   Modal,
   TouchableOpacity,
-  TextInput,
+  ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, Sizes } from "../../../shared/constants";
 
-export default function UpdateAddressModal({ visible, onClose }) {
+export default function GenderModal({ visible, onClose }) {
   const insets = useSafeAreaInsets();
-  const [address, setAddress] = useState("432 Jakande Estate");
-  const [city, setCity] = useState("Lagos");
-  const [state, setState] = useState("Lagos State");
+  const [selectedGender, setSelectedGender] = useState("Male");
+
+  const genders = [
+    { id: "male", label: "Male", icon: "male" },
+    { id: "female", label: "Female", icon: "female" },
+    { id: "other", label: "Other", icon: "person" },
+    {
+      id: "prefer_not_to_say",
+      label: "Prefer not to say",
+      icon: "help-circle",
+    },
+  ];
 
   const handleSave = () => {
     // Handle save logic
@@ -38,54 +47,49 @@ export default function UpdateAddressModal({ visible, onClose }) {
           ]}
         >
           <View style={styles.header}>
-            <Text style={styles.title}>UPDATE ADDRESS</Text>
+            <Text style={styles.title}>SELECT GENDER</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
               <Ionicons name="close" size={24} color={Colors.grey} />
             </TouchableOpacity>
           </View>
 
-          <View style={styles.content}>
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Address</Text>
-              <View style={styles.inputContainer}>
-                <TextInput
-                  style={styles.input}
-                  value={address}
-                  onChangeText={setAddress}
-                  placeholder="Enter address"
-                  placeholderTextColor={Colors.grey}
-                />
-              </View>
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>City</Text>
-              <View style={styles.inputContainer}>
-                <TextInput
-                  style={styles.input}
-                  value={city}
-                  onChangeText={setCity}
-                  placeholder="Enter city"
-                  placeholderTextColor={Colors.grey}
-                />
-                <Ionicons name="chevron-down" size={16} color={Colors.grey} />
-              </View>
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>State/Province</Text>
-              <View style={styles.inputContainer}>
-                <TextInput
-                  style={styles.input}
-                  value={state}
-                  onChangeText={setState}
-                  placeholder="Enter state"
-                  placeholderTextColor={Colors.grey}
-                />
-                <Ionicons name="chevron-down" size={16} color={Colors.grey} />
-              </View>
-            </View>
-          </View>
+          <ScrollView
+            style={styles.content}
+            showsVerticalScrollIndicator={false}
+          >
+            {genders.map((gender) => (
+              <TouchableOpacity
+                key={gender.id}
+                style={[
+                  styles.genderItem,
+                  selectedGender === gender.label && styles.selectedGenderItem,
+                ]}
+                onPress={() => setSelectedGender(gender.label)}
+              >
+                <View style={styles.genderInfo}>
+                  <Ionicons
+                    name={gender.icon}
+                    size={24}
+                    color={
+                      selectedGender === gender.label ? "#0098B3" : Colors.grey
+                    }
+                  />
+                  <Text
+                    style={[
+                      styles.genderLabel,
+                      selectedGender === gender.label &&
+                        styles.selectedGenderLabel,
+                    ]}
+                  >
+                    {gender.label}
+                  </Text>
+                </View>
+                {selectedGender === gender.label && (
+                  <Ionicons name="checkmark" size={20} color="#0098B3" />
+                )}
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
 
           <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
             <Text style={styles.saveButtonText}>Save</Text>
@@ -112,6 +116,7 @@ const styles = StyleSheet.create({
     paddingTop: Sizes.lg,
     paddingHorizontal: Sizes.lg,
     paddingBottom: Sizes.xl,
+    maxHeight: "80%",
   },
   header: {
     flexDirection: "row",
@@ -130,27 +135,34 @@ const styles = StyleSheet.create({
   content: {
     marginBottom: Sizes.lg,
   },
-  inputGroup: {
-    marginBottom: Sizes.lg,
-  },
-  label: {
-    fontSize: 14,
-    fontFamily: "Poppins-Regular",
-    color: "#999999",
+  genderItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: Sizes.md,
+    paddingHorizontal: Sizes.md,
+    borderRadius: 8,
     marginBottom: Sizes.sm,
+    backgroundColor: "#F8F8F8",
   },
-  inputContainer: {
+  selectedGenderItem: {
+    backgroundColor: "#E0F7FA",
+    borderWidth: 1,
+    borderColor: "#0098B3",
+  },
+  genderInfo: {
     flexDirection: "row",
     alignItems: "center",
-    borderBottomWidth: 1,
-    borderBottomColor: "#E0E0E0",
-    paddingBottom: Sizes.sm,
   },
-  input: {
-    flex: 1,
+  genderLabel: {
     fontSize: 16,
-    fontFamily: "Poppins-Regular",
+    fontFamily: "Poppins-Medium",
     color: Colors.black,
+    marginLeft: Sizes.md,
+  },
+  selectedGenderLabel: {
+    color: "#0098B3",
+    fontFamily: "Poppins-Bold",
   },
   saveButton: {
     backgroundColor: "#0098B3",

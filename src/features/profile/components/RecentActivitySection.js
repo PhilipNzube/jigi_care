@@ -23,18 +23,19 @@ export default function RecentActivitySection() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.sectionTitle}>Recent Activity</Text>
-
       <View style={styles.card}>
-        {activities.map((activity, index) => (
-          <View key={activity.id}>
-            <View style={styles.activityItem}>
-              <Text style={styles.activityTitle}>{activity.title}</Text>
-              <Text style={styles.activityDate}>{activity.date}</Text>
+        <Text style={styles.sectionTitle}>Recent Activity</Text>
+        <View style={styles.content}>
+          {activities.map((activity, index) => (
+            <View key={activity.id}>
+              <View style={styles.activityItem}>
+                <Text style={styles.activityTitle}>{activity.title}</Text>
+                <Text style={styles.activityDate}>{activity.date}</Text>
+              </View>
+              {index < activities.length - 1 && <View style={styles.divider} />}
             </View>
-            {index < activities.length - 1 && <View style={styles.divider} />}
-          </View>
-        ))}
+          ))}
+        </View>
       </View>
     </View>
   );
@@ -46,14 +47,14 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontFamily: "Poppins-Bold",
+    fontFamily: "Poppins-Medium",
     color: Colors.black,
-    marginBottom: Sizes.md,
+    marginLeft: Sizes.sm,
   },
   card: {
     backgroundColor: Colors.white,
     borderRadius: 12,
-    padding: Sizes.md,
+    padding: Sizes.sm,
     shadowColor: Colors.black,
     shadowOffset: {
       width: 0,
@@ -61,7 +62,12 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 3,
+    elevation: 1,
+  },
+  content: {
+    padding: Sizes.md,
+    borderRadius: 8,
+    backgroundColor: "#F2F2F2",
   },
   activityItem: {
     paddingVertical: Sizes.sm,
@@ -75,7 +81,7 @@ const styles = StyleSheet.create({
   activityDate: {
     fontSize: 14,
     fontFamily: "Poppins-Regular",
-    color: Colors.grey,
+    color: "#666666",
   },
   divider: {
     height: 1,

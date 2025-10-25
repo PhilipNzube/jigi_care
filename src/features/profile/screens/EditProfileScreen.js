@@ -12,8 +12,7 @@ import { Colors, Sizes } from "../../../shared/constants";
 import { Images } from "../../../shared/utils/imageUtils";
 import EditProfileHeader from "../components/EditProfileHeader";
 import ProfilePictureSection from "../components/ProfilePictureSection";
-import StatsSection from "../components/StatsSection";
-import ProfileFieldsList from "../components/ProfileFieldsList";
+import CombinedProfileSection from "../components/CombinedProfileSection";
 import UpdateDataModal from "../modals/UpdateDataModal";
 import UpdateNameModal from "../modals/UpdateNameModal";
 import UpdateEmailModal from "../modals/UpdateEmailModal";
@@ -22,6 +21,7 @@ import UpdateAddressModal from "../modals/UpdateAddressModal";
 import EmergencyContactModal from "../modals/EmergencyContactModal";
 import ChangePasswordModal from "../modals/ChangePasswordModal";
 import DatePickerModal from "../modals/DatePickerModal";
+import GenderModal from "../modals/GenderModal";
 
 export default function EditProfileScreen({ navigation }) {
   const insets = useSafeAreaInsets();
@@ -34,6 +34,7 @@ export default function EditProfileScreen({ navigation }) {
     useState(false);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
   const [showDatePickerModal, setShowDatePickerModal] = useState(false);
+  const [showGenderModal, setShowGenderModal] = useState(false);
 
   const handleFieldPress = (field) => {
     switch (field) {
@@ -61,8 +62,10 @@ export default function EditProfileScreen({ navigation }) {
         setShowChangePasswordModal(true);
         break;
       case "dateOfBirth":
-      case "gender":
         setShowDatePickerModal(true);
+        break;
+      case "gender":
+        setShowGenderModal(true);
         break;
       default:
         break;
@@ -75,12 +78,11 @@ export default function EditProfileScreen({ navigation }) {
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
       >
-        <EditProfileHeader />
+        <EditProfileHeader navigation={navigation} />
         <ProfilePictureSection />
-        <StatsSection />
 
         <View style={styles.content}>
-          <ProfileFieldsList onFieldPress={handleFieldPress} />
+          <CombinedProfileSection onFieldPress={handleFieldPress} />
         </View>
       </ScrollView>
 
@@ -122,6 +124,11 @@ export default function EditProfileScreen({ navigation }) {
       <DatePickerModal
         visible={showDatePickerModal}
         onClose={() => setShowDatePickerModal(false)}
+      />
+
+      <GenderModal
+        visible={showGenderModal}
+        onClose={() => setShowGenderModal(false)}
       />
     </View>
   );

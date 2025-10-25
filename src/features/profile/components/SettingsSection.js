@@ -3,7 +3,11 @@ import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
 
-export default function SettingsSection({ onMedicalHistory, onPrivacyPreferences, onHelpSupport }) {
+export default function SettingsSection({
+  onMedicalHistory,
+  onPrivacyPreferences,
+  onHelpSupport,
+}) {
   const settings = [
     {
       id: 1,
@@ -24,18 +28,26 @@ export default function SettingsSection({ onMedicalHistory, onPrivacyPreferences
 
   return (
     <View style={styles.container}>
-      <Text style={styles.sectionTitle}>Settings</Text>
-      
       <View style={styles.card}>
-        {settings.map((setting, index) => (
-          <View key={setting.id}>
-            <TouchableOpacity style={styles.settingItem} onPress={setting.onPress}>
-              <Text style={styles.settingTitle}>{setting.title}</Text>
-              <Ionicons name="chevron-forward" size={20} color={Colors.grey} />
-            </TouchableOpacity>
-            {index < settings.length - 1 && <View style={styles.divider} />}
-          </View>
-        ))}
+        <Text style={styles.sectionTitle}>Settings</Text>
+        <View style={styles.content}>
+          {settings.map((setting, index) => (
+            <View key={setting.id}>
+              <TouchableOpacity
+                style={styles.settingItem}
+                onPress={setting.onPress}
+              >
+                <Text style={styles.settingTitle}>{setting.title}</Text>
+                <Ionicons
+                  name="chevron-forward"
+                  size={20}
+                  color={Colors.grey}
+                />
+              </TouchableOpacity>
+              {index < settings.length - 1 && <View style={styles.divider} />}
+            </View>
+          ))}
+        </View>
       </View>
     </View>
   );
@@ -47,14 +59,14 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontFamily: "Poppins-Bold",
+    fontFamily: "Poppins-Medium",
     color: Colors.black,
-    marginBottom: Sizes.md,
+    marginLeft: Sizes.sm,
   },
   card: {
     backgroundColor: Colors.white,
-    borderRadius: 8,
-    padding: Sizes.md,
+    borderRadius: 12,
+    padding: Sizes.sm,
     shadowColor: Colors.black,
     shadowOffset: {
       width: 0,
@@ -62,7 +74,12 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 3,
+    elevation: 1,
+  },
+  content: {
+    padding: Sizes.md,
+    borderRadius: 8,
+    backgroundColor: "#F2F2F2",
   },
   settingItem: {
     flexDirection: "row",

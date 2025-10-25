@@ -12,7 +12,10 @@ export default function EditProfileHeader({ navigation }) {
       >
         <Ionicons name="chevron-back" size={24} color={Colors.grey} />
       </TouchableOpacity>
-      <Text style={styles.title}>Edit Profile</Text>
+      <View style={styles.titleContainer}>
+        <Text style={styles.title}>Edit Profile</Text>
+      </View>
+      <View style={styles.placeholder} />
     </View>
   );
 }
@@ -27,18 +30,21 @@ const styles = StyleSheet.create({
   backButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: 8,
     backgroundColor: Colors.white,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: Sizes.md,
+  },
+  titleContainer: {
+    flex: 1,
+    alignItems: "center",
   },
   title: {
     fontSize: 20,
     fontFamily: "Poppins-Bold",
     color: Colors.black,
   },
+  placeholder: {
+    width: 40,
+  },
 });
-
-
-

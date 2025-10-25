@@ -15,27 +15,30 @@ export default function EmergencyContactsSection() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.sectionTitle}>Emergency Contacts</Text>
-      
       <View style={styles.card}>
-        {contacts.map((contact, index) => (
-          <View key={contact.id}>
-            <View style={styles.contactItem}>
-              <View style={styles.contactInfo}>
-                <View style={styles.iconContainer}>
-                  <Ionicons name="person" size={20} color="#E91E63" />
+        <Text style={styles.sectionTitle}>Emergency Contacts</Text>
+        <View style={styles.content}>
+          {contacts.map((contact, index) => (
+            <View key={contact.id}>
+              <View style={styles.contactItem}>
+                <View style={styles.contactInfo}>
+                  <View style={styles.iconContainer}>
+                    <Ionicons name="person" size={20} color="#E91E63" />
+                  </View>
+                  <View style={styles.contactDetails}>
+                    <Text style={styles.contactName}>{contact.name}</Text>
+                    <Text style={styles.contactPhone}>{contact.phone}</Text>
+                  </View>
                 </View>
-                <View style={styles.contactDetails}>
-                  <Text style={styles.contactName}>{contact.name}</Text>
-                  <Text style={styles.contactPhone}>{contact.phone}</Text>
+                <View style={styles.relationshipTag}>
+                  <Text style={styles.relationshipText}>
+                    {contact.relationship}
+                  </Text>
                 </View>
-              </View>
-              <View style={styles.relationshipTag}>
-                <Text style={styles.relationshipText}>{contact.relationship}</Text>
               </View>
             </View>
-          </View>
-        ))}
+          ))}
+        </View>
       </View>
     </View>
   );
@@ -47,14 +50,14 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontFamily: "Poppins-Bold",
+    fontFamily: "Poppins-Medium",
     color: Colors.black,
-    marginBottom: Sizes.md,
+    marginLeft: Sizes.sm,
   },
   card: {
     backgroundColor: Colors.white,
-    borderRadius: 8,
-    padding: Sizes.md,
+    borderRadius: 12,
+    padding: Sizes.sm,
     shadowColor: Colors.black,
     shadowOffset: {
       width: 0,
@@ -62,7 +65,12 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 3,
+    elevation: 1,
+  },
+  content: {
+    padding: Sizes.md,
+    borderRadius: 8,
+    backgroundColor: "#F2F2F2",
   },
   contactItem: {
     flexDirection: "row",
@@ -77,8 +85,8 @@ const styles = StyleSheet.create({
   iconContainer: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(233, 30, 99, 0.1)",
+    borderRadius: 8,
+    backgroundColor: "#E024780F",
     justifyContent: "center",
     alignItems: "center",
     marginRight: Sizes.md,
@@ -93,12 +101,12 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   contactPhone: {
-    fontSize: 14,
+    fontSize: 12,
     fontFamily: "Poppins-Regular",
-    color: Colors.grey,
+    color: "#666666",
   },
   relationshipTag: {
-    backgroundColor: "rgba(233, 30, 99, 0.1)",
+    backgroundColor: "#E024780F",
     paddingHorizontal: Sizes.sm,
     paddingVertical: 4,
     borderRadius: 12,
