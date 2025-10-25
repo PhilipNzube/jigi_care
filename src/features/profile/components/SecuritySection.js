@@ -18,7 +18,9 @@ export default function SecuritySection() {
               <Text style={styles.subtitle}>Use fingerprint or face id</Text>
             </View>
             <View style={styles.toggleContainer}>
-              <View style={styles.toggleOff} />
+              <View style={styles.toggleOff}>
+                <View style={styles.toggleThumb} />
+              </View>
             </View>
           </View>
 
@@ -107,6 +109,23 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     backgroundColor: "#E0E0E0",
     position: "relative",
+    justifyContent: "center",
+  },
+  toggleThumb: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: Colors.white,
+    position: "absolute",
+    left: 2,
+    shadowColor: Colors.black,
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
   },
   activeTag: {
     backgroundColor: "#E0F7FA",

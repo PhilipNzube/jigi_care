@@ -1,18 +1,27 @@
 import React from "react";
 import { View, Text, StyleSheet, Modal, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, Sizes } from "../../../shared/constants";
 
 export default function LogoutModal({ visible, onClose, onConfirm }) {
+  const insets = useSafeAreaInsets();
+
   return (
     <Modal
       visible={visible}
       transparent
-      animationType="fade"
+      animationType="slide"
       onRequestClose={onClose}
     >
       <View style={styles.overlay}>
-        <View style={styles.modal}>
+        <TouchableOpacity style={styles.overlayTouchable} onPress={onClose} />
+        <View
+          style={[
+            styles.modal,
+            { paddingBottom: Math.max(insets.bottom, Sizes.xl) },
+          ]}
+        >
           <View style={styles.header}>
             <Text style={styles.title}>LOG OUT</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
@@ -41,15 +50,18 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: "flex-end",
+  },
+  overlayTouchable: {
+    flex: 1,
   },
   modal: {
     backgroundColor: Colors.white,
-    borderRadius: 16,
-    padding: Sizes.xl,
-    marginHorizontal: Sizes.lg,
-    width: "90%",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingTop: Sizes.lg,
+    paddingHorizontal: Sizes.lg,
+    paddingBottom: Sizes.xl,
   },
   header: {
     flexDirection: "row",
@@ -59,7 +71,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontFamily: "Poppins-Bold",
+    fontFamily: "Poppins-Medium",
     color: Colors.grey,
   },
   closeButton: {
@@ -105,6 +117,3 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins-Bold",
   },
 });
-
-
-
