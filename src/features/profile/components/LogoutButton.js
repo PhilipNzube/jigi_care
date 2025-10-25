@@ -31,3 +31,4 @@ const styles = StyleSheet.create({
     color: "#EA4D4D",
   },
 });
+
