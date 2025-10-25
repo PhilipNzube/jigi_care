@@ -8,6 +8,7 @@ import {
   Modal,
   Alert,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
 
@@ -29,8 +30,18 @@ export default function WeightBottomSheet({ visible, onClose, onSave }) {
       timestamp: new Date(),
     };
 
-    onSave(reading);
-    onClose();
+    if (onSave && typeof onSave === "function") {
+      onSave(reading);
+    }
+    if (onClose && typeof onClose === "function") {
+      onClose();
+    }
+  };
+
+  const handleClose = () => {
+    if (onClose && typeof onClose === "function") {
+      onClose();
+    }
   };
 
   return (
@@ -41,58 +52,66 @@ export default function WeightBottomSheet({ visible, onClose, onSave }) {
       onRequestClose={onClose}
     >
       <View style={styles.overlay}>
-        <View style={styles.container}>
-          <View style={styles.header}>
-            <Text style={styles.title}>ADD WEIGHT</Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Ionicons name="close" size={24} color={Colors.textSecondary} />
-            </TouchableOpacity>
-          </View>
+        <SafeAreaView style={styles.safeArea}>
+          <View style={styles.container}>
+            <View style={styles.header}>
+              <Text style={styles.title}>ADD WEIGHT</Text>
+              <TouchableOpacity
+                onPress={handleClose}
+                style={styles.closeButton}
+              >
+                <Ionicons name="close" size={24} color={Colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
 
-          <View style={styles.content}>
-            <View style={styles.inputSection}>
-              <Text style={styles.label}>Weight</Text>
-              <View style={styles.inputRow}>
-                <Ionicons name="scale" size={20} color="#9E9E9E" />
-                <Text style={styles.value}>{weight}</Text>
-                <View style={styles.unitSelector}>
-                  <Text style={styles.unitText}>{unit}</Text>
-                  <Ionicons
-                    name="chevron-down"
-                    size={16}
-                    color={Colors.textSecondary}
-                  />
+            <View style={styles.content}>
+              <View style={styles.inputSection}>
+                <Text style={styles.label}>Weight</Text>
+                <View style={styles.inputRow}>
+                  <Ionicons name="scale" size={20} color="#9E9E9E" />
+                  <Text style={styles.value}>{weight}</Text>
+                  <View style={styles.unitSelector}>
+                    <Text style={styles.unitText}>{unit}</Text>
+                    <Ionicons
+                      name="chevron-down"
+                      size={16}
+                      color={Colors.textSecondary}
+                    />
+                  </View>
                 </View>
+                <View style={styles.divider} />
               </View>
-              <View style={styles.divider} />
+
+              <View style={styles.noteSection}>
+                <Text style={styles.noteLabel}>Note (Optional)</Text>
+                <TextInput
+                  style={styles.noteInput}
+                  placeholder="Add a note about this reading..."
+                  value={note}
+                  onChangeText={setNote}
+                  multiline
+                  maxLength={500}
+                  placeholderTextColor="#9E9E9E"
+                />
+                <Text style={styles.characterCount}>
+                  {note.length}/500 characters
+                </Text>
+              </View>
             </View>
 
-            <View style={styles.noteSection}>
-              <Text style={styles.noteLabel}>Note (Optional)</Text>
-              <TextInput
-                style={styles.noteInput}
-                placeholder="Add a note about this reading..."
-                value={note}
-                onChangeText={setNote}
-                multiline
-                maxLength={500}
-                placeholderTextColor="#9E9E9E"
-              />
-              <Text style={styles.characterCount}>
-                {note.length}/500 characters
-              </Text>
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={handleClose}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+                <Text style={styles.saveButtonText}>Save Reading</Text>
+              </TouchableOpacity>
             </View>
           </View>
-
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
-              <Text style={styles.cancelButtonText}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-              <Text style={styles.saveButtonText}>Save Reading</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+        </SafeAreaView>
       </View>
     </Modal>
   );
@@ -103,6 +122,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "flex-end",
+  },
+  safeArea: {
+    flex: 0,
   },
   container: {
     backgroundColor: Colors.white,
@@ -208,7 +230,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     borderWidth: 1,
     borderColor: "#E0E0E0",
-    borderRadius: 8,
+    borderRadius: 30,
     paddingVertical: Sizes.md,
     alignItems: "center",
   },
@@ -219,8 +241,8 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     flex: 1,
-    backgroundColor: "#00BCD4",
-    borderRadius: 8,
+    backgroundColor: "#0098B3",
+    borderRadius: 30,
     paddingVertical: Sizes.md,
     alignItems: "center",
   },

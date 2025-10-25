@@ -1,5 +1,11 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
@@ -25,10 +31,12 @@ export default function HealthMonitoringScreen({ navigation }) {
         <Text style={styles.headerTitle}>Health Monitoring</Text>
       </View>
 
-      <VitalSignsGrid onAddReading={handleAddReading} />
-      <BloodPressureChart />
-      <MedicationsSection />
-      <ExportHealthDataSection />
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        <VitalSignsGrid onAddReading={handleAddReading} />
+        <BloodPressureChart />
+        <MedicationsSection />
+        <ExportHealthDataSection />
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -63,5 +71,9 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
     flex: 1,
     textAlign: "center",
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: Sizes.lg,
   },
 });

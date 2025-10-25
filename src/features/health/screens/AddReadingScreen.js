@@ -1,10 +1,19 @@
-import React from "react";
+import React, { useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
+import BloodPressureBottomSheet from "../components/BloodPressureBottomSheet";
+import TemperatureBottomSheet from "../components/TemperatureBottomSheet";
+import WeightBottomSheet from "../components/WeightBottomSheet";
+import HeartRateBottomSheet from "../components/HeartRateBottomSheet";
 
 export default function AddReadingScreen({ navigation }) {
+  const [showBloodPressureModal, setShowBloodPressureModal] = useState(false);
+  const [showTemperatureModal, setShowTemperatureModal] = useState(false);
+  const [showWeightModal, setShowWeightModal] = useState(false);
+  const [showHeartRateModal, setShowHeartRateModal] = useState(false);
+
   const readingTypes = [
     {
       id: "blood_pressure",
@@ -33,16 +42,21 @@ export default function AddReadingScreen({ navigation }) {
   ];
 
   const handleReadingTypeSelect = (type) => {
-    // Navigate to specific reading input bottom sheet
+    // Show specific reading input bottom sheet modal
     if (type === "blood_pressure") {
-      navigation.navigate("BloodPressureBottomSheet");
+      setShowBloodPressureModal(true);
     } else if (type === "temperature") {
-      navigation.navigate("TemperatureBottomSheet");
+      setShowTemperatureModal(true);
     } else if (type === "weight") {
-      navigation.navigate("WeightBottomSheet");
+      setShowWeightModal(true);
     } else if (type === "heart_rate") {
-      navigation.navigate("HeartRateBottomSheet");
+      setShowHeartRateModal(true);
     }
+  };
+
+  const handleSaveReading = (reading) => {
+    console.log("Reading saved:", reading);
+    // Here you would typically save the reading to your state management or API
   };
 
   const renderReadingTypeCard = (readingType) => (
@@ -75,6 +89,28 @@ export default function AddReadingScreen({ navigation }) {
           {readingTypes.map(renderReadingTypeCard)}
         </View>
       </View>
+
+      {/* Bottom Sheet Modals */}
+      <BloodPressureBottomSheet
+        visible={showBloodPressureModal}
+        onClose={() => setShowBloodPressureModal(false)}
+        onSave={handleSaveReading}
+      />
+      <TemperatureBottomSheet
+        visible={showTemperatureModal}
+        onClose={() => setShowTemperatureModal(false)}
+        onSave={handleSaveReading}
+      />
+      <WeightBottomSheet
+        visible={showWeightModal}
+        onClose={() => setShowWeightModal(false)}
+        onSave={handleSaveReading}
+      />
+      <HeartRateBottomSheet
+        visible={showHeartRateModal}
+        onClose={() => setShowHeartRateModal(false)}
+        onSave={handleSaveReading}
+      />
     </SafeAreaView>
   );
 }

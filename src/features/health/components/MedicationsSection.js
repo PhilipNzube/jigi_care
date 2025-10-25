@@ -16,30 +16,33 @@ const MedicationsSection = () => {
       <View style={styles.medicationCard}>
         <View style={styles.medicationHeader}>
           <Text style={styles.medicationDate}>Sep 25th, 2025 • 12:00 PM</Text>
-        </View>
-
-        <View style={styles.medicationItem}>
-          <View style={styles.medicationImageContainer}>
-            <View style={styles.medicationImage} />
-          </View>
-          <View style={styles.medicationInfo}>
-            <Text style={styles.medicationName}>Acetaminophen</Text>
-            <Text style={styles.medicationDosage}>500mg • Twice daily</Text>
-            <Text style={styles.medicationDescription}>
-              Pain reliever and fever reducer
-            </Text>
-          </View>
-          <View style={styles.medicationStatus}>
-            <View style={styles.statusRow}>
-              <View style={styles.checkbox}>
-                <Ionicons name="checkmark" size={16} color={Colors.white} />
-              </View>
-              <Text style={styles.statusText}>Taken</Text>
+          <View style={styles.statusRow}>
+            <View style={styles.checkbox}>
+              <Ionicons name="checkmark" size={16} color={Colors.white} />
             </View>
-            <View style={[styles.statusTag, { backgroundColor: "#FFF3CD" }]}>
-              <Text style={[styles.statusTagText, { color: "#856404" }]}>
-                Running Low
+            <Text style={styles.statusText}>Taken</Text>
+          </View>
+        </View>
+        <View style={styles.medicationContent}>
+          <View style={styles.medicationItem}>
+            <View style={styles.medicationImageContainer}>
+              <View style={styles.medicationImage} />
+            </View>
+            <View style={styles.medicationInfo}>
+              <Text style={styles.medicationName}>Acetaminophen</Text>
+              <Text style={styles.medicationDosage}>500mg • Twice daily</Text>
+              <Text style={styles.medicationDescription}>
+                Pain reliever and fever reducer
               </Text>
+            </View>
+            <View style={styles.medicationStatus}>
+              <View
+                style={[styles.statusTag, { backgroundColor: "#F2C94C1F" }]}
+              >
+                <Text style={[styles.statusTagText, { color: "#856404" }]}>
+                  Running Low
+                </Text>
+              </View>
             </View>
           </View>
         </View>
@@ -71,7 +74,7 @@ const styles = StyleSheet.create({
   medicationCard: {
     backgroundColor: Colors.white,
     borderRadius: 12,
-    padding: Sizes.md,
+    padding: Sizes.sm,
     marginBottom: Sizes.md,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
@@ -80,6 +83,9 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   medicationHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: Sizes.sm,
   },
   medicationDate: {
@@ -112,14 +118,14 @@ const styles = StyleSheet.create({
   },
   medicationName: {
     fontSize: 16,
-    fontFamily: "Poppins-Bold",
-    color: "#2E7D32",
+    fontFamily: "Poppins-Medium",
+    color: "#000",
     marginBottom: Sizes.xs,
   },
   medicationDosage: {
-    fontSize: 14,
+    fontSize: 12,
     fontFamily: "Poppins-Medium",
-    color: Colors.textPrimary,
+    color: "#5B6B62",
     marginBottom: Sizes.xs,
   },
   medicationDescription: {
@@ -147,7 +153,7 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 12,
     fontFamily: "Poppins-Medium",
-    color: Colors.textPrimary,
+    color: "#C89A0F",
   },
   statusTag: {
     paddingHorizontal: Sizes.sm,
@@ -157,6 +163,11 @@ const styles = StyleSheet.create({
   statusTagText: {
     fontSize: 10,
     fontFamily: "Poppins-Medium",
+  },
+  medicationContent: {
+    padding: Sizes.md,
+    borderRadius: 8,
+    backgroundColor: "#F2F2F2",
   },
 });
 

@@ -42,7 +42,7 @@ const styles = StyleSheet.create({
   },
   exportTitle: {
     fontSize: 16,
-    fontFamily: "Poppins-Bold",
+    fontFamily: "Poppins-Medium",
     color: Colors.textPrimary,
     marginBottom: Sizes.xs,
   },
@@ -52,10 +52,10 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
   exportButton: {
-    backgroundColor: "#00BCD4",
+    backgroundColor: "#0098B3",
     paddingHorizontal: Sizes.md,
     paddingVertical: Sizes.sm,
-    borderRadius: 8,
+    borderRadius: 30,
   },
   exportButtonText: {
     fontSize: 14,

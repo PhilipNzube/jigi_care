@@ -28,10 +28,6 @@ import EditProfileScreen from "../../features/profile/screens/EditProfileScreen"
 import ProfileSettingsScreen from "../../features/profile/screens/ProfileSettingsScreen";
 import HealthMonitoringScreen from "../../features/health/screens/HealthMonitoringScreen";
 import AddReadingScreen from "../../features/health/screens/AddReadingScreen";
-import BloodPressureBottomSheet from "../../features/health/components/BloodPressureBottomSheet";
-import TemperatureBottomSheet from "../../features/health/components/TemperatureBottomSheet";
-import WeightBottomSheet from "../../features/health/components/WeightBottomSheet";
-import HeartRateBottomSheet from "../../features/health/components/HeartRateBottomSheet";
 import LabTestScreen from "../../features/health/screens/LabTestScreen";
 import BookLabTestScreen from "../../features/health/screens/BookLabTestScreen";
 import LabResultsScreen from "../../features/health/screens/LabResultsScreen";
@@ -155,19 +151,6 @@ export default function MainAppNavigator() {
         component={HealthMonitoringScreen}
       />
       <Stack.Screen name="AddReading" component={AddReadingScreen} />
-      <Stack.Screen
-        name="BloodPressureBottomSheet"
-        component={BloodPressureBottomSheet}
-      />
-      <Stack.Screen
-        name="TemperatureBottomSheet"
-        component={TemperatureBottomSheet}
-      />
-      <Stack.Screen name="WeightBottomSheet" component={WeightBottomSheet} />
-      <Stack.Screen
-        name="HeartRateBottomSheet"
-        component={HeartRateBottomSheet}
-      />
       <Stack.Screen name="LabTest" component={LabTestScreen} />
       <Stack.Screen name="BookLabTest" component={BookLabTestScreen} />
       <Stack.Screen name="LabResults" component={LabResultsScreen} />
