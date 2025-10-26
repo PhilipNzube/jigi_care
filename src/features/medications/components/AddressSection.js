@@ -1,34 +1,75 @@
-import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  TextInput,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
 
 export default function AddressSection() {
+  const [address, setAddress] = useState("423 Jakande Estate");
+  const [isEditing, setIsEditing] = useState(false);
+
   const handleEditAddress = () => {
-    // Handle edit address logic
-    console.log("Edit address pressed");
+    setIsEditing(true);
+  };
+
+  const handleSaveAddress = () => {
+    setIsEditing(false);
+    // Handle save address logic here
+    console.log("Address saved:", address);
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setAddress("423 Jakande Estate"); // Reset to original value
   };
 
   return (
     <View style={styles.container}>
       <Text style={styles.sectionLabel}>Home Address</Text>
 
-      <View style={styles.addressContainer}>
+      <View style={styles.addressField}>
         <View style={styles.addressRow}>
           <View style={styles.addressIcon}>
             <Ionicons name="location-outline" size={20} color={Colors.grey} />
           </View>
-          <Text style={styles.addressText}>423 Jakande Estate</Text>
+          {isEditing ? (
+            <TextInput
+              style={styles.addressInput}
+              value={address}
+              onChangeText={setAddress}
+              placeholder="Enter your address"
+              placeholderTextColor={Colors.grey}
+              autoFocus={true}
+            />
+          ) : (
+            <Text style={styles.addressText}>{address}</Text>
+          )}
           <TouchableOpacity
             style={styles.editButton}
-            onPress={handleEditAddress}
+            onPress={isEditing ? handleSaveAddress : handleEditAddress}
           >
-            <Ionicons name="pencil" size={18} color={Colors.grey} />
+            <Ionicons
+              name={isEditing ? "checkmark" : "pencil"}
+              size={18}
+              color={isEditing ? "#0098B3" : Colors.grey}
+            />
           </TouchableOpacity>
+          {isEditing && (
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={handleCancelEdit}
+            >
+              <Ionicons name="close" size={18} color="#F44336" />
+            </TouchableOpacity>
+          )}
         </View>
+        <View style={styles.underline} />
       </View>
-
-      <View style={styles.divider} />
     </View>
   );
 }
@@ -43,10 +84,8 @@ const styles = StyleSheet.create({
     color: Colors.grey,
     marginBottom: Sizes.sm,
   },
-  addressContainer: {
-    backgroundColor: Colors.white,
-    borderRadius: 12,
-    padding: Sizes.md,
+  addressField: {
+    paddingVertical: Sizes.sm,
   },
   addressRow: {
     flexDirection: "row",
@@ -61,10 +100,21 @@ const styles = StyleSheet.create({
     color: Colors.black,
     flex: 1,
   },
+  addressInput: {
+    fontSize: 16,
+    fontFamily: "Poppins-Regular",
+    color: Colors.black,
+    flex: 1,
+    paddingVertical: 0,
+  },
   editButton: {
     padding: Sizes.xs,
   },
-  divider: {
+  cancelButton: {
+    padding: Sizes.xs,
+    marginLeft: Sizes.xs,
+  },
+  underline: {
     height: 1,
     backgroundColor: "#E0E0E0",
     marginTop: Sizes.md,

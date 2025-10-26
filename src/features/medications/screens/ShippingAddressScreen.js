@@ -6,12 +6,17 @@ import {
   TouchableOpacity,
   ScrollView,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
 import AddressSection from "../components/AddressSection";
 
 export default function ShippingAddressScreen({ navigation }) {
+  const insets = useSafeAreaInsets();
+
   const handleProcessToPayment = () => {
     navigation.navigate("Payment");
   };
@@ -33,7 +38,10 @@ export default function ShippingAddressScreen({ navigation }) {
       </ScrollView>
 
       <TouchableOpacity
-        style={styles.processButton}
+        style={[
+          styles.processButton,
+          { marginBottom: insets.bottom + Sizes.lg },
+        ]}
         onPress={handleProcessToPayment}
       >
         <Text style={styles.processButtonText}>Process to Payment</Text>
