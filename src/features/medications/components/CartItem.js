@@ -1,11 +1,22 @@
-import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import React, { useState } from "react";
+import { View, Text, StyleSheet, TouchableOpacity, Modal } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
 
 export default function CartItem({ item }) {
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+
   const handleDelete = () => {
-    // Handle delete logic
+    setShowDeleteModal(true);
+  };
+
+  const handleConfirmDelete = () => {
+    setShowDeleteModal(false);
+    // Handle delete logic here
+  };
+
+  const handleCancelDelete = () => {
+    setShowDeleteModal(false);
   };
 
   const handleDecreaseQuantity = () => {
@@ -17,50 +28,90 @@ export default function CartItem({ item }) {
   };
 
   return (
-    <View style={styles.container}>
-      <TouchableOpacity style={styles.menuButton}>
-        <Ionicons name="ellipsis-horizontal" size={16} color={Colors.grey} />
-      </TouchableOpacity>
+    <>
+      <View style={styles.container}>
+        <TouchableOpacity style={styles.menuButton}>
+          <Ionicons name="ellipsis-horizontal" size={20} color="#EBEBEB" />
+        </TouchableOpacity>
 
-      <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
-        <Ionicons name="trash" size={20} color="#F44336" />
-      </TouchableOpacity>
-
-      <View style={styles.content}>
-        <View style={styles.medicationInfo}>
-          <View style={styles.medicationImage}>
-            <Ionicons name="medical" size={24} color={Colors.white} />
-          </View>
-
-          <View style={styles.medicationDetails}>
-            <Text style={styles.medicationName}>{item.name}</Text>
-            <View style={styles.ratingContainer}>
-              <Ionicons name="star" size={14} color="#FFD700" />
-              <Text style={styles.rating}>{item.rating}</Text>
+        <View style={styles.content}>
+          <View style={styles.itemHeader}>
+            <View style={styles.itemInfo}>
+              <View style={styles.itemImage}>
+                <Ionicons name="medical" size={24} color={Colors.white} />
+              </View>
+              <View style={styles.itemDetails}>
+                <View style={styles.nameRow}>
+                  <Text style={styles.itemName}>{item.name}</Text>
+                  <View style={styles.ratingContainer}>
+                    <Ionicons name="star" size={12} color="#FFD700" />
+                    <Text style={styles.rating}>{item.rating}</Text>
+                  </View>
+                </View>
+                <Text style={styles.dosage}>{item.dosage}</Text>
+                <Text style={styles.description}>{item.description}</Text>
+              </View>
             </View>
-            <Text style={styles.dosage}>{item.dosage}</Text>
-            <Text style={styles.description}>{item.description}</Text>
-            <Text style={styles.price}>₦{item.price.toLocaleString()}</Text>
+            <TouchableOpacity
+              style={styles.deleteButton}
+              onPress={handleDelete}
+            >
+              <Ionicons name="trash" size={18} color="#F44336" />
+            </TouchableOpacity>
           </View>
-        </View>
 
-        <View style={styles.quantityControls}>
-          <TouchableOpacity
-            style={styles.quantityButton}
-            onPress={handleDecreaseQuantity}
-          >
-            <Ionicons name="remove" size={16} color={Colors.grey} />
-          </TouchableOpacity>
-          <Text style={styles.quantity}>{item.quantity}</Text>
-          <TouchableOpacity
-            style={styles.quantityButton}
-            onPress={handleIncreaseQuantity}
-          >
-            <Ionicons name="add" size={16} color={Colors.grey} />
-          </TouchableOpacity>
+          <View style={styles.itemFooter}>
+            <Text style={styles.price}>₦{item.price.toLocaleString()}</Text>
+            <View style={styles.quantityControls}>
+              <TouchableOpacity
+                style={styles.quantityButton}
+                onPress={handleDecreaseQuantity}
+              >
+                <Ionicons name="remove" size={16} color={Colors.grey} />
+              </TouchableOpacity>
+              <Text style={styles.quantity}>{item.quantity}</Text>
+              <TouchableOpacity
+                style={styles.quantityButton}
+                onPress={handleIncreaseQuantity}
+              >
+                <Ionicons name="add" size={16} color={Colors.grey} />
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
       </View>
-    </View>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        visible={showDeleteModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={handleCancelDelete}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.iconContainer}>
+              <Ionicons name="trash-outline" size={40} color="#F44336" />
+            </View>
+            <Text style={styles.modalTitle}>Clear Cart?</Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={handleCancelDelete}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.confirmButton}
+                onPress={handleConfirmDelete}
+              >
+                <Text style={styles.confirmButtonText}>Yes</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    </>
   );
 }
 
@@ -68,7 +119,7 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: Colors.white,
     borderRadius: 12,
-    padding: Sizes.md,
+    padding: Sizes.sm,
     marginBottom: Sizes.md,
     shadowColor: Colors.black,
     shadowOffset: {
@@ -77,28 +128,28 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 3,
+    elevation: 1,
   },
   menuButton: {
-    position: "absolute",
-    top: Sizes.sm,
-    left: Sizes.sm,
-    zIndex: 1,
-  },
-  deleteButton: {
-    position: "absolute",
-    top: Sizes.sm,
-    right: Sizes.sm,
-    zIndex: 1,
+    marginLeft: Sizes.sm,
   },
   content: {
+    backgroundColor: "#F2F2F2",
+    borderRadius: 8,
+    padding: Sizes.md,
     marginTop: Sizes.sm,
   },
-  medicationInfo: {
+  itemHeader: {
     flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
     marginBottom: Sizes.md,
   },
-  medicationImage: {
+  itemInfo: {
+    flexDirection: "row",
+    flex: 1,
+  },
+  itemImage: {
     width: 50,
     height: 50,
     borderRadius: 8,
@@ -107,53 +158,63 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginRight: Sizes.sm,
   },
-  medicationDetails: {
+  itemDetails: {
     flex: 1,
   },
-  medicationName: {
-    fontSize: 16,
-    fontFamily: "Poppins-Bold",
-    color: Colors.black,
-    marginBottom: Sizes.xs,
-  },
-  ratingContainer: {
+  nameRow: {
     flexDirection: "row",
     alignItems: "center",
     marginBottom: Sizes.xs,
   },
-  rating: {
-    fontSize: 14,
+  itemName: {
+    fontSize: 16,
     fontFamily: "Poppins-Medium",
-    color: Colors.grey,
-    marginLeft: 4,
+    color: Colors.black,
+    marginRight: Sizes.xs,
   },
-  dosage: {
-    fontSize: 14,
+  ratingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  rating: {
+    fontSize: 12,
     fontFamily: "Poppins-Regular",
     color: Colors.grey,
+    marginLeft: 2,
+  },
+  dosage: {
+    fontSize: 12,
+    fontFamily: "Poppins-Regular",
+    color: "#5B6B62",
     marginBottom: 2,
   },
   description: {
-    fontSize: 14,
+    fontSize: 12,
     fontFamily: "Poppins-Regular",
-    color: Colors.grey,
-    marginBottom: Sizes.xs,
+    color: "#5B6B62",
+  },
+  deleteButton: {
+    padding: Sizes.xs,
+  },
+  itemFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   price: {
     fontSize: 16,
-    fontFamily: "Poppins-Bold",
+    fontFamily: "Poppins-Medium",
     color: Colors.black,
   },
   quantityControls: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "flex-end",
   },
   quantityButton: {
     width: 32,
     height: 32,
-    borderRadius: 16,
-    backgroundColor: "#F0F0F0",
+    borderRadius: 8,
+    backgroundColor: "#E0E0E0",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -165,10 +226,62 @@ const styles = StyleSheet.create({
     minWidth: 20,
     textAlign: "center",
   },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContainer: {
+    backgroundColor: Colors.white,
+    borderRadius: 20,
+    padding: Sizes.xl,
+    width: "80%",
+    alignItems: "center",
+  },
+  iconContainer: {
+    width: 70,
+    height: 70,
+    borderRadius: 16,
+    backgroundColor: "#F4433610",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: Sizes.lg,
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontFamily: "Poppins-Medium",
+    color: Colors.black,
+    marginBottom: Sizes.xl,
+  },
+  modalButtons: {
+    flexDirection: "row",
+    gap: Sizes.md,
+  },
+  cancelButton: {
+    flex: 1,
+    backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+    borderRadius: 30,
+    paddingVertical: Sizes.md,
+    alignItems: "center",
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    fontFamily: "Poppins-Medium",
+    color: Colors.black,
+  },
+  confirmButton: {
+    flex: 1,
+    backgroundColor: "#F44336",
+    borderRadius: 30,
+    paddingVertical: Sizes.md,
+    alignItems: "center",
+  },
+  confirmButtonText: {
+    fontSize: 16,
+    fontFamily: "Poppins-Medium",
+    color: Colors.white,
+  },
 });
-
-
-
-
-
-

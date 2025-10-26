@@ -31,7 +31,6 @@ import AddReadingScreen from "../../features/health/screens/AddReadingScreen";
 import LabTestScreen from "../../features/health/screens/LabTestScreen";
 import BookLabTestScreen from "../../features/health/screens/BookLabTestScreen";
 import LabResultsScreen from "../../features/health/screens/LabResultsScreen";
-import TestResultDetailsScreen from "../../features/health/screens/TestResultDetailsScreen";
 
 const Stack = createStackNavigator();
 
@@ -154,10 +153,6 @@ export default function MainAppNavigator() {
       <Stack.Screen name="LabTest" component={LabTestScreen} />
       <Stack.Screen name="BookLabTest" component={BookLabTestScreen} />
       <Stack.Screen name="LabResults" component={LabResultsScreen} />
-      <Stack.Screen
-        name="TestResultDetails"
-        component={TestResultDetailsScreen}
-      />
     </Stack.Navigator>
   );
 }

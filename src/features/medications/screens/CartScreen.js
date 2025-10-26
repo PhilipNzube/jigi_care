@@ -96,7 +96,13 @@ export default function CartScreen({ navigation }) {
         </View>
       </ScrollView>
 
-      <TouchableOpacity style={styles.checkoutButton} onPress={handleCheckout}>
+      <TouchableOpacity
+        style={[
+          styles.checkoutButton,
+          { marginBottom: insets.bottom + Sizes.lg },
+        ]}
+        onPress={handleCheckout}
+      >
         <Text style={styles.checkoutButtonText}>Checkout</Text>
       </TouchableOpacity>
 
@@ -123,14 +129,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: Sizes.lg,
     paddingVertical: Sizes.md,
-    backgroundColor: Colors.white,
+    backgroundColor: "#F5F5F5",
   },
   backButton: {
     padding: Sizes.xs,
   },
   title: {
     fontSize: 20,
-    fontFamily: "Poppins-Bold",
+    fontFamily: "Poppins-Medium",
     color: Colors.black,
   },
   clearText: {
@@ -144,14 +150,11 @@ const styles = StyleSheet.create({
     paddingTop: Sizes.md,
   },
   paymentSummary: {
-    backgroundColor: Colors.white,
-    borderRadius: 12,
-    padding: Sizes.lg,
     marginVertical: Sizes.lg,
   },
   summaryTitle: {
     fontSize: 18,
-    fontFamily: "Poppins-Bold",
+    fontFamily: "Poppins-Medium",
     color: Colors.black,
     marginBottom: Sizes.md,
   },
@@ -177,31 +180,24 @@ const styles = StyleSheet.create({
   },
   totalLabel: {
     fontSize: 16,
-    fontFamily: "Poppins-Bold",
+    fontFamily: "Poppins-Medium",
     color: Colors.black,
   },
   totalValue: {
     fontSize: 16,
-    fontFamily: "Poppins-Bold",
+    fontFamily: "Poppins-Medium",
     color: Colors.black,
   },
   checkoutButton: {
     backgroundColor: "#0098B3",
     marginHorizontal: Sizes.lg,
-    marginBottom: Sizes.lg,
     paddingVertical: Sizes.md,
-    borderRadius: 25,
+    borderRadius: 30,
     alignItems: "center",
   },
   checkoutButtonText: {
     color: Colors.white,
     fontSize: 16,
-    fontFamily: "Poppins-Bold",
+    fontFamily: "Poppins-Medium",
   },
 });
-
-
-
-
-
-

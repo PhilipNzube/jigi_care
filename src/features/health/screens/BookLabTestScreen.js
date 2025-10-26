@@ -67,25 +67,25 @@ export default function BookLabTestScreen({ navigation, route }) {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        <ImageBackground
-          source={Images.bgImg}
+      <ImageBackground
+        source={Images.bgImg}
           style={[styles.backgroundImage, { paddingTop: insets.top }]}
-          resizeMode="cover"
-        >
+        resizeMode="cover"
+      >
           {/* Header */}
           <View style={styles.header}>
             <TouchableOpacity
               style={styles.backButton}
               onPress={handleBackPress}
             >
-              <Ionicons name="arrow-back" size={24} color={Colors.white} />
+              <Ionicons name="chevron-back" size={24} color={Colors.white} />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Book Lab Test</Text>
           </View>
 
           {/* Test Details Card */}
           <TestDetailsCard test={currentTest} />
-        </ImageBackground>
+      </ImageBackground>
 
         {/* Content with curved top */}
         <View style={styles.contentWrapper}>
@@ -113,9 +113,9 @@ export default function BookLabTestScreen({ navigation, route }) {
               homeCollectionFee={homeCollectionFee}
               totalAmount={totalAmount}
             />
+            </View>
           </View>
-        </View>
-      </ScrollView>
+        </ScrollView>
 
       {/* Book Test Button - Sticky to bottom */}
       <View
@@ -143,7 +143,7 @@ const styles = StyleSheet.create({
     paddingBottom: 100, // Space for book button
   },
   backgroundImage: {
-    height: height * 0.4,
+    height: height * 0.5,
     width: "100%",
   },
   header: {
@@ -151,14 +151,25 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: Sizes.lg,
     paddingVertical: Sizes.md,
+    position: "relative",
   },
   backButton: {
-    marginRight: Sizes.md,
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    backgroundColor: "rgba(255,255,255,0.3)",
+    justifyContent: "center",
+    alignItems: "center",
+    position: "absolute",
+    left: Sizes.lg,
+    zIndex: 1,
   },
   headerTitle: {
     fontSize: 20,
     fontFamily: "Poppins-Medium",
     color: Colors.white,
+    flex: 1,
+    textAlign: "center",
   },
   contentWrapper: {
     backgroundColor: "#F8F8F8",

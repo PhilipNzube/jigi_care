@@ -9,15 +9,17 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
+import SummaryCards from "../components/SummaryCards";
+import LabResultCard from "../components/LabResultCard";
 
 export default function LabResultsScreen({ navigation }) {
   const summaryData = {
     totalTests: 4,
-    normal: 3,
-    attention: 1,
+    normalResults: 3,
+    attentionRequired: 1,
   };
 
-  const results = [
+  const labResults = [
     {
       id: 1,
       testName: "Complete Blood Count",
@@ -34,54 +36,28 @@ export default function LabResultsScreen({ navigation }) {
       status: "Attention Required",
       statusColor: "#E74C3C",
     },
+    {
+      id: 3,
+      testName: "Liver Function Test",
+      doctor: "Dr. Ada Okonkwo",
+      date: "Sep 24th, 2025 • 10:30 AM",
+      status: "Normal",
+      statusColor: "#27AE60",
+    },
+    {
+      id: 4,
+      testName: "Thyroid Function Test",
+      doctor: "Dr. Michael Adebayo",
+      date: "Sep 23rd, 2025 • 2:15 PM",
+      status: "Normal",
+      statusColor: "#27AE60",
+    },
   ];
 
-  const handleViewDetails = (result) => {
-    navigation.navigate("TestResultDetails", { result });
-  };
-
   const handleDownload = (result) => {
-    console.log("Download result:", result);
+    console.log("Downloading result:", result.testName);
     // Implement download functionality
   };
-
-  const renderSummaryCard = (title, value, color) => (
-    <View key={title} style={styles.summaryCard}>
-      <Text style={[styles.summaryValue, { color }]}>{value}</Text>
-      <Text style={styles.summaryLabel}>{title}</Text>
-    </View>
-  );
-
-  const renderResultCard = (result) => (
-    <View key={result.id} style={styles.resultCard}>
-      <Text style={styles.resultDate}>{result.date}</Text>
-      <View style={styles.resultContent}>
-        <View style={styles.resultInfo}>
-          <Text style={styles.resultTestName}>{result.testName}</Text>
-          <Text style={styles.resultDoctor}>{result.doctor}</Text>
-        </View>
-        <View
-          style={[styles.resultStatus, { backgroundColor: result.statusColor }]}
-        >
-          <Text style={styles.resultStatusText}>{result.status}</Text>
-        </View>
-      </View>
-      <View style={styles.resultActions}>
-        <TouchableOpacity
-          style={styles.downloadButton}
-          onPress={() => handleDownload(result)}
-        >
-          <Text style={styles.downloadButtonText}>Download</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.viewDetailsButton}
-          onPress={() => handleViewDetails(result)}
-        >
-          <Text style={styles.viewDetailsButtonText}>View Details</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -90,22 +66,22 @@ export default function LabResultsScreen({ navigation }) {
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={24} color={Colors.textPrimary} />
+          <Ionicons name="chevron-back" size={24} color={Colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Lab Results</Text>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Summary Cards */}
-        <View style={styles.summaryContainer}>
-          {renderSummaryCard("Total Test", summaryData.totalTests, "#3498DB")}
-          {renderSummaryCard("Normal", summaryData.normal, "#27AE60")}
-          {renderSummaryCard("Attention", summaryData.attention, "#E74C3C")}
-        </View>
+        <SummaryCards summaryData={summaryData} />
 
-        {/* Results List */}
-        <View style={styles.resultsSection}>
-          {results.map(renderResultCard)}
+        <View style={styles.resultsContainer}>
+          {labResults.map((result) => (
+            <LabResultCard
+              key={result.id}
+              result={result}
+              onDownload={() => handleDownload(result)}
+            />
+          ))}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -122,131 +98,33 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: Sizes.lg,
     paddingVertical: Sizes.md,
-    backgroundColor: Colors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E0E0E0",
+    backgroundColor: "#F5F5F5",
+    position: "relative",
   },
   backButton: {
-    marginRight: Sizes.md,
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    backgroundColor: "#FFFFFF",
+    justifyContent: "center",
+    alignItems: "center",
+    position: "absolute",
+    left: Sizes.lg,
+    zIndex: 1,
   },
   headerTitle: {
     fontSize: 20,
-    fontFamily: "Poppins-Bold",
+    fontFamily: "Poppins-Medium",
     color: Colors.textPrimary,
+    flex: 1,
+    textAlign: "center",
   },
   content: {
     flex: 1,
     paddingHorizontal: Sizes.lg,
   },
-  summaryContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+  resultsContainer: {
     marginTop: Sizes.lg,
-    marginBottom: Sizes.xl,
-  },
-  summaryCard: {
-    flex: 1,
-    backgroundColor: Colors.white,
-    borderRadius: 12,
-    padding: Sizes.lg,
-    alignItems: "center",
-    marginHorizontal: Sizes.xs,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  summaryValue: {
-    fontSize: 24,
-    fontFamily: "Poppins-Bold",
-    marginBottom: Sizes.xs,
-  },
-  summaryLabel: {
-    fontSize: 14,
-    fontFamily: "Poppins-Medium",
-    color: Colors.textSecondary,
-  },
-  resultsSection: {
-    marginBottom: Sizes.xl,
-  },
-  resultCard: {
-    backgroundColor: Colors.white,
-    borderRadius: 12,
-    padding: Sizes.lg,
-    marginBottom: Sizes.md,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  resultDate: {
-    fontSize: 12,
-    fontFamily: "Poppins-Regular",
-    color: Colors.textSecondary,
-    marginBottom: Sizes.sm,
-  },
-  resultContent: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: Sizes.md,
-  },
-  resultInfo: {
-    flex: 1,
-  },
-  resultTestName: {
-    fontSize: 16,
-    fontFamily: "Poppins-Bold",
-    color: Colors.textPrimary,
-    marginBottom: Sizes.xs,
-  },
-  resultDoctor: {
-    fontSize: 14,
-    fontFamily: "Poppins-Regular",
-    color: Colors.textSecondary,
-  },
-  resultStatus: {
-    paddingHorizontal: Sizes.sm,
-    paddingVertical: Sizes.xs,
-    borderRadius: 12,
-  },
-  resultStatusText: {
-    fontSize: 12,
-    fontFamily: "Poppins-Medium",
-    color: Colors.white,
-  },
-  resultActions: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  downloadButton: {
-    flex: 1,
-    backgroundColor: Colors.white,
-    borderWidth: 1,
-    borderColor: Colors.primary,
-    borderRadius: 8,
-    paddingVertical: Sizes.sm,
-    marginRight: Sizes.sm,
-    alignItems: "center",
-  },
-  downloadButtonText: {
-    fontSize: 14,
-    fontFamily: "Poppins-Medium",
-    color: Colors.primary,
-  },
-  viewDetailsButton: {
-    flex: 1,
-    backgroundColor: Colors.primary,
-    borderRadius: 8,
-    paddingVertical: Sizes.sm,
-    marginLeft: Sizes.sm,
-    alignItems: "center",
-  },
-  viewDetailsButtonText: {
-    fontSize: 14,
-    fontFamily: "Poppins-Medium",
-    color: Colors.white,
+    gap: Sizes.md,
   },
 });

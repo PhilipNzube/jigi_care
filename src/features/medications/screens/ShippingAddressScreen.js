@@ -1,41 +1,36 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, Sizes } from "../../../shared/constants";
+import AddressSection from "../components/AddressSection";
 
 export default function ShippingAddressScreen({ navigation }) {
-  const insets = useSafeAreaInsets();
-
   const handleProcessToPayment = () => {
-    // Navigate to payment screen
-    navigation.navigate("PaymentMethod");
+    navigation.navigate("Payment");
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="chevron-back" size={24} color={Colors.grey} />
+          <Ionicons name="chevron-back" size={24} color={Colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.title}>Shipping Address</Text>
+        <Text style={styles.headerTitle}>Shipping Address</Text>
       </View>
 
-      <View style={styles.content}>
-        <View style={styles.addressSection}>
-          <Text style={styles.sectionLabel}>Home Address</Text>
-          <View style={styles.addressContainer}>
-            <Ionicons name="location" size={20} color={Colors.grey} />
-            <Text style={styles.addressText}>423 Jakande Estate</Text>
-            <TouchableOpacity style={styles.editButton}>
-              <Ionicons name="pencil" size={16} color={Colors.grey} />
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        <AddressSection />
+      </ScrollView>
 
       <TouchableOpacity
         style={styles.processButton}
@@ -43,80 +38,57 @@ export default function ShippingAddressScreen({ navigation }) {
       >
         <Text style={styles.processButtonText}>Process to Payment</Text>
       </TouchableOpacity>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F5F5F5",
+    backgroundColor: "#F8F8F8",
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: Sizes.lg,
     paddingVertical: Sizes.md,
-    backgroundColor: Colors.white,
+    backgroundColor: "#F8F8F8",
+    position: "relative",
   },
   backButton: {
-    padding: Sizes.xs,
-    marginRight: Sizes.sm,
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    backgroundColor: "#FFFFFF",
+    justifyContent: "center",
+    alignItems: "center",
+    position: "absolute",
+    left: Sizes.lg,
+    zIndex: 1,
   },
-  title: {
+  headerTitle: {
     fontSize: 20,
-    fontFamily: "Poppins-Bold",
-    color: Colors.black,
+    fontFamily: "Poppins-Medium",
+    color: Colors.textPrimary,
+    flex: 1,
+    textAlign: "center",
   },
   content: {
     flex: 1,
     paddingHorizontal: Sizes.lg,
-    paddingTop: Sizes.xl,
-  },
-  addressSection: {
-    marginBottom: Sizes.xl,
-  },
-  sectionLabel: {
-    fontSize: 16,
-    fontFamily: "Poppins-Medium",
-    color: Colors.grey,
-    marginBottom: Sizes.sm,
-  },
-  addressContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#F0F0F0",
-    paddingHorizontal: Sizes.md,
-    paddingVertical: Sizes.sm,
-    borderRadius: 8,
-  },
-  addressText: {
-    flex: 1,
-    fontSize: 16,
-    fontFamily: "Poppins-Regular",
-    color: Colors.black,
-    marginLeft: Sizes.sm,
-  },
-  editButton: {
-    padding: Sizes.xs,
+    paddingTop: Sizes.lg,
   },
   processButton: {
     backgroundColor: "#0098B3",
     marginHorizontal: Sizes.lg,
     marginBottom: Sizes.lg,
     paddingVertical: Sizes.md,
-    borderRadius: 25,
+    borderRadius: 30,
     alignItems: "center",
   },
   processButtonText: {
     color: Colors.white,
     fontSize: 16,
-    fontFamily: "Poppins-Bold",
+    fontFamily: "Poppins-Medium",
   },
 });
-
-
-
-
-
-

@@ -2,7 +2,11 @@ import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Colors, Sizes } from "../../../shared/constants";
 
-export default function RecentResultsSection({ results, onViewAll }) {
+export default function RecentResultsSection({
+  results,
+  onViewAll,
+  onViewResult,
+}) {
   const renderResultCard = (result) => (
     <View key={result.id} style={styles.resultCard}>
       <View style={styles.resultHeader}>
@@ -34,7 +38,10 @@ export default function RecentResultsSection({ results, onViewAll }) {
           </View>
         </View>
 
-        <TouchableOpacity style={styles.viewResultButton}>
+        <TouchableOpacity
+          style={styles.viewResultButton}
+          onPress={() => onViewResult(result)}
+        >
           <Text style={styles.viewResultButtonText}>View Result</Text>
         </TouchableOpacity>
       </View>

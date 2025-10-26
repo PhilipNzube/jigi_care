@@ -86,6 +86,10 @@ export default function LabTestScreen({ navigation }) {
     navigation.navigate("LabResults");
   };
 
+  const handleViewResult = (result) => {
+    navigation.navigate("LabResults");
+  };
+
   const handleMyResults = () => {
     navigation.navigate("LabResults");
   };
@@ -102,7 +106,7 @@ export default function LabTestScreen({ navigation }) {
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={24} color={Colors.textPrimary} />
+          <Ionicons name="chevron-back" size={24} color={Colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Lab Test</Text>
       </View>
@@ -134,6 +138,7 @@ export default function LabTestScreen({ navigation }) {
         <RecentResultsSection
           results={recentResults}
           onViewAll={handleViewResults}
+          onViewResult={handleViewResult}
         />
       </ScrollView>
     </SafeAreaView>
