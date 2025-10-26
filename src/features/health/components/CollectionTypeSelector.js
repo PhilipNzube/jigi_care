@@ -45,12 +45,12 @@ export default function CollectionTypeSelector({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: Sizes.lg,
+    marginBottom: Sizes.xl,
   },
   sectionTitle: {
     fontSize: 18,
-    fontFamily: "Poppins-Bold",
-    color: Colors.textPrimary,
+    fontFamily: "Poppins-Medium",
+    color: Colors.black,
     marginBottom: Sizes.md,
   },
   optionsContainer: {
@@ -59,15 +59,10 @@ const styles = StyleSheet.create({
   option: {
     flexDirection: "row",
     alignItems: "center",
-    padding: Sizes.md,
-    backgroundColor: Colors.white,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#E0E0E0",
+    paddingVertical: Sizes.md,
   },
   selectedOption: {
-    borderColor: "#0098B3",
-    backgroundColor: "#F0F8FF",
+    // No special styling for selected state
   },
   radioButton: {
     width: 20,
@@ -88,7 +83,7 @@ const styles = StyleSheet.create({
   optionText: {
     fontSize: 16,
     fontFamily: "Poppins-Medium",
-    color: Colors.textPrimary,
+    color: Colors.black,
     flex: 1,
   },
 });

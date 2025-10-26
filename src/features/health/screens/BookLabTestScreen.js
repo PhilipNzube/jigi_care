@@ -5,10 +5,10 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Image,
   ImageBackground,
+  Dimensions,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
 import { Images } from "../../../shared/utils/imageUtils";
@@ -18,29 +18,14 @@ import TimeSelector from "../components/TimeSelector";
 import CollectionTypeSelector from "../components/CollectionTypeSelector";
 import PaymentSummary from "../components/PaymentSummary";
 
+const { height } = Dimensions.get("window");
+
 export default function BookLabTestScreen({ navigation, route }) {
+  const insets = useSafeAreaInsets();
   const { test } = route.params || {};
   const [selectedDate, setSelectedDate] = useState("Sun 18");
   const [selectedTime, setSelectedTime] = useState("10:00 AM");
   const [collectionType, setCollectionType] = useState("home");
-
-  const dates = [
-    { id: "Sun 18", label: "Sun 18" },
-    { id: "Mon 19", label: "Mon 19" },
-    { id: "Tue 20", label: "Tue 20" },
-    { id: "Wed 21", label: "Wed 21" },
-    { id: "Thu 22", label: "Thu 22" },
-    { id: "Fri 23", label: "Fri 23" },
-  ];
-
-  const timeSlots = [
-    "10:00 AM",
-    "11:00 AM",
-    "12:00 PM",
-    "2:00 PM",
-    "3:00 PM",
-    "4:00 PM",
-  ];
 
   const defaultTest = {
     name: "Complete Blood Count (CBC)",
@@ -71,61 +56,71 @@ export default function BookLabTestScreen({ navigation, route }) {
     alert(`Test booked successfully!\nTotal: ₦${totalAmount.toLocaleString()}`);
   };
 
+  const handleBackPress = () => {
+    navigation.goBack();
+  };
+
   return (
     <View style={styles.container}>
-      <ImageBackground
-        source={Images.bgImg}
-        style={styles.backgroundImage}
-        resizeMode="cover"
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
       >
-        <SafeAreaView style={styles.safeArea}>
+        <ImageBackground
+          source={Images.bgImg}
+          style={[styles.backgroundImage, { paddingTop: insets.top }]}
+          resizeMode="cover"
+        >
+          {/* Header */}
           <View style={styles.header}>
             <TouchableOpacity
               style={styles.backButton}
-              onPress={() => navigation.goBack()}
+              onPress={handleBackPress}
             >
               <Ionicons name="arrow-back" size={24} color={Colors.white} />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Book Lab Test</Text>
           </View>
 
+          {/* Test Details Card */}
           <TestDetailsCard test={currentTest} />
-        </SafeAreaView>
-      </ImageBackground>
+        </ImageBackground>
 
-      {/* Bottom Content */}
-      <View style={styles.bottomContent}>
-        <ScrollView
-          style={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          <DateSelector
-            dates={dates}
-            selectedDate={selectedDate}
-            onDateSelect={setSelectedDate}
-          />
+        {/* Content with curved top */}
+        <View style={styles.contentWrapper}>
+          {/* Content Sections */}
+          <View style={styles.contentContainer}>
+            <DateSelector
+              selectedDate={selectedDate}
+              onDateSelect={setSelectedDate}
+            />
 
-          <TimeSelector
-            timeSlots={timeSlots}
-            selectedTime={selectedTime}
-            onTimeSelect={setSelectedTime}
-          />
+            <TimeSelector
+              selectedTime={selectedTime}
+              onTimeSelect={setSelectedTime}
+            />
 
-          <CollectionTypeSelector
-            collectionType={collectionType}
-            onCollectionTypeChange={setCollectionType}
-            homeCollectionFee={homeCollectionFee}
-          />
+            <CollectionTypeSelector
+              collectionType={collectionType}
+              onCollectionTypeChange={setCollectionType}
+              homeCollectionFee={homeCollectionFee}
+            />
 
-          <PaymentSummary
-            testPrice={currentTest.price}
-            collectionType={collectionType}
-            homeCollectionFee={homeCollectionFee}
-            totalAmount={totalAmount}
-          />
-        </ScrollView>
+            <PaymentSummary
+              testPrice={currentTest.price}
+              collectionType={collectionType}
+              homeCollectionFee={homeCollectionFee}
+              totalAmount={totalAmount}
+            />
+          </View>
+        </View>
+      </ScrollView>
 
-        {/* Book Button */}
+      {/* Book Test Button - Sticky to bottom */}
+      <View
+        style={[styles.bookButtonContainer, { paddingBottom: insets.bottom }]}
+      >
         <TouchableOpacity style={styles.bookButton} onPress={handleBookTest}>
           <Text style={styles.bookButtonText}>
             Book Test - ₦{totalAmount.toLocaleString()}
@@ -139,14 +134,17 @@ export default function BookLabTestScreen({ navigation, route }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F5F5F5",
+    backgroundColor: "#F8F8F8",
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 100, // Space for book button
   },
   backgroundImage: {
-    flex: 0.4,
-    justifyContent: "flex-start",
-  },
-  safeArea: {
-    flex: 1,
+    height: height * 0.4,
+    width: "100%",
   },
   header: {
     flexDirection: "row",
@@ -159,209 +157,38 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 20,
-    fontFamily: "Poppins-Bold",
+    fontFamily: "Poppins-Medium",
     color: Colors.white,
   },
-  testInfoCard: {
-    flexDirection: "row",
-    backgroundColor: "rgba(255, 255, 255, 0.9)",
-    marginHorizontal: Sizes.lg,
-    marginTop: Sizes.lg,
-    borderRadius: 12,
-    padding: Sizes.lg,
-    alignItems: "center",
+  contentWrapper: {
+    backgroundColor: "#F8F8F8",
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    marginTop: -20,
+    zIndex: 1,
   },
-  testImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
-    marginRight: Sizes.md,
-  },
-  testInfo: {
-    flex: 1,
-  },
-  testName: {
-    fontSize: 18,
-    fontFamily: "Poppins-Bold",
-    color: Colors.textPrimary,
-    marginBottom: Sizes.xs,
-  },
-  testDescription: {
-    fontSize: 14,
-    fontFamily: "Poppins-Regular",
-    color: Colors.textSecondary,
-    marginBottom: Sizes.sm,
-    lineHeight: 20,
-  },
-  testPrice: {
-    fontSize: 18,
-    fontFamily: "Poppins-Bold",
-    color: Colors.textPrimary,
-  },
-  testDetailsCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.9)",
-    marginHorizontal: Sizes.lg,
-    marginTop: Sizes.md,
-    borderRadius: 12,
-    padding: Sizes.lg,
-  },
-  detailRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: Sizes.sm,
-  },
-  detailLabel: {
-    fontSize: 14,
-    fontFamily: "Poppins-Medium",
-    color: Colors.textPrimary,
-  },
-  detailValue: {
-    fontSize: 14,
-    fontFamily: "Poppins-Regular",
-    color: Colors.textSecondary,
-  },
-  bottomContent: {
-    flex: 0.6,
-    backgroundColor: "#F5F5F5",
-  },
-  scrollContent: {
-    flex: 1,
+  contentContainer: {
     paddingHorizontal: Sizes.lg,
+    paddingTop: Sizes.xl, // More space between header and content
   },
-  section: {
-    marginTop: Sizes.lg,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontFamily: "Poppins-Bold",
-    color: Colors.textPrimary,
-    marginBottom: Sizes.md,
-  },
-  datesContainer: {
-    marginBottom: Sizes.sm,
-  },
-  dateButton: {
+  bookButtonContainer: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: "#F8F8F8",
     paddingHorizontal: Sizes.lg,
-    paddingVertical: Sizes.sm,
-    borderRadius: 8,
-    backgroundColor: "#E0E0E0",
-    marginRight: Sizes.sm,
-  },
-  selectedDateButton: {
-    backgroundColor: Colors.primary,
-  },
-  dateButtonText: {
-    fontSize: 14,
-    fontFamily: "Poppins-Medium",
-    color: Colors.textSecondary,
-  },
-  selectedDateButtonText: {
-    color: Colors.white,
-  },
-  timesContainer: {
-    marginBottom: Sizes.sm,
-  },
-  timeButton: {
-    paddingHorizontal: Sizes.lg,
-    paddingVertical: Sizes.sm,
-    borderRadius: 8,
-    backgroundColor: "#E0E0E0",
-    marginRight: Sizes.sm,
-  },
-  selectedTimeButton: {
-    backgroundColor: Colors.primary,
-  },
-  timeButtonText: {
-    fontSize: 14,
-    fontFamily: "Poppins-Medium",
-    color: Colors.textSecondary,
-  },
-  selectedTimeButtonText: {
-    color: Colors.white,
-  },
-  collectionOptions: {
-    marginTop: Sizes.sm,
-  },
-  collectionOption: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: Sizes.md,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E0E0E0",
-  },
-  selectedCollectionOption: {
-    backgroundColor: "#F0F8FF",
-  },
-  radioButton: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: Colors.primary,
-    marginRight: Sizes.md,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  radioButtonSelected: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: Colors.primary,
-  },
-  collectionOptionText: {
-    fontSize: 16,
-    fontFamily: "Poppins-Medium",
-    color: Colors.textPrimary,
-  },
-  paymentSummary: {
-    backgroundColor: Colors.white,
-    borderRadius: 12,
-    padding: Sizes.lg,
-    marginTop: Sizes.sm,
-  },
-  paymentRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: Sizes.sm,
-  },
-  paymentLabel: {
-    fontSize: 14,
-    fontFamily: "Poppins-Regular",
-    color: Colors.textSecondary,
-  },
-  paymentValue: {
-    fontSize: 14,
-    fontFamily: "Poppins-Medium",
-    color: Colors.textPrimary,
-  },
-  paymentDivider: {
-    height: 1,
-    backgroundColor: "#E0E0E0",
-    marginVertical: Sizes.sm,
-  },
-  paymentTotalLabel: {
-    fontSize: 16,
-    fontFamily: "Poppins-Bold",
-    color: Colors.textPrimary,
-  },
-  paymentTotalValue: {
-    fontSize: 16,
-    fontFamily: "Poppins-Bold",
-    color: Colors.textPrimary,
+    paddingTop: Sizes.md,
   },
   bookButton: {
-    backgroundColor: Colors.primary,
-    marginHorizontal: Sizes.lg,
-    marginVertical: Sizes.lg,
+    backgroundColor: "#0098B3",
+    borderRadius: 30,
     paddingVertical: Sizes.md,
-    borderRadius: 8,
     alignItems: "center",
   },
   bookButtonText: {
     fontSize: 16,
-    fontFamily: "Poppins-Bold",
+    fontFamily: "Poppins-Medium",
     color: Colors.white,
   },
 });

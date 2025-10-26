@@ -11,24 +11,22 @@ export default function PaymentSummary({
   return (
     <View style={styles.container}>
       <Text style={styles.sectionTitle}>Payment Summary</Text>
-      <View style={styles.summaryCard}>
+      <View style={styles.paymentRow}>
+        <Text style={styles.paymentLabel}>Test Fee</Text>
+        <Text style={styles.paymentValue}>{testPrice}</Text>
+      </View>
+      {collectionType === "home" && (
         <View style={styles.paymentRow}>
-          <Text style={styles.paymentLabel}>Consultation Fee</Text>
-          <Text style={styles.paymentValue}>{testPrice}</Text>
+          <Text style={styles.paymentLabel}>Home Collection</Text>
+          <Text style={styles.paymentValue}>
+            ₦{homeCollectionFee.toLocaleString()}
+          </Text>
         </View>
-        {collectionType === "home" && (
-          <View style={styles.paymentRow}>
-            <Text style={styles.paymentLabel}>Home Collection</Text>
-            <Text style={styles.paymentValue}>
-              ₦{homeCollectionFee.toLocaleString()}
-            </Text>
-          </View>
-        )}
-        <View style={styles.paymentDivider} />
-        <View style={styles.paymentRow}>
-          <Text style={styles.totalLabel}>Total</Text>
-          <Text style={styles.totalValue}>₦{totalAmount.toLocaleString()}</Text>
-        </View>
+      )}
+      <View style={styles.paymentDivider} />
+      <View style={styles.paymentRow}>
+        <Text style={styles.totalLabel}>Total</Text>
+        <Text style={styles.totalValue}>₦{totalAmount.toLocaleString()}</Text>
       </View>
     </View>
   );
@@ -36,23 +34,13 @@ export default function PaymentSummary({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: Sizes.lg,
+    marginBottom: Sizes.xl,
   },
   sectionTitle: {
     fontSize: 18,
-    fontFamily: "Poppins-Bold",
-    color: Colors.textPrimary,
+    fontFamily: "Poppins-Medium",
+    color: Colors.black,
     marginBottom: Sizes.md,
-  },
-  summaryCard: {
-    backgroundColor: Colors.white,
-    borderRadius: 12,
-    padding: Sizes.lg,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
   },
   paymentRow: {
     flexDirection: "row",
@@ -63,12 +51,12 @@ const styles = StyleSheet.create({
   paymentLabel: {
     fontSize: 14,
     fontFamily: "Poppins-Regular",
-    color: Colors.textSecondary,
+    color: "#666",
   },
   paymentValue: {
     fontSize: 14,
     fontFamily: "Poppins-Medium",
-    color: Colors.textPrimary,
+    color: Colors.black,
   },
   paymentDivider: {
     height: 1,
@@ -78,11 +66,11 @@ const styles = StyleSheet.create({
   totalLabel: {
     fontSize: 16,
     fontFamily: "Poppins-Bold",
-    color: Colors.textPrimary,
+    color: Colors.black,
   },
   totalValue: {
     fontSize: 16,
     fontFamily: "Poppins-Bold",
-    color: Colors.textPrimary,
+    color: Colors.black,
   },
 });

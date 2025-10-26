@@ -8,41 +8,46 @@ import {
 } from "react-native";
 import { Colors, Sizes } from "../../../shared/constants";
 
-export default function TimeSelector({
-  timeSlots,
-  selectedTime,
-  onTimeSelect,
-}) {
-  const renderTimeButton = (time) => (
-    <TouchableOpacity
-      key={time}
-      style={[
-        styles.timeButton,
-        selectedTime === time && styles.selectedTimeButton,
-      ]}
-      onPress={() => onTimeSelect(time)}
-    >
-      <Text
-        style={[
-          styles.timeButtonText,
-          selectedTime === time && styles.selectedTimeButtonText,
-        ]}
-      >
-        {time}
-      </Text>
-    </TouchableOpacity>
-  );
+export default function TimeSelector({ selectedTime, onTimeSelect }) {
+  const timeSlots = [
+    { id: "9:00 AM", label: "9:00 AM" },
+    { id: "10:00 AM", label: "10:00 AM" },
+    { id: "11:00 AM", label: "11:00 AM" },
+    { id: "12:00 PM", label: "12:00 PM" },
+    { id: "1:00 PM", label: "1:00 PM" },
+    { id: "2:00 PM", label: "2:00 PM" },
+    { id: "3:00 PM", label: "3:00 PM" },
+    { id: "4:00 PM", label: "4:00 PM" },
+    { id: "5:00 PM", label: "5:00 PM" },
+  ];
 
   return (
     <View style={styles.container}>
-      <Text style={styles.sectionTitle}>Select Time</Text>
+      <Text style={styles.title}>Select Time</Text>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        style={styles.timesContainer}
-        contentContainerStyle={styles.timesContent}
+        contentContainerStyle={styles.timesContainer}
       >
-        {timeSlots.map(renderTimeButton)}
+        {timeSlots.map((time) => (
+          <TouchableOpacity
+            key={time.id}
+            style={[
+              styles.timeButton,
+              selectedTime === time.id && styles.selectedTimeButton,
+            ]}
+            onPress={() => onTimeSelect(time.id)}
+          >
+            <Text
+              style={[
+                styles.timeText,
+                selectedTime === time.id && styles.selectedTimeText,
+              ]}
+            >
+              {time.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
       </ScrollView>
     </View>
   );
@@ -50,38 +55,36 @@ export default function TimeSelector({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: Sizes.lg,
+    marginBottom: Sizes.xl,
   },
-  sectionTitle: {
+  title: {
     fontSize: 18,
-    fontFamily: "Poppins-Bold",
-    color: Colors.textPrimary,
+    fontFamily: "Poppins-Medium",
+    color: Colors.black,
     marginBottom: Sizes.md,
   },
   timesContainer: {
-    marginHorizontal: -Sizes.lg,
-  },
-  timesContent: {
-    paddingHorizontal: Sizes.lg,
+    flexDirection: "row",
+    paddingRight: Sizes.lg,
   },
   timeButton: {
-    paddingHorizontal: Sizes.lg,
-    paddingVertical: Sizes.md,
-    marginRight: Sizes.sm,
-    borderRadius: 12,
-    backgroundColor: "#E0E0E0",
+    paddingHorizontal: Sizes.md,
+    paddingVertical: Sizes.sm,
+    borderRadius: 20,
+    backgroundColor: "#F2F2F2",
+    justifyContent: "center",
     alignItems: "center",
-    minWidth: 100,
+    marginRight: Sizes.sm,
   },
   selectedTimeButton: {
     backgroundColor: "#0098B3",
   },
-  timeButtonText: {
+  timeText: {
     fontSize: 14,
     fontFamily: "Poppins-Medium",
-    color: Colors.textSecondary,
+    color: "#666",
   },
-  selectedTimeButtonText: {
+  selectedTimeText: {
     color: Colors.white,
   },
 });

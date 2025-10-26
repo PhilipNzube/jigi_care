@@ -10,41 +10,41 @@ export default function PopularTestsSection({ tests, onBookTest, onViewAll }) {
       style={styles.testCard}
       onPress={() => onBookTest(test)}
     >
-      <View style={styles.cardHeader}>
-        <Text style={styles.testDate}>Sep 25th, 2025 • 12:00 PM</Text>
-      </View>
-
-      <View style={styles.cardContent}>
-        <View style={styles.testItem}>
-          <View style={styles.testImageContainer}>
-            <View style={styles.testImage} />
+      <View style={styles.testHeader}>
+        <View style={styles.testInfo}>
+          <View style={styles.testIcon}>
+            <Ionicons name="time" size={16} color={Colors.textSecondary} />
+            <Text style={styles.testDuration}>{test.duration}</Text>
           </View>
-          <View style={styles.testInfo}>
-            <Text style={styles.testName}>{test.name}</Text>
-            <Text style={styles.testDescription}>{test.description}</Text>
-            <View style={styles.testDetails}>
-              <View style={styles.detailItem}>
-                <Ionicons name="time" size={16} color="#9E9E9E" />
-                <Text style={styles.detailText}>{test.duration}</Text>
-              </View>
-              <View style={styles.detailItem}>
-                <Ionicons name="information-circle" size={16} color="#9E9E9E" />
-                <Text style={styles.detailText}>{test.preparation}</Text>
-              </View>
-            </View>
-          </View>
-          <View style={styles.testPriceContainer}>
-            <Text style={styles.testPrice}>{test.price}</Text>
+          <View style={styles.testIcon}>
+            <Ionicons
+              name="information-circle"
+              size={16}
+              color={Colors.textSecondary}
+            />
+            <Text style={styles.testPreparation}>{test.preparation}</Text>
           </View>
         </View>
       </View>
+      <View style={styles.content}>
+        <View style={styles.testContent}>
+          <Image source={test.image} style={styles.testImage} />
+          <View style={styles.testDetails}>
+            <View style={styles.testNameRow}>
+              <Text style={styles.testName}>{test.name}</Text>
+              <Text style={styles.testPrice}>{test.price}</Text>
+            </View>
+            <Text style={styles.testDescription}>{test.description}</Text>
+          </View>
+        </View>
 
-      <TouchableOpacity
-        style={styles.bookButton}
-        onPress={() => onBookTest(test)}
-      >
-        <Text style={styles.bookButtonText}>Book Now</Text>
-      </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.bookButton}
+          onPress={() => onBookTest(test)}
+        >
+          <Text style={styles.bookButtonText}>Book Now</Text>
+        </TouchableOpacity>
+      </View>
     </TouchableOpacity>
   );
 
@@ -89,86 +89,84 @@ const styles = StyleSheet.create({
   testCard: {
     backgroundColor: Colors.white,
     borderRadius: 12,
-    padding: Sizes.lg,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    padding: Sizes.sm,
+    marginBottom: Sizes.md,
+    shadowColor: Colors.black,
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 2,
-    marginBottom: Sizes.md,
+    elevation: 1,
   },
-  cardHeader: {
-    marginBottom: Sizes.sm,
-  },
-  testDate: {
-    fontSize: 12,
-    fontFamily: "Poppins-Regular",
-    color: Colors.textSecondary,
-  },
-  cardContent: {
-    backgroundColor: "#F5F5F5",
-    borderRadius: 8,
+  content: {
     padding: Sizes.md,
-    marginBottom: Sizes.md,
+    borderRadius: 8,
+    backgroundColor: "#F2F2F2",
   },
-  testItem: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  testImageContainer: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: "#E3F2FD",
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: Sizes.md,
-  },
-  testImage: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: "#0098B3",
+  testHeader: {
+    marginBottom: Sizes.xs,
   },
   testInfo: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  testIcon: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Sizes.xs,
+  },
+  testDuration: {
+    fontSize: 12,
+    fontFamily: "Poppins-Regular",
+    color: "#999999",
+  },
+  testPreparation: {
+    fontSize: 12,
+    fontFamily: "Poppins-Regular",
+    color: "#999999",
+  },
+  testContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: Sizes.lg,
+  },
+  testImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 30,
+    marginRight: Sizes.md,
+  },
+  testDetails: {
     flex: 1,
+  },
+  testNameRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: Sizes.xs,
   },
   testName: {
     fontSize: 16,
-    fontFamily: "Poppins-Bold",
-    color: Colors.textPrimary,
-    marginBottom: Sizes.xs,
+    fontFamily: "Poppins-Medium",
+    color: Colors.black,
+    flex: 1,
   },
   testDescription: {
     fontSize: 12,
     fontFamily: "Poppins-Regular",
-    color: Colors.textSecondary,
-    marginBottom: Sizes.sm,
-  },
-  testDetails: {
-    gap: Sizes.xs,
-  },
-  detailItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Sizes.xs,
-  },
-  detailText: {
-    fontSize: 12,
-    fontFamily: "Poppins-Regular",
-    color: Colors.textSecondary,
-  },
-  testPriceContainer: {
-    alignItems: "flex-end",
+    color: "#5B6B62",
   },
   testPrice: {
     fontSize: 16,
-    fontFamily: "Poppins-Bold",
-    color: Colors.textPrimary,
+    fontFamily: "Poppins-Medium",
+    color: Colors.black,
   },
   bookButton: {
     backgroundColor: "#0098B3",
-    borderRadius: 8,
+    borderRadius: 25,
     paddingVertical: Sizes.sm,
     alignItems: "center",
   },
