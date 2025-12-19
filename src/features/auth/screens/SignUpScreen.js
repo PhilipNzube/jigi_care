@@ -11,16 +11,20 @@ import {
   KeyboardAvoidingView,
   Platform,
   Animated,
+  Alert,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
 import { Images } from "../../../shared/utils/imageUtils";
+import { signUp as signUpAPI } from "../services/authService";
+import { useAuth } from "../../../shared/context/AuthContext";
 
 const { width, height } = Dimensions.get("window");
 
 export default function SignUpScreen({ navigation }) {
   const insets = useSafeAreaInsets();
+  const { signUp } = useAuth();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -29,6 +33,7 @@ export default function SignUpScreen({ navigation }) {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const [apiError, setApiError] = useState("");
 
   const spinValue = useRef(new Animated.Value(0)).current;
 
@@ -157,16 +162,45 @@ export default function SignUpScreen({ navigation }) {
     );
   };
 
-  const handleSignUp = () => {
+  const handleSignUp = async () => {
     if (!validateForm()) {
       return;
     }
+
     setIsLoading(true);
-    // Simulate sign up process
-    setTimeout(() => {
+    setApiError("");
+
+    try {
+      const response = await signUpAPI({
+        email,
+        fullName,
+        password,
+        role: "consultant", // Default role as specified
+      });
+
+      // Store authentication data
+      await signUp(response);
+
+      // Navigate to main app (or email verification if needed)
+      // Based on the API response, user is already signed up and logged in
+      navigation.replace("MainApp");
+    } catch (error) {
+      console.error("Sign up error:", error);
+
+      // Handle API errors
+      if (
+        error.statusCode === 500 &&
+        error.message?.includes("Email already used")
+      ) {
+        setApiError("Email already used. Please use another email or log in.");
+      } else if (error.isNetworkError) {
+        setApiError("Network error. Please check your connection.");
+      } else {
+        setApiError(error.message || "An error occurred. Please try again.");
+      }
+    } finally {
       setIsLoading(false);
-      navigation.navigate("EmailVerification", { email, from: "signup" });
-    }, 2000);
+    }
   };
 
   const handleGoogleSignUp = () => {
@@ -354,6 +388,9 @@ export default function SignUpScreen({ navigation }) {
                 {errors.confirmPassword || "Please confirm your password"}
               </Text>
             )}
+
+            {/* API Error Message */}
+            {apiError && <Text style={styles.errorText}>{apiError}</Text>}
 
             {/* Sign Up Button */}
             <TouchableOpacity

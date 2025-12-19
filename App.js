@@ -2,6 +2,7 @@ import React, { useEffect } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import RNBootSplash from "react-native-bootsplash";
 import AppNavigator from "./src/shared/navigation/AppNavigator";
+import { AuthProvider } from "./src/shared/context/AuthContext";
 
 export default function App() {
   useEffect(() => {
@@ -15,7 +16,9 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <AppNavigator />
+      <AuthProvider>
+        <AppNavigator />
+      </AuthProvider>
     </SafeAreaProvider>
   );
 }

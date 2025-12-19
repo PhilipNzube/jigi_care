@@ -12,17 +12,21 @@ import {
   KeyboardAvoidingView,
   Platform,
   Animated,
+  Alert,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as LocalAuthentication from "expo-local-authentication";
 import { Colors, Sizes } from "../../../shared/constants";
 import { Images } from "../../../shared/utils/imageUtils";
+import { signIn as signInAPI } from "../services/authService";
+import { useAuth } from "../../../shared/context/AuthContext";
 
 const { width, height } = Dimensions.get("window");
 
 export default function LoginScreen({ navigation }) {
   const insets = useSafeAreaInsets();
+  const { signIn } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -33,6 +37,7 @@ export default function LoginScreen({ navigation }) {
     fingerprint: false,
   });
   const [errors, setErrors] = useState({});
+  const [apiError, setApiError] = useState("");
 
   const spinValue = useRef(new Animated.Value(0)).current;
   const isAuthenticating = useRef(false);
@@ -152,12 +157,32 @@ export default function LoginScreen({ navigation }) {
     if (!validateLoginForm()) {
       return;
     }
+
     setIsLoading(true);
-    // Simulate login process
-    setTimeout(() => {
-      setIsLoading(false);
+    setApiError("");
+
+    try {
+      const response = await signInAPI({ email, password });
+      
+      // Store authentication data
+      await signIn(response);
+      
+      // Navigate to main app
       navigation.replace("MainApp");
-    }, 2000);
+    } catch (error) {
+      console.error("Login error:", error);
+      
+      // Handle API errors
+      if (error.statusCode === 401) {
+        setApiError("Bad credentials. Please check your email and password.");
+      } else if (error.isNetworkError) {
+        setApiError("Network error. Please check your connection.");
+      } else {
+        setApiError(error.message || "An error occurred. Please try again.");
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleBiometricLogin = async (method) => {
@@ -274,6 +299,11 @@ export default function LoginScreen({ navigation }) {
         <Text style={styles.errorText}>
           {errors.password || "Password is required"}
         </Text>
+      )}
+
+      {/* API Error Message */}
+      {apiError && (
+        <Text style={styles.errorText}>{apiError}</Text>
       )}
 
       {/* Forgot Password */}
