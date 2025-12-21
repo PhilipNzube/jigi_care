@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -10,10 +10,19 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, Sizes } from "../../../shared/constants";
+import { useAuth } from "../../../shared/context/AuthContext";
 
 export default function UpdateEmailModal({ visible, onClose }) {
   const insets = useSafeAreaInsets();
-  const [email, setEmail] = useState("youremail@example.com");
+  const { user } = useAuth();
+  const [email, setEmail] = useState("");
+
+  // Update email when modal opens or user data changes
+  useEffect(() => {
+    if (visible && user) {
+      setEmail(user?.email || "");
+    }
+  }, [visible, user]);
 
   const handleVerify = () => {
     // Handle verify logic

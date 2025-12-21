@@ -17,15 +17,15 @@ export default function AppSplashScreen({ navigation }) {
   }, [isLoading, isAuthenticated]);
 
   const checkAuthAndNavigate = async () => {
-    try {
-      // Pre-load fonts
-      await loadFonts();
+      try {
+        // Pre-load fonts
+        await loadFonts();
       
       // Additional loading time for better UX (minimum 1 second)
       await new Promise((resolve) => setTimeout(resolve, 1000));
       
-      // Tell the application to render
-      await SplashScreen.hideAsync();
+        // Tell the application to render
+        await SplashScreen.hideAsync();
       
       // Navigate based on authentication status from context
       if (isAuthenticated) {
@@ -39,9 +39,9 @@ export default function AppSplashScreen({ navigation }) {
       console.warn(e);
       // On error, default to onboarding
       await SplashScreen.hideAsync();
-      navigation.replace("Onboarding");
-    }
-  };
+        navigation.replace("Onboarding");
+      }
+    };
 
   // Return null - the native splash screen will be visible
   return null;

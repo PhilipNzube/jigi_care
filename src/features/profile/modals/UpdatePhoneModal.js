@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -10,10 +10,23 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, Sizes } from "../../../shared/constants";
+import { useAuth } from "../../../shared/context/AuthContext";
 
 export default function UpdatePhoneModal({ visible, onClose }) {
   const insets = useSafeAreaInsets();
-  const [phone, setPhone] = useState("800 0000 000");
+  const { user } = useAuth();
+  const [phone, setPhone] = useState("");
+
+  // Update phone when modal opens or user data changes
+  useEffect(() => {
+    if (visible && user) {
+      // Extract phone number (remove country code if present, as we'll add it separately)
+      const userPhone = user?.phone || user?.phoneNumber || user?.mobile || user?.mobileNumber || user?.contactNumber || "";
+      // Remove +234 or 234 prefix if present
+      const phoneWithoutCountryCode = userPhone.replace(/^(\+?234)?\s*/, "");
+      setPhone(phoneWithoutCountryCode);
+    }
+  }, [visible, user]);
 
   const handleSave = () => {
     // Handle save logic

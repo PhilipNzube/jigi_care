@@ -44,17 +44,29 @@ export const apiRequest = async (endpoint, options = {}) => {
   }
 
   try {
+    console.log("🌐 [API REQUEST] Making request to:", url);
+    console.log("🌐 [API REQUEST] Method:", method);
+    console.log("🌐 [API REQUEST] Headers:", JSON.stringify(requestHeaders, null, 2));
+    if (body) {
+      console.log("🌐 [API REQUEST] Body:", body);
+    }
+
     const response = await fetch(url, config);
     const data = await response.json();
 
+    console.log("🌐 [API RESPONSE] Status:", response.status);
+    console.log("🌐 [API RESPONSE] Full response data:", JSON.stringify(data, null, 2));
+
     // Handle non-2xx responses
     if (!response.ok) {
+      console.error("❌ [API RESPONSE] Error response:", JSON.stringify(data, null, 2));
       const error = new Error(data.message || "An error occurred");
       error.statusCode = data.statusCode || response.status;
       error.data = data;
       throw error;
     }
 
+    console.log("✅ [API RESPONSE] Success!");
     return data;
   } catch (error) {
     // Re-throw if it's already our custom error
@@ -76,6 +88,8 @@ export const apiRequest = async (endpoint, options = {}) => {
  * GET request helper
  */
 export const get = (endpoint, options = {}) => {
+  console.log("🌐 [API GET] Making GET request to:", endpoint);
+  console.log("🌐 [API GET] Options:", JSON.stringify(options, null, 2));
   return apiRequest(endpoint, { ...options, method: "GET" });
 };
 

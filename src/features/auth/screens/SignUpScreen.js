@@ -17,8 +17,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
 import { Images } from "../../../shared/utils/imageUtils";
-import { signUp as signUpAPI } from "../services/authService";
+import { signUp as signUpAPI, signUpWithGoogle } from "../services/authService";
+import { signInWithGoogle as googleSignIn } from "../services/googleSignInService";
 import { useAuth } from "../../../shared/context/AuthContext";
+import {
+  GOOGLE_CLIENT_ID,
+  isGoogleConfigured,
+} from "../../../shared/config/googleConfig";
 
 const { width, height } = Dimensions.get("window");
 
@@ -185,7 +190,11 @@ export default function SignUpScreen({ navigation }) {
       // Based on the API response, user is already signed up and logged in
       navigation.replace("MainApp");
     } catch (error) {
-      console.error("Sign up error:", error);
+      console.error("❌ [SIGN UP SCREEN] Sign up error:", error);
+      console.error(
+        "❌ [SIGN UP SCREEN] Error details:",
+        JSON.stringify(error, null, 2)
+      );
 
       // Handle API errors
       if (
@@ -203,9 +212,63 @@ export default function SignUpScreen({ navigation }) {
     }
   };
 
-  const handleGoogleSignUp = () => {
-    // Handle Google sign up
-    console.log("Google sign up");
+  const handleGoogleSignUp = async () => {
+    setIsLoading(true);
+    setApiError("");
+
+    try {
+      if (!isGoogleConfigured()) {
+        console.warn("⚠️ [GOOGLE SIGN UP] Google Client ID not configured!");
+        setApiError(
+          "Google Sign In is not configured. Please contact support."
+        );
+        setIsLoading(false);
+        return;
+      }
+
+      console.log("🔵 [GOOGLE SIGN UP] Initiating Google authentication...");
+
+      // Sign in with Google
+      const googleUser = await googleSignIn(GOOGLE_CLIENT_ID);
+
+      console.log("🔵 [GOOGLE SIGN UP] Google authentication successful!");
+      console.log(
+        "🔵 [GOOGLE SIGN UP] Google user data:",
+        JSON.stringify(googleUser, null, 2)
+      );
+
+      // Send Google data to backend - only idToken and role needed for mobile-signin endpoint
+      const response = await signUpWithGoogle({
+        idToken: googleUser.idToken,
+        role: "consultant",
+      });
+
+      // Store authentication data
+      await signUp(response);
+
+      // Navigate to main app
+      navigation.replace("MainApp");
+    } catch (error) {
+      console.error("❌ [GOOGLE SIGN UP] Google sign up error:", error);
+      console.error(
+        "❌ [GOOGLE SIGN UP] Error details:",
+        JSON.stringify(error, null, 2)
+      );
+
+      // Handle errors
+      if (error.message?.includes("cancelled")) {
+        // User cancelled, don't show error
+        console.log("ℹ️ [GOOGLE SIGN UP] User cancelled Google sign in");
+      } else if (error.isNetworkError) {
+        setApiError("Network error. Please check your connection.");
+      } else {
+        setApiError(
+          error.message || "Google sign up failed. Please try again."
+        );
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleAppleSignUp = () => {
@@ -454,13 +517,13 @@ export default function SignUpScreen({ navigation }) {
               <Text style={styles.googleButtonText}>Continue with Google</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
+            {/* <TouchableOpacity
               style={styles.appleButton}
               onPress={handleAppleSignUp}
             >
               <Ionicons name="logo-apple" size={20} color={Colors.white} />
               <Text style={styles.appleButtonText}>Continue with Apple</Text>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -10,10 +10,19 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, Sizes } from "../../../shared/constants";
+import { useAuth } from "../../../shared/context/AuthContext";
 
 export default function UpdateNameModal({ visible, onClose }) {
   const insets = useSafeAreaInsets();
-  const [name, setName] = useState("Tim Bod");
+  const { user } = useAuth();
+  const [name, setName] = useState("");
+
+  // Update name when modal opens or user data changes
+  useEffect(() => {
+    if (visible && user) {
+      setName(user?.fullName || user?.name || "");
+    }
+  }, [visible, user]);
 
   const handleSave = () => {
     // Handle save logic

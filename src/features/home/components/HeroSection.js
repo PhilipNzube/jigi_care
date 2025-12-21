@@ -12,12 +12,24 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
 import { Images } from "../../../shared/utils/imageUtils";
+import { useAuth } from "../../../shared/context/AuthContext";
 
 const { width, height } = Dimensions.get("window");
 
 export default function HeroSection({ insets, navigation }) {
+  const { user } = useAuth();
   const [currentSlide, setCurrentSlide] = useState(0);
   const scrollViewRef = useRef(null);
+
+  // Extract first name from fullName for greeting
+  const getFirstName = () => {
+    if (!user) return "there";
+    const fullName = user?.fullName || user?.name || "";
+    const firstName = fullName.split(" ")[0];
+    return firstName || "there";
+  };
+
+  const firstName = getFirstName();
 
   const heroSlides = [
     {
@@ -77,7 +89,7 @@ export default function HeroSection({ insets, navigation }) {
                   numberOfLines={1}
                   ellipsizeMode="tail"
                 >
-                  Hello Tim,
+                  Hello {firstName},
                 </Text>
                 <Text
                   style={styles.subGreetingText}

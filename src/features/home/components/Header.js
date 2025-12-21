@@ -2,8 +2,21 @@ import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
+import { useAuth } from "../../../shared/context/AuthContext";
 
 export default function Header({ insets }) {
+  const { user } = useAuth();
+
+  // Extract first name from fullName for greeting
+  const getFirstName = () => {
+    if (!user) return "there";
+    const fullName = user?.fullName || user?.name || "";
+    const firstName = fullName.split(" ")[0];
+    return firstName || "there";
+  };
+
+  const firstName = getFirstName();
+
   return (
     <View style={[styles.header, { paddingTop: insets.top + Sizes.md }]}>
       <View style={styles.headerContent}>
@@ -12,7 +25,7 @@ export default function Header({ insets }) {
             <Ionicons name="person" size={30} color={Colors.white} />
           </View>
           <View style={styles.greetingSection}>
-            <Text style={styles.greetingText}>Hello Tim,</Text>
+            <Text style={styles.greetingText}>Hello {firstName},</Text>
             <Text style={styles.subGreetingText}>
               How are you feeling today?
             </Text>

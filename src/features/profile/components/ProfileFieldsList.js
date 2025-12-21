@@ -2,23 +2,32 @@ import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
+import { useAuth } from "../../../shared/context/AuthContext";
 
 export default function ProfileFieldsList({ onFieldPress }) {
+  const { user } = useAuth();
+
+  // Extract user data with fallbacks
+  const userName = user?.fullName || user?.name || "Not set";
+  const userEmail = user?.email || "Not set";
+  // Check multiple possible phone field names from backend
+  const userPhone = user?.phone || user?.phoneNumber || user?.mobile || user?.mobileNumber || user?.contactNumber || "Not set";
+
   const fields = [
     {
       id: "fullName",
       label: "Full Name",
-      value: "Tim Bod",
+      value: userName,
     },
     {
       id: "email",
       label: "Email",
-      value: "youremail@example.com",
+      value: userEmail,
     },
     {
       id: "phoneNumber",
       label: "Phone Number",
-      value: "0800 0000 000",
+      value: userPhone,
     },
     {
       id: "changePassword",

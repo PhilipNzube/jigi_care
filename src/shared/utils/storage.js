@@ -69,15 +69,51 @@ export const getUserData = async () => {
 
 /**
  * Clear all stored data (logout)
+ * This clears all AsyncStorage data to ensure no tokens or cached data remain
  */
 export const clearStorage = async () => {
   try {
-    await AsyncStorage.multiRemove([
+    console.log("🗑️ [STORAGE] Starting to clear all cached tokens and data...");
+    
+    // First, try to clear known keys
+    const knownKeys = [
       STORAGE_KEYS.ACCESS_TOKEN,
       STORAGE_KEYS.USER_DATA,
-    ]);
+    ];
+    
+    console.log("🗑️ [STORAGE] Clearing known storage keys:", knownKeys);
+    await AsyncStorage.multiRemove(knownKeys);
+    
+    // Get all keys to find any other app-related storage
+    const allKeys = await AsyncStorage.getAllKeys();
+    console.log("🗑️ [STORAGE] All storage keys found:", allKeys);
+    
+    // Filter keys that belong to this app
+    const appKeys = allKeys.filter(key => key.startsWith("@jigi_care:"));
+    console.log("🗑️ [STORAGE] App-specific keys to clear:", appKeys);
+    
+    // Clear all app-specific keys (in case there are any we missed)
+    if (appKeys.length > 0) {
+      await AsyncStorage.multiRemove(appKeys);
+      console.log("✅ [STORAGE] Cleared", appKeys.length, "app-specific storage keys");
+    }
+    
+    // Verify everything is cleared
+    const remainingKeys = await AsyncStorage.getAllKeys();
+    const remainingAppKeys = remainingKeys.filter(key => key.startsWith("@jigi_care:"));
+    
+    if (remainingAppKeys.length === 0) {
+      console.log("✅ [STORAGE] All cached tokens and data successfully cleared!");
+    } else {
+      console.warn("⚠️ [STORAGE] Some keys may still remain:", remainingAppKeys);
+      // Force clear any remaining app keys
+      if (remainingAppKeys.length > 0) {
+        await AsyncStorage.multiRemove(remainingAppKeys);
+        console.log("✅ [STORAGE] Force cleared remaining keys");
+      }
+    }
   } catch (error) {
-    console.error("Error clearing storage:", error);
+    console.error("❌ [STORAGE] Error clearing storage:", error);
     throw error;
   }
 };

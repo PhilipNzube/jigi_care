@@ -2,8 +2,17 @@ import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
+import { useAuth } from "../../../shared/context/AuthContext";
 
 export default function UserInfoCard({ onEdit }) {
+  const { user } = useAuth();
+
+  // Extract user data with fallbacks - check multiple possible field names
+  const userName = user?.fullName || user?.name || "User";
+  const userEmail = user?.email || "";
+  // Check multiple possible phone field names from backend
+  const userPhone = user?.phone || user?.phoneNumber || user?.mobile || user?.mobileNumber || user?.contactNumber || "";
+
   return (
     <View style={styles.container}>
       <View style={styles.profileImageContainer}>
@@ -11,9 +20,9 @@ export default function UserInfoCard({ onEdit }) {
       </View>
 
       <View style={styles.userInfo}>
-        <Text style={styles.userName}>Tim Bod</Text>
-        <Text style={styles.userEmail}>timbod@email.com</Text>
-        <Text style={styles.userPhone}>+2345678901234</Text>
+        <Text style={styles.userName}>{userName}</Text>
+        {userEmail ? <Text style={styles.userEmail}>{userEmail}</Text> : null}
+        {userPhone ? <Text style={styles.userPhone}>{userPhone}</Text> : null}
       </View>
 
       <TouchableOpacity style={styles.editButton} onPress={onEdit}>

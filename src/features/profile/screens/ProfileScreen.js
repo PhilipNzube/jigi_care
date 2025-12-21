@@ -9,8 +9,10 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { CommonActions } from "@react-navigation/native";
 import { Colors, Sizes } from "../../../shared/constants";
 import { Images } from "../../../shared/utils/imageUtils";
+import { useAuth } from "../../../shared/context/AuthContext";
 import ProfileHeader from "../components/ProfileHeader";
 import UserInfoCard from "../components/UserInfoCard";
 import HealthMetricsSection from "../components/HealthMetricsSection";
@@ -24,6 +26,7 @@ import LogoutModal from "../modals/LogoutModal";
 
 export default function ProfileScreen({ navigation }) {
   const insets = useSafeAreaInsets();
+  const { signOut } = useAuth();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   const handleEditProfile = () => {
@@ -36,6 +39,46 @@ export default function ProfileScreen({ navigation }) {
 
   const handleLogout = () => {
     setShowLogoutModal(true);
+  };
+
+  const handleConfirmLogout = async () => {
+    try {
+      setShowLogoutModal(false);
+      console.log("🚪 [PROFILE SCREEN] User confirmed logout");
+      
+      // Sign out and clear all tokens
+      await signOut();
+      
+      // Navigate to login screen - get root navigator since we're nested in MainAppNavigator
+      // Try to get the root navigator, fallback to current navigation
+      let rootNavigation = navigation;
+      let parent = navigation.getParent();
+      
+      // Navigate up to find the root navigator (AppNavigator)
+      while (parent) {
+        rootNavigation = parent;
+        parent = parent.getParent();
+      }
+      
+      // Reset navigation stack to Login screen
+      rootNavigation.reset({
+        index: 0,
+        routes: [{ name: "Login" }],
+      });
+    } catch (error) {
+      console.error("❌ [PROFILE SCREEN] Error during logout:", error);
+      // Even if there's an error, try to navigate to login
+      let rootNavigation = navigation;
+      let parent = navigation.getParent();
+      while (parent) {
+        rootNavigation = parent;
+        parent = parent.getParent();
+      }
+      rootNavigation.reset({
+        index: 0,
+        routes: [{ name: "Login" }],
+      });
+    }
   };
 
   const handleMedicalHistory = () => {
@@ -82,10 +125,7 @@ export default function ProfileScreen({ navigation }) {
       <LogoutModal
         visible={showLogoutModal}
         onClose={() => setShowLogoutModal(false)}
-        onConfirm={() => {
-          setShowLogoutModal(false);
-          // Handle logout logic
-        }}
+        onConfirm={handleConfirmLogout}
       />
     </View>
   );
