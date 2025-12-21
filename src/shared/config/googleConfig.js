@@ -8,7 +8,7 @@
  * 4. Go to "Credentials" and create an OAuth 2.0 Client ID
  * 5. For Expo, you need a "Web application" type client ID
  * 6. Add authorized redirect URIs (CRITICAL - must match exactly):
- *    - For development with Expo proxy: https://auth.expo.io/@your-username/jigicare
+ *    - For development with Expo proxy: https://auth.expo.io/@your-username/jiji-care
  *    - For custom scheme: com.jijicare.app://auth
  *    - Check the console logs to see the exact redirect URI being used
  * 7. Copy the Client ID and paste it below

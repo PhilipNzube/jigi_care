@@ -17,7 +17,7 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <AuthProvider>
-      <AppNavigator />
+        <AppNavigator />
       </AuthProvider>
     </SafeAreaProvider>
   );
