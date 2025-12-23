@@ -21,9 +21,11 @@ import { signUp as signUpAPI, signUpWithGoogle } from "../services/authService";
 import { signInWithGoogle as googleSignIn } from "../services/googleSignInService";
 import { useAuth } from "../../../shared/context/AuthContext";
 import {
-  GOOGLE_CLIENT_ID,
+  GOOGLE_WEB_CLIENT_ID,
   isGoogleConfigured,
 } from "../../../shared/config/googleConfig";
+import LoadingOverlay from "../../../shared/components/LoadingOverlay";
+import { showError, showSuccess } from "../../../shared/utils/toast";
 
 const { width, height } = Dimensions.get("window");
 
@@ -38,7 +40,6 @@ export default function SignUpScreen({ navigation }) {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState({});
-  const [apiError, setApiError] = useState("");
 
   const spinValue = useRef(new Animated.Value(0)).current;
 
@@ -173,18 +174,19 @@ export default function SignUpScreen({ navigation }) {
     }
 
     setIsLoading(true);
-    setApiError("");
 
     try {
       const response = await signUpAPI({
         email,
         fullName,
         password,
-        role: "consultant", // Default role as specified
+        role: "patient", // Default role
       });
 
       // Store authentication data
       await signUp(response);
+
+      showSuccess("Account created successfully! Welcome to Jiji Care.");
 
       // Navigate to main app (or email verification if needed)
       // Based on the API response, user is already signed up and logged in
@@ -201,11 +203,11 @@ export default function SignUpScreen({ navigation }) {
         error.statusCode === 500 &&
         error.message?.includes("Email already used")
       ) {
-        setApiError("Email already used. Please use another email or log in.");
+        showError("Email already used. Please use another email or log in.");
       } else if (error.isNetworkError) {
-        setApiError("Network error. Please check your connection.");
+        showError("Network error. Please check your connection.");
       } else {
-        setApiError(error.message || "An error occurred. Please try again.");
+        showError(error.message || "An error occurred. Please try again.");
       }
     } finally {
       setIsLoading(false);
@@ -214,14 +216,11 @@ export default function SignUpScreen({ navigation }) {
 
   const handleGoogleSignUp = async () => {
     setIsLoading(true);
-    setApiError("");
 
     try {
       if (!isGoogleConfigured()) {
         console.warn("⚠️ [GOOGLE SIGN UP] Google Client ID not configured!");
-        setApiError(
-          "Google Sign In is not configured. Please contact support."
-        );
+        showError("Google Sign In is not configured. Please contact support.");
         setIsLoading(false);
         return;
       }
@@ -229,7 +228,7 @@ export default function SignUpScreen({ navigation }) {
       console.log("🔵 [GOOGLE SIGN UP] Initiating Google authentication...");
 
       // Sign in with Google
-      const googleUser = await googleSignIn(GOOGLE_CLIENT_ID);
+      const googleUser = await googleSignIn(GOOGLE_WEB_CLIENT_ID);
 
       console.log("🔵 [GOOGLE SIGN UP] Google authentication successful!");
       console.log(
@@ -240,11 +239,13 @@ export default function SignUpScreen({ navigation }) {
       // Send Google data to backend - only idToken and role needed for mobile-signin endpoint
       const response = await signUpWithGoogle({
         idToken: googleUser.idToken,
-        role: "consultant",
+        role: "patient",
       });
 
       // Store authentication data
       await signUp(response);
+
+      showSuccess("Google sign up successful! Welcome to Jiji Care.");
 
       // Navigate to main app
       navigation.replace("MainApp");
@@ -260,9 +261,9 @@ export default function SignUpScreen({ navigation }) {
         // User cancelled, don't show error
         console.log("ℹ️ [GOOGLE SIGN UP] User cancelled Google sign in");
       } else if (error.isNetworkError) {
-        setApiError("Network error. Please check your connection.");
+        showError("Network error. Please check your connection.");
       } else {
-        setApiError(
+        showError(
           error.message || "Google sign up failed. Please try again."
         );
       }
@@ -452,9 +453,6 @@ export default function SignUpScreen({ navigation }) {
               </Text>
             )}
 
-            {/* API Error Message */}
-            {apiError && <Text style={styles.errorText}>{apiError}</Text>}
-
             {/* Sign Up Button */}
             <TouchableOpacity
               style={[
@@ -527,6 +525,7 @@ export default function SignUpScreen({ navigation }) {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+      <LoadingOverlay visible={isLoading} />
     </View>
   );
 }

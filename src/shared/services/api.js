@@ -3,6 +3,8 @@
  * Handles all HTTP requests with base URL configuration
  */
 
+import { getToken, storeToken, storeRefreshToken } from "../utils/storage";
+
 const BASE_URL = "https://jiggy-care.onrender.com/api/v1";
 
 /**
@@ -17,19 +19,27 @@ export const apiRequest = async (endpoint, options = {}) => {
     body,
     headers = {},
     token,
+    skipAuth = false, // Option to skip auto-adding auth token
     ...otherOptions
   } = options;
 
   const url = `${BASE_URL}${endpoint}`;
 
+  // Get stored access token if not explicitly provided and auth is not skipped
+  let accessToken = token;
+  if (!accessToken && !skipAuth) {
+    accessToken = await getToken();
+  }
+
   const requestHeaders = {
     "Content-Type": "application/json",
+    "x-client-type": "mobile", // Add x-client-type header to all requests
     ...headers,
   };
 
-  // Add authorization token if provided
-  if (token) {
-    requestHeaders.Authorization = `Bearer ${token}`;
+  // Add authorization token if available
+  if (accessToken) {
+    requestHeaders.Authorization = `Bearer ${accessToken}`;
   }
 
   const config = {
@@ -56,6 +66,26 @@ export const apiRequest = async (endpoint, options = {}) => {
 
     console.log("🌐 [API RESPONSE] Status:", response.status);
     console.log("🌐 [API RESPONSE] Full response data:", JSON.stringify(data, null, 2));
+
+    // Extract tokens from response headers
+    // NOTE: We ONLY store tokens from backend response headers (x-access-token, x-refresh-token)
+    // We do NOT store Google idToken or any other tokens - only backend-issued tokens
+    const accessTokenHeader = response.headers.get("x-access-token");
+    const refreshTokenHeader = response.headers.get("x-refresh-token");
+
+    if (accessTokenHeader) {
+      console.log("🔑 [API RESPONSE] Received x-access-token in headers");
+      console.log("🔑 [API RESPONSE] Access token (last 10 chars):", "***" + accessTokenHeader.slice(-10));
+      await storeToken(accessTokenHeader);
+      console.log("✅ [API RESPONSE] Access token stored successfully");
+    }
+
+    if (refreshTokenHeader) {
+      console.log("🔑 [API RESPONSE] Received x-refresh-token in headers");
+      console.log("🔑 [API RESPONSE] Refresh token (last 10 chars):", "***" + refreshTokenHeader.slice(-10));
+      await storeRefreshToken(refreshTokenHeader);
+      console.log("✅ [API RESPONSE] Refresh token stored successfully");
+    }
 
     // Handle non-2xx responses
     if (!response.ok) {

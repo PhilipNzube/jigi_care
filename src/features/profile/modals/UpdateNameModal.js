@@ -11,11 +11,15 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, Sizes } from "../../../shared/constants";
 import { useAuth } from "../../../shared/context/AuthContext";
+import { updateProfile } from "../../auth/services/authService";
+import LoadingOverlay from "../../../shared/components/LoadingOverlay";
+import { showError, showSuccess } from "../../../shared/utils/toast";
 
 export default function UpdateNameModal({ visible, onClose }) {
   const insets = useSafeAreaInsets();
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const [name, setName] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   // Update name when modal opens or user data changes
   useEffect(() => {
@@ -24,9 +28,25 @@ export default function UpdateNameModal({ visible, onClose }) {
     }
   }, [visible, user]);
 
-  const handleSave = () => {
-    // Handle save logic
-    onClose();
+  const handleSave = async () => {
+    if (!name.trim()) {
+      showError("Name cannot be empty");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const updatedUser = await updateProfile({ fullName: name.trim() });
+      await updateUser(updatedUser);
+      showSuccess("Name updated successfully!");
+      onClose();
+    } catch (err) {
+      console.error("❌ [UPDATE NAME] Error updating name:", err);
+      showError(err.message || "Failed to update name. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -65,11 +85,18 @@ export default function UpdateNameModal({ visible, onClose }) {
             </View>
           </View>
 
-          <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-            <Text style={styles.saveButtonText}>Save</Text>
+          <TouchableOpacity
+            style={[styles.saveButton, isLoading && styles.saveButtonDisabled]}
+            onPress={handleSave}
+            disabled={isLoading}
+          >
+            <Text style={styles.saveButtonText}>
+              {isLoading ? "Saving..." : "Save"}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
+      <LoadingOverlay visible={isLoading} />
     </Modal>
   );
 }
@@ -138,5 +165,15 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontSize: 16,
     fontFamily: "Poppins-Bold",
+  },
+  saveButtonDisabled: {
+    opacity: 0.6,
+  },
+  errorText: {
+    color: "#FF0000",
+    fontSize: 14,
+    fontFamily: "Poppins-Regular",
+    marginBottom: Sizes.sm,
+    textAlign: "center",
   },
 });

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -10,16 +10,56 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, Sizes } from "../../../shared/constants";
+import { useAuth } from "../../../shared/context/AuthContext";
+import { updateProfile } from "../../auth/services/authService";
+import LoadingOverlay from "../../../shared/components/LoadingOverlay";
 
 export default function UpdateAddressModal({ visible, onClose }) {
   const insets = useSafeAreaInsets();
-  const [address, setAddress] = useState("432 Jakande Estate");
-  const [city, setCity] = useState("Lagos");
-  const [state, setState] = useState("Lagos State");
+  const { user, updateUser } = useAuth();
+  const [address, setAddress] = useState("");
+  const [city, setCity] = useState("");
+  const [state, setState] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSave = () => {
-    // Handle save logic
-    onClose();
+  // Initialize with user's address if available
+  useEffect(() => {
+    if (visible && user) {
+      // Parse address if it exists (assuming format: "street, city, state" or just "street")
+      const userAddress = user?.address || "";
+      if (userAddress) {
+        const parts = userAddress.split(",").map((p) => p.trim());
+        setAddress(parts[0] || "");
+        setCity(parts[1] || "");
+        setState(parts[2] || "");
+      }
+    }
+  }, [visible, user]);
+
+  const handleSave = async () => {
+    if (!address.trim()) {
+      showError("Address cannot be empty");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      // Combine address parts
+      const fullAddress = [address.trim(), city.trim(), state.trim()]
+        .filter((part) => part)
+        .join(", ");
+
+      const updatedUser = await updateProfile({ address: fullAddress });
+      await updateUser(updatedUser);
+      showSuccess("Address updated successfully!");
+      onClose();
+    } catch (err) {
+      console.error("❌ [UPDATE ADDRESS] Error updating address:", err);
+      showError(err.message || "Failed to update address. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -87,11 +127,18 @@ export default function UpdateAddressModal({ visible, onClose }) {
             </View>
           </View>
 
-          <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-            <Text style={styles.saveButtonText}>Save</Text>
+          <TouchableOpacity
+            style={[styles.saveButton, isLoading && styles.saveButtonDisabled]}
+            onPress={handleSave}
+            disabled={isLoading}
+          >
+            <Text style={styles.saveButtonText}>
+              {isLoading ? "Saving..." : "Save"}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
+      <LoadingOverlay visible={isLoading} />
     </Modal>
   );
 }
@@ -162,5 +209,15 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontSize: 16,
     fontFamily: "Poppins-Bold",
+  },
+  saveButtonDisabled: {
+    opacity: 0.6,
+  },
+  errorText: {
+    color: "#FF0000",
+    fontSize: 14,
+    fontFamily: "Poppins-Regular",
+    marginBottom: Sizes.sm,
+    textAlign: "center",
   },
 });

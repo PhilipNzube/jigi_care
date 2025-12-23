@@ -13,6 +13,8 @@ import { CommonActions } from "@react-navigation/native";
 import { Colors, Sizes } from "../../../shared/constants";
 import { Images } from "../../../shared/utils/imageUtils";
 import { useAuth } from "../../../shared/context/AuthContext";
+import LoadingOverlay from "../../../shared/components/LoadingOverlay";
+import { showError } from "../../../shared/utils/toast";
 import ProfileHeader from "../components/ProfileHeader";
 import UserInfoCard from "../components/UserInfoCard";
 import HealthMetricsSection from "../components/HealthMetricsSection";
@@ -28,6 +30,7 @@ export default function ProfileScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const { signOut } = useAuth();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const handleEditProfile = () => {
     navigation.navigate("EditProfile");
@@ -42,10 +45,11 @@ export default function ProfileScreen({ navigation }) {
   };
 
   const handleConfirmLogout = async () => {
+    setShowLogoutModal(false);
+    setIsLoggingOut(true);
+    console.log("🚪 [PROFILE SCREEN] User confirmed logout");
+    
     try {
-      setShowLogoutModal(false);
-      console.log("🚪 [PROFILE SCREEN] User confirmed logout");
-      
       // Sign out and clear all tokens
       await signOut();
       
@@ -67,7 +71,11 @@ export default function ProfileScreen({ navigation }) {
       });
     } catch (error) {
       console.error("❌ [PROFILE SCREEN] Error during logout:", error);
-      // Even if there's an error, try to navigate to login
+      // Show error to user
+      showError(error.message || "Logout failed. Please try again.");
+      
+      // Still try to navigate to login even if there's an error
+      // (local logout should have happened)
       let rootNavigation = navigation;
       let parent = navigation.getParent();
       while (parent) {
@@ -78,6 +86,8 @@ export default function ProfileScreen({ navigation }) {
         index: 0,
         routes: [{ name: "Login" }],
       });
+    } finally {
+      setIsLoggingOut(false);
     }
   };
 
@@ -127,6 +137,7 @@ export default function ProfileScreen({ navigation }) {
         onClose={() => setShowLogoutModal(false)}
         onConfirm={handleConfirmLogout}
       />
+      <LoadingOverlay visible={isLoggingOut} />
     </View>
   );
 }

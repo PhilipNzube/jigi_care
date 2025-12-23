@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -10,10 +10,27 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, Sizes } from "../../../shared/constants";
+import { useAuth } from "../../../shared/context/AuthContext";
+import { updateProfile } from "../../auth/services/authService";
+import LoadingOverlay from "../../../shared/components/LoadingOverlay";
+import { showError, showSuccess } from "../../../shared/utils/toast";
 
 export default function DatePickerModal({ visible, onClose }) {
   const insets = useSafeAreaInsets();
+  const { user, updateUser } = useAuth();
   const [selectedDate, setSelectedDate] = useState("September 17 2021");
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Initialize with user's date of birth if available
+  useEffect(() => {
+    if (visible && user?.dateOfBirth) {
+      const date = new Date(user.dateOfBirth);
+      const month = date.toLocaleString("default", { month: "long" });
+      const day = date.getDate();
+      const year = date.getFullYear();
+      setSelectedDate(`${month} ${day} ${year}`);
+    }
+  }, [visible, user]);
 
   const months = [
     "January",
@@ -33,9 +50,31 @@ export default function DatePickerModal({ visible, onClose }) {
   const days = Array.from({ length: 31 }, (_, i) => i + 1);
   const years = Array.from({ length: 10 }, (_, i) => 2018 + i);
 
-  const handleSave = () => {
-    // Handle save logic
-    onClose();
+  const handleSave = async () => {
+    setIsLoading(true);
+
+    try {
+      // Parse the selected date string and convert to YYYY-MM-DD format
+      const dateParts = selectedDate.split(" ");
+      const monthNames = [
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+      ];
+      const month = monthNames.indexOf(dateParts[0]);
+      const day = parseInt(dateParts[1]);
+      const year = parseInt(dateParts[2]);
+      const dateOfBirth = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+
+      const updatedUser = await updateProfile({ dateOfBirth });
+      await updateUser(updatedUser);
+      showSuccess("Date of birth updated successfully!");
+      onClose();
+    } catch (err) {
+      console.error("❌ [UPDATE DATE] Error updating date of birth:", err);
+      showError(err.message || "Failed to update date of birth. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -132,11 +171,18 @@ export default function DatePickerModal({ visible, onClose }) {
             </ScrollView>
           </View>
 
-          <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-            <Text style={styles.saveButtonText}>Save</Text>
+          <TouchableOpacity
+            style={[styles.saveButton, isLoading && styles.saveButtonDisabled]}
+            onPress={handleSave}
+            disabled={isLoading}
+          >
+            <Text style={styles.saveButtonText}>
+              {isLoading ? "Saving..." : "Save"}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
+      <LoadingOverlay visible={isLoading} />
     </Modal>
   );
 }
@@ -195,5 +241,15 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontSize: 16,
     fontFamily: "Poppins-Bold",
+  },
+  saveButtonDisabled: {
+    opacity: 0.6,
+  },
+  errorText: {
+    color: "#FF0000",
+    fontSize: 14,
+    fontFamily: "Poppins-Regular",
+    marginBottom: Sizes.sm,
+    textAlign: "center",
   },
 });

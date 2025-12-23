@@ -23,9 +23,11 @@ import { signIn as signInAPI, signInWithGoogle } from "../services/authService";
 import { signInWithGoogle as googleSignIn } from "../services/googleSignInService";
 import { useAuth } from "../../../shared/context/AuthContext";
 import {
-  GOOGLE_CLIENT_ID,
+  GOOGLE_WEB_CLIENT_ID,
   isGoogleConfigured,
 } from "../../../shared/config/googleConfig";
+import LoadingOverlay from "../../../shared/components/LoadingOverlay";
+import { showError, showSuccess } from "../../../shared/utils/toast";
 
 const { width, height } = Dimensions.get("window");
 
@@ -42,7 +44,6 @@ export default function LoginScreen({ navigation }) {
     fingerprint: false,
   });
   const [errors, setErrors] = useState({});
-  const [apiError, setApiError] = useState("");
 
   const spinValue = useRef(new Animated.Value(0)).current;
   const isAuthenticating = useRef(false);
@@ -164,13 +165,14 @@ export default function LoginScreen({ navigation }) {
     }
 
     setIsLoading(true);
-    setApiError("");
 
     try {
       const response = await signInAPI({ email, password });
 
       // Store authentication data
       await signIn(response);
+
+      showSuccess("Login successful! Welcome back.");
 
       // Navigate to main app
       navigation.replace("MainApp");
@@ -183,11 +185,11 @@ export default function LoginScreen({ navigation }) {
 
       // Handle API errors
       if (error.statusCode === 401) {
-        setApiError("Bad credentials. Please check your email and password.");
+        showError("Bad credentials. Please check your email and password.");
       } else if (error.isNetworkError) {
-        setApiError("Network error. Please check your connection.");
+        showError("Network error. Please check your connection.");
       } else {
-        setApiError(error.message || "An error occurred. Please try again.");
+        showError(error.message || "An error occurred. Please try again.");
       }
     } finally {
       setIsLoading(false);
@@ -196,14 +198,11 @@ export default function LoginScreen({ navigation }) {
 
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
-    setApiError("");
 
     try {
       if (!isGoogleConfigured()) {
         console.warn("⚠️ [GOOGLE SIGN IN] Google Client ID not configured!");
-        setApiError(
-          "Google Sign In is not configured. Please contact support."
-        );
+        showError("Google Sign In is not configured. Please contact support.");
         setIsLoading(false);
         return;
       }
@@ -211,7 +210,7 @@ export default function LoginScreen({ navigation }) {
       console.log("🔵 [GOOGLE SIGN IN] Initiating Google authentication...");
 
       // Sign in with Google
-      const googleUser = await googleSignIn(GOOGLE_CLIENT_ID);
+      const googleUser = await googleSignIn(GOOGLE_WEB_CLIENT_ID);
 
       console.log("🔵 [GOOGLE SIGN IN] Google authentication successful!");
       console.log(
@@ -222,11 +221,13 @@ export default function LoginScreen({ navigation }) {
       // Send Google data to backend - only idToken and role needed for mobile-signin endpoint
       const response = await signInWithGoogle({
         idToken: googleUser.idToken,
-        role: "consultant",
+        role: "patient",
       });
 
       // Store authentication data
       await signIn(response);
+
+      showSuccess("Google sign in successful! Welcome back.");
 
       // Navigate to main app
       navigation.replace("MainApp");
@@ -242,11 +243,9 @@ export default function LoginScreen({ navigation }) {
         // User cancelled, don't show error
         console.log("ℹ️ [GOOGLE SIGN IN] User cancelled Google sign in");
       } else if (error.isNetworkError) {
-        setApiError("Network error. Please check your connection.");
+        showError("Network error. Please check your connection.");
       } else {
-        setApiError(
-          error.message || "Google sign in failed. Please try again."
-        );
+        showError(error.message || "Google sign in failed. Please try again.");
       }
     } finally {
       setIsLoading(false);
@@ -368,9 +367,6 @@ export default function LoginScreen({ navigation }) {
           {errors.password || "Password is required"}
         </Text>
       )}
-
-      {/* API Error Message */}
-      {apiError && <Text style={styles.errorText}>{apiError}</Text>}
 
       {/* Forgot Password */}
       <TouchableOpacity
@@ -567,6 +563,7 @@ export default function LoginScreen({ navigation }) {
           {loginMethod === "fingerprint" && renderFingerprintLogin()}
         </ScrollView>
       </KeyboardAvoidingView>
+      <LoadingOverlay visible={isLoading} />
     </View>
   );
 }

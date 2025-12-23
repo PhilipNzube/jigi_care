@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { View, StyleSheet, ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, Sizes } from "../../../shared/constants";
+import { searchConsultants } from "../services/consultantService";
 
 // Import components
 import ConsultationsHeader from "../components/ConsultationsHeader";
@@ -12,11 +13,75 @@ import EmergencySection from "../components/EmergencySection";
 
 export default function ConsultScreen({ navigation }) {
   const [searchQuery, setSearchQuery] = useState("");
+  const [doctors, setDoctors] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
   const insets = useSafeAreaInsets();
+  const searchTimeoutRef = useRef(null);
+
+  // Debounced search function
+  useEffect(() => {
+    // Clear previous timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    // If search query is empty, clear results
+    if (!searchQuery || searchQuery.trim() === "") {
+      setDoctors([]);
+      setIsSearching(false);
+      return;
+    }
+
+    // Set loading state
+    setIsSearching(true);
+
+    // Debounce search - wait 500ms after user stops typing
+    searchTimeoutRef.current = setTimeout(async () => {
+      try {
+        console.log("🔍 [CONSULT SCREEN] Searching for:", searchQuery);
+        const result = await searchConsultants(searchQuery);
+        
+        // Map API response to doctor card format
+        const mappedDoctors = (result.data || []).map((consultant) => ({
+          id: consultant.id || consultant._id,
+          name: consultant.fullName || consultant.name || "Dr. Unknown",
+          specialty: consultant.speciality || consultant.specialty || "General",
+          rating: consultant.rating || 4.5,
+          experience: consultant.yrsOfExperience 
+            ? `${consultant.yrsOfExperience}+ years experience`
+            : "Experienced",
+          languages: consultant.languages 
+            ? (Array.isArray(consultant.languages) 
+                ? consultant.languages.join(", ") 
+                : consultant.languages)
+            : "English",
+          price: consultant.price || "Contact for pricing",
+          isAvailable: consultant.availability !== false,
+          image: consultant.dp || consultant.profileImage || null,
+          // Include full consultant data for navigation
+          consultantData: consultant,
+        }));
+
+        console.log("✅ [CONSULT SCREEN] Mapped doctors:", JSON.stringify(mappedDoctors, null, 2));
+        setDoctors(mappedDoctors);
+      } catch (error) {
+        console.error("❌ [CONSULT SCREEN] Search error:", error);
+        setDoctors([]);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 500); // 500ms debounce
+
+    // Cleanup timeout on unmount or query change
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [searchQuery]);
 
   const handleSearch = (query) => {
     setSearchQuery(query);
-    // Implement search functionality
   };
 
   const handleDoctorPress = (doctor) => {
@@ -47,6 +112,8 @@ export default function ConsultScreen({ navigation }) {
 
         {/* Available Doctors Section */}
         <AvailableDoctorsSection
+          doctors={doctors}
+          isLoading={isSearching}
           onDoctorPress={handleDoctorPress}
           navigation={navigation}
         />

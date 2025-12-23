@@ -1,49 +1,44 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, ActivityIndicator } from "react-native";
 import { Colors, Sizes } from "../../../shared/constants";
 import DoctorCard from "./DoctorCard";
 
-export default function AvailableDoctorsSection({ onDoctorPress, navigation }) {
-  const doctors = [
-    {
-      id: 1,
-      name: "Dr. Sarah Olukoya",
-      specialty: "Neurologist",
-      rating: 4.8,
-      experience: "7+ years experience",
-      languages: "English",
-      price: "₦4,000/session",
-      isAvailable: true,
-      image: null, // Will use placeholder
-    },
-    {
-      id: 2,
-      name: "Dr. Ibrahim Bello",
-      specialty: "Cardiologist",
-      rating: 4.7,
-      experience: "8+ years experience",
-      languages: "English, Arabic",
-      price: "₦6,000/session",
-      isAvailable: true,
-      image: null, // Will use placeholder
-    },
-  ];
-
+export default function AvailableDoctorsSection({ 
+  doctors = [], 
+  isLoading = false,
+  onDoctorPress, 
+  navigation 
+}) {
   return (
     <View style={styles.container}>
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Available Doctors</Text>
+        {isLoading && (
+          <ActivityIndicator size="small" color={Colors.primary} style={styles.loader} />
+        )}
       </View>
 
       <View style={styles.doctorsList}>
-        {doctors.map((doctor) => (
-          <DoctorCard
-            key={doctor.id}
-            doctor={doctor}
-            onPress={() => onDoctorPress(doctor)}
-            navigation={navigation}
-          />
-        ))}
+        {isLoading && doctors.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyStateText}>Searching for doctors...</Text>
+          </View>
+        ) : doctors.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyStateText}>
+              {isLoading ? "Searching..." : "No doctors found. Try a different search."}
+            </Text>
+          </View>
+        ) : (
+          doctors.map((doctor) => (
+            <DoctorCard
+              key={doctor.id}
+              doctor={doctor}
+              onPress={() => onDoctorPress(doctor)}
+              navigation={navigation}
+            />
+          ))
+        )}
       </View>
     </View>
   );
@@ -55,6 +50,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
   },
   sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginHorizontal: Sizes.lg,
     marginBottom: Sizes.md,
   },
@@ -62,6 +60,19 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontFamily: "Poppins-Medium",
     color: Colors.black,
+  },
+  loader: {
+    marginLeft: Sizes.sm,
+  },
+  emptyState: {
+    paddingVertical: Sizes.xl,
+    alignItems: "center",
+  },
+  emptyStateText: {
+    fontSize: 14,
+    fontFamily: "Poppins-Regular",
+    color: Colors.grey,
+    textAlign: "center",
   },
   doctorsList: {
     paddingHorizontal: Sizes.lg,

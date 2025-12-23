@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -10,16 +10,57 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, Sizes } from "../../../shared/constants";
+import { useAuth } from "../../../shared/context/AuthContext";
+import { updateProfile } from "../../auth/services/authService";
+import LoadingOverlay from "../../../shared/components/LoadingOverlay";
 
 export default function EmergencyContactModal({ visible, onClose }) {
   const insets = useSafeAreaInsets();
-  const [fullName, setFullName] = useState("Tim Bod");
-  const [phone, setPhone] = useState("800 0000 000");
-  const [relationship, setRelationship] = useState("Spouse");
+  const { user, updateUser } = useAuth();
+  const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [relationship, setRelationship] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSave = () => {
-    // Handle save logic
-    onClose();
+  // Initialize with user's emergency contact if available
+  useEffect(() => {
+    if (visible && user) {
+      const emergencyContact = user?.emergencyContact || {};
+      setFullName(emergencyContact.name || "");
+      const userPhone = emergencyContact.phone || "";
+      // Remove +234 or 234 prefix if present
+      const phoneWithoutCountryCode = userPhone.replace(/^(\+?234)?\s*/, "");
+      setPhone(phoneWithoutCountryCode);
+      setRelationship(emergencyContact.relationship || "");
+    }
+  }, [visible, user]);
+
+  const handleSave = async () => {
+    if (!fullName.trim() || !phone.trim() || !relationship.trim()) {
+      showError("All fields are required");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const fullPhone = `+234${phone.trim()}`;
+      const updatedUser = await updateProfile({
+        emergencyContact: {
+          name: fullName.trim(),
+          phone: fullPhone,
+          relationship: relationship.trim(),
+        },
+      });
+      await updateUser(updatedUser);
+      showSuccess("Emergency contact updated successfully!");
+      onClose();
+    } catch (err) {
+      console.error("❌ [UPDATE EMERGENCY CONTACT] Error updating emergency contact:", err);
+      showError(err.message || "Failed to update emergency contact. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -93,11 +134,18 @@ export default function EmergencyContactModal({ visible, onClose }) {
             </View>
           </View>
 
-          <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-            <Text style={styles.saveButtonText}>Save</Text>
+          <TouchableOpacity
+            style={[styles.saveButton, isLoading && styles.saveButtonDisabled]}
+            onPress={handleSave}
+            disabled={isLoading}
+          >
+            <Text style={styles.saveButtonText}>
+              {isLoading ? "Saving..." : "Save"}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
+      <LoadingOverlay visible={isLoading} />
     </Modal>
   );
 }
@@ -184,5 +232,15 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontSize: 16,
     fontFamily: "Poppins-Bold",
+  },
+  saveButtonDisabled: {
+    opacity: 0.6,
+  },
+  errorText: {
+    color: "#FF0000",
+    fontSize: 14,
+    fontFamily: "Poppins-Regular",
+    marginBottom: Sizes.sm,
+    textAlign: "center",
   },
 });

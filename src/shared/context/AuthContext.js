@@ -10,7 +10,12 @@ import {
   storeToken,
   storeUserData,
   clearStorage,
+  getRefreshToken,
 } from "../utils/storage";
+import {
+  getUserProfile,
+  logout,
+} from "../../features/auth/services/authService";
 
 const AuthContext = createContext(null);
 
@@ -36,7 +41,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   /**
-   * Load authentication data from storage
+   * Load authentication data from storage and fetch fresh profile
    */
   const loadStoredAuth = async () => {
     try {
@@ -44,16 +49,59 @@ export const AuthProvider = ({ children }) => {
       const storedToken = await getToken();
       const storedUser = await getUserData();
 
-      if (storedToken && storedUser) {
+      if (storedToken) {
         setToken(storedToken);
-        setUser(storedUser);
         setIsAuthenticated(true);
+
+        // If we have a token, try to fetch fresh user profile
+        try {
+          console.log("🔄 [AUTH CONTEXT] Fetching fresh user profile...");
+          const profileData = await getUserProfile();
+
+          if (profileData) {
+            setUser(profileData);
+            await storeUserData(profileData);
+            console.log("✅ [AUTH CONTEXT] Fresh profile loaded successfully!");
+          } else {
+            // Fallback to stored user data if profile fetch fails
+            if (storedUser) {
+              setUser(storedUser);
+              console.log(
+                "⚠️ [AUTH CONTEXT] Using stored user data as fallback"
+              );
+            }
+          }
+        } catch (profileError) {
+          console.error(
+            "❌ [AUTH CONTEXT] Error fetching profile:",
+            profileError
+          );
+          // If profile fetch fails but we have stored user, use that
+          if (storedUser) {
+            setUser(storedUser);
+            console.log(
+              "⚠️ [AUTH CONTEXT] Using stored user data due to profile fetch error"
+            );
+          } else {
+            // If no stored user and profile fetch fails, sign out
+            console.log(
+              "⚠️ [AUTH CONTEXT] No stored user and profile fetch failed, signing out"
+            );
+            setIsAuthenticated(false);
+            setUser(null);
+            setToken(null);
+            await clearStorage();
+          }
+        }
       } else {
         setIsAuthenticated(false);
+        setUser(null);
       }
     } catch (error) {
-      console.error("Error loading stored auth:", error);
+      console.error("❌ [AUTH CONTEXT] Error loading stored auth:", error);
       setIsAuthenticated(false);
+      setUser(null);
+      setToken(null);
     } finally {
       setIsLoading(false);
     }
@@ -63,25 +111,41 @@ export const AuthProvider = ({ children }) => {
    * Sign in user and store credentials
    * @param {object} authData - Authentication data from API
    * @param {object} authData.user - User data
-   * @param {string} authData.accessToken - Access token
+   * @param {string} authData.accessToken - Access token (optional, tokens now come from headers)
    */
   const signIn = async (authData) => {
     try {
       console.log("💾 [AUTH CONTEXT] Storing sign in data...");
-      console.log("💾 [AUTH CONTEXT] Auth data received:", JSON.stringify(authData, null, 2));
-      
-      const { user: userData, accessToken } = authData;
+      console.log(
+        "💾 [AUTH CONTEXT] Auth data received:",
+        JSON.stringify(authData, null, 2)
+      );
 
-      console.log("💾 [AUTH CONTEXT] User data:", JSON.stringify(userData, null, 2));
-      console.log("💾 [AUTH CONTEXT] Access token:", accessToken ? "***" + accessToken.slice(-10) : "N/A");
+      const { user: userData } = authData;
+
+      // Get tokens from storage (they were stored by api.js from response headers)
+      const accessToken = await getToken();
+      const refreshToken = await getRefreshToken();
+
+      console.log(
+        "💾 [AUTH CONTEXT] User data:",
+        JSON.stringify(userData, null, 2)
+      );
+      console.log(
+        "💾 [AUTH CONTEXT] Access token:",
+        accessToken ? "***" + accessToken.slice(-10) : "N/A"
+      );
+      console.log(
+        "💾 [AUTH CONTEXT] Refresh token:",
+        refreshToken ? "***" + refreshToken.slice(-10) : "N/A"
+      );
 
       // Store in state
       setUser(userData);
       setToken(accessToken);
       setIsAuthenticated(true);
 
-      // Store in AsyncStorage
-      await storeToken(accessToken);
+      // Store user data in AsyncStorage (tokens already stored by api.js)
       await storeUserData(userData);
 
       console.log("✅ [AUTH CONTEXT] Sign in data stored successfully!");
@@ -95,25 +159,41 @@ export const AuthProvider = ({ children }) => {
    * Sign up user and store credentials
    * @param {object} authData - Authentication data from API
    * @param {object} authData.user - User data
-   * @param {string} authData.accessToken - Access token
+   * @param {string} authData.accessToken - Access token (optional, tokens now come from headers)
    */
   const signUp = async (authData) => {
     try {
       console.log("💾 [AUTH CONTEXT] Storing sign up data...");
-      console.log("💾 [AUTH CONTEXT] Auth data received:", JSON.stringify(authData, null, 2));
-      
-      const { user: userData, accessToken } = authData;
+      console.log(
+        "💾 [AUTH CONTEXT] Auth data received:",
+        JSON.stringify(authData, null, 2)
+      );
 
-      console.log("💾 [AUTH CONTEXT] User data:", JSON.stringify(userData, null, 2));
-      console.log("💾 [AUTH CONTEXT] Access token:", accessToken ? "***" + accessToken.slice(-10) : "N/A");
+      const { user: userData } = authData;
+
+      // Get tokens from storage (they were stored by api.js from response headers)
+      const accessToken = await getToken();
+      const refreshToken = await getRefreshToken();
+
+      console.log(
+        "💾 [AUTH CONTEXT] User data:",
+        JSON.stringify(userData, null, 2)
+      );
+      console.log(
+        "💾 [AUTH CONTEXT] Access token:",
+        accessToken ? "***" + accessToken.slice(-10) : "N/A"
+      );
+      console.log(
+        "💾 [AUTH CONTEXT] Refresh token:",
+        refreshToken ? "***" + refreshToken.slice(-10) : "N/A"
+      );
 
       // Store in state
       setUser(userData);
       setToken(accessToken);
       setIsAuthenticated(true);
 
-      // Store in AsyncStorage
-      await storeToken(accessToken);
+      // Store user data in AsyncStorage (tokens already stored by api.js)
       await storeUserData(userData);
 
       console.log("✅ [AUTH CONTEXT] Sign up data stored successfully!");
@@ -129,24 +209,48 @@ export const AuthProvider = ({ children }) => {
   const signOut = async () => {
     try {
       console.log("🚪 [SIGN OUT] Starting sign out process...");
-      console.log("🚪 [SIGN OUT] Current user:", user ? user.email || user.id : "N/A");
-      console.log("🚪 [SIGN OUT] Current token:", token ? "***" + token.slice(-10) : "N/A");
-      
-      // Clear state first
+      console.log(
+        "🚪 [SIGN OUT] Current user:",
+        user ? user.email || user.id : "N/A"
+      );
+      console.log(
+        "🚪 [SIGN OUT] Current token:",
+        token ? "***" + token.slice(-10) : "N/A"
+      );
+
+      // Call logout API first
+      try {
+        console.log("🚪 [SIGN OUT] Calling logout API...");
+        await logout();
+        console.log("✅ [SIGN OUT] Logout API call successful!");
+      } catch (logoutError) {
+        console.error("❌ [SIGN OUT] Logout API call failed:", logoutError);
+        // Still proceed with local sign out even if API call fails
+        console.warn(
+          "⚠️ [SIGN OUT] Proceeding with local sign out despite API error"
+        );
+      }
+
+      // Clear state
       console.log("🚪 [SIGN OUT] Clearing application state...");
       setUser(null);
       setToken(null);
       setIsAuthenticated(false);
-      
+
       // Clear all storage (tokens, user data, and any other cached data)
       console.log("🚪 [SIGN OUT] Clearing all cached tokens and storage...");
       await clearStorage();
-      
+
       console.log("✅ [SIGN OUT] Sign out completed successfully!");
-      console.log("✅ [SIGN OUT] All tokens and cached data have been wiped out");
+      console.log(
+        "✅ [SIGN OUT] All tokens and cached data have been wiped out"
+      );
     } catch (error) {
       console.error("❌ [SIGN OUT] Error signing out:", error);
-      console.error("❌ [SIGN OUT] Error details:", JSON.stringify(error, null, 2));
+      console.error(
+        "❌ [SIGN OUT] Error details:",
+        JSON.stringify(error, null, 2)
+      );
       throw error;
     }
   };
@@ -181,4 +285,3 @@ export const AuthProvider = ({ children }) => {
 };
 
 export default AuthContext;
-

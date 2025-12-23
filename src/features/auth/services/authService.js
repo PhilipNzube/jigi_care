@@ -3,7 +3,13 @@
  * Handles all authentication-related API calls
  */
 
-import { post, get } from "../../../shared/services/api";
+import { post, get, patch } from "../../../shared/services/api";
+import {
+  storeSignInResponse,
+  storeSignUpResponse,
+  storeGoogleSignInResponse,
+  storeProfileResponse,
+} from "../../../shared/utils/storage";
 
 /**
  * Sign up a new user
@@ -11,11 +17,11 @@ import { post, get } from "../../../shared/services/api";
  * @param {string} userData.email - User email
  * @param {string} userData.fullName - User full name
  * @param {string} userData.password - User password
- * @param {string} userData.role - User role (defaults to 'consultant')
+ * @param {string} userData.role - User role (defaults to 'patient')
  * @returns {Promise<object>} - Response with user data and accessToken
  */
 export const signUp = async (userData) => {
-  const { email, fullName, password, role = "consultant" } = userData;
+  const { email, fullName, password, role = "patient" } = userData;
 
   console.log("📝 [SIGN UP] Starting sign up process...");
   console.log("📝 [SIGN UP] Request data:", {
@@ -34,10 +40,27 @@ export const signUp = async (userData) => {
 
   console.log("✅ [SIGN UP] Sign up successful!");
   console.log("✅ [SIGN UP] Full response data:", JSON.stringify(response, null, 2));
-  console.log("✅ [SIGN UP] User data:", JSON.stringify(response.user, null, 2));
-  console.log("✅ [SIGN UP] Access token:", response.accessToken ? "***" + response.accessToken.slice(-10) : "N/A");
+  
+  // Cache the full response data
+  try {
+    await storeSignUpResponse(response);
+    console.log("💾 [SIGN UP] Response data cached successfully!");
+  } catch (cacheError) {
+    console.warn("⚠️ [SIGN UP] Failed to cache response data:", cacheError);
+  }
+  
+  // Handle new response format: response.data contains user data
+  // Tokens are now in response headers (handled by api.js)
+  const userDataFromResponse = response.data || response.user;
+  console.log("✅ [SIGN UP] User data:", JSON.stringify(userDataFromResponse, null, 2));
+  console.log("✅ [SIGN UP] Note: Access token is stored from response headers (x-access-token)");
 
-  return response;
+  // Return in the format expected by AuthContext
+  return {
+    user: userDataFromResponse,
+    accessToken: null, // Token is stored from headers, not needed here
+    response, // Include full response for caching
+  };
 };
 
 /**
@@ -63,21 +86,42 @@ export const signIn = async (credentials) => {
 
   console.log("✅ [SIGN IN] Sign in successful!");
   console.log("✅ [SIGN IN] Full response data:", JSON.stringify(response, null, 2));
-  console.log("✅ [SIGN IN] User data:", JSON.stringify(response.user, null, 2));
-  console.log("✅ [SIGN IN] Access token:", response.accessToken ? "***" + response.accessToken.slice(-10) : "N/A");
+  
+  // Cache the full response data
+  try {
+    await storeSignInResponse(response);
+    console.log("💾 [SIGN IN] Response data cached successfully!");
+  } catch (cacheError) {
+    console.warn("⚠️ [SIGN IN] Failed to cache response data:", cacheError);
+  }
+  
+  // Handle new response format: response.data contains user data
+  // Tokens are now in response headers (handled by api.js)
+  const userDataFromResponse = response.data || response.user;
+  console.log("✅ [SIGN IN] User data:", JSON.stringify(userDataFromResponse, null, 2));
+  console.log("✅ [SIGN IN] Note: Access token is stored from response headers (x-access-token)");
 
-  return response;
+  // Return in the format expected by AuthContext
+  return {
+    user: userDataFromResponse,
+    accessToken: null, // Token is stored from headers, not needed here
+    response, // Include full response for caching
+  };
 };
 
 /**
  * Sign in with Google (mobile)
  * @param {object} googleData - Google authentication data
- * @param {string} googleData.idToken - Google ID token
- * @param {string} googleData.role - User role (defaults to 'consultant')
- * @returns {Promise<object>} - Response with user data and accessToken
+ * @param {string} googleData.idToken - Google ID token (used only for API call, NOT stored)
+ * @param {string} googleData.role - User role (defaults to 'patient')
+ * @returns {Promise<object>} - Response with user data
+ * 
+ * NOTE: The Google idToken is only used to authenticate with the backend.
+ * We do NOT cache/store the Google idToken. Only tokens from response headers
+ * (x-access-token, x-refresh-token) are stored by api.js
  */
 export const signInWithGoogle = async (googleData) => {
-  const { idToken, role = "consultant" } = googleData;
+  const { idToken, role = "patient" } = googleData;
 
   console.log("🔵 [GOOGLE SIGN IN] Starting Google sign in process...");
   console.log("🔵 [GOOGLE SIGN IN] Request params:", {
@@ -85,8 +129,10 @@ export const signInWithGoogle = async (googleData) => {
     idToken: idToken ? "***" + idToken.slice(-10) : "N/A",
   });
   console.log("🔵 [GOOGLE SIGN IN] Full idToken (first 50 chars):", idToken ? idToken.substring(0, 50) + "..." : "N/A");
+  console.log("🔵 [GOOGLE SIGN IN] NOTE: Google idToken is used only for API call and will NOT be cached/stored");
 
   // Use GET request with query params as specified
+  // The idToken is sent to backend but NOT stored - only backend tokens from headers are stored
   const endpoint = `/auth/google/mobile-signin?role=${encodeURIComponent(role)}&idToken=${encodeURIComponent(idToken)}`;
   
   console.log("🔵 [GOOGLE SIGN IN] Making GET request to:", endpoint.replace(/idToken=[^&]+/, "idToken=***"));
@@ -98,31 +144,48 @@ export const signInWithGoogle = async (googleData) => {
   console.log("✅ [GOOGLE SIGN IN] Response type:", typeof response);
   console.log("✅ [GOOGLE SIGN IN] Response keys:", Object.keys(response || {}));
   
-  if (response.user) {
-    console.log("✅ [GOOGLE SIGN IN] User data:", JSON.stringify(response.user, null, 2));
-    console.log("✅ [GOOGLE SIGN IN] User ID:", response.user.id || response.user._id || "N/A");
-    console.log("✅ [GOOGLE SIGN IN] User email:", response.user.email || "N/A");
-    console.log("✅ [GOOGLE SIGN IN] User name:", response.user.fullName || response.user.name || "N/A");
+  // Cache the full response data
+  try {
+    await storeGoogleSignInResponse(response);
+    console.log("💾 [GOOGLE SIGN IN] Response data cached successfully!");
+  } catch (cacheError) {
+    console.warn("⚠️ [GOOGLE SIGN IN] Failed to cache response data:", cacheError);
   }
   
-  if (response.accessToken) {
-    console.log("✅ [GOOGLE SIGN IN] Access token:", "***" + response.accessToken.slice(-10));
-  } else {
-    console.warn("⚠️ [GOOGLE SIGN IN] No access token in response");
+  // Handle new response format: response.data contains user data
+  // Tokens are now in response headers (handled by api.js)
+  const userDataFromResponse = response.data || response.user;
+  
+  if (userDataFromResponse) {
+    console.log("✅ [GOOGLE SIGN IN] User data:", JSON.stringify(userDataFromResponse, null, 2));
+    console.log("✅ [GOOGLE SIGN IN] User ID:", userDataFromResponse.id || userDataFromResponse._id || "N/A");
+    console.log("✅ [GOOGLE SIGN IN] User email:", userDataFromResponse.email || "N/A");
+    console.log("✅ [GOOGLE SIGN IN] User name:", userDataFromResponse.fullName || userDataFromResponse.name || "N/A");
   }
+  
+  console.log("✅ [GOOGLE SIGN IN] Note: Access token is stored from response headers (x-access-token)");
 
-  return response;
+  // Return in the format expected by AuthContext
+  return {
+    user: userDataFromResponse,
+    accessToken: null, // Token is stored from headers, not needed here
+    response, // Include full response for caching
+  };
 };
 
 /**
  * Sign up with Google (mobile) - Uses same endpoint as sign in
  * @param {object} googleData - Google authentication data
- * @param {string} googleData.idToken - Google ID token
- * @param {string} googleData.role - User role (defaults to 'consultant')
- * @returns {Promise<object>} - Response with user data and accessToken
+ * @param {string} googleData.idToken - Google ID token (used only for API call, NOT stored)
+ * @param {string} googleData.role - User role (defaults to 'patient')
+ * @returns {Promise<object>} - Response with user data
+ * 
+ * NOTE: The Google idToken is only used to authenticate with the backend.
+ * We do NOT cache/store the Google idToken. Only tokens from response headers
+ * (x-access-token, x-refresh-token) are stored by api.js
  */
 export const signUpWithGoogle = async (googleData) => {
-  const { idToken, role = "consultant" } = googleData;
+  const { idToken, role = "patient" } = googleData;
 
   console.log("🔵 [GOOGLE SIGN UP] Starting Google sign up process...");
   console.log("🔵 [GOOGLE SIGN UP] Request params:", {
@@ -130,8 +193,10 @@ export const signUpWithGoogle = async (googleData) => {
     idToken: idToken ? "***" + idToken.slice(-10) : "N/A",
   });
   console.log("🔵 [GOOGLE SIGN UP] Full idToken (first 50 chars):", idToken ? idToken.substring(0, 50) + "..." : "N/A");
+  console.log("🔵 [GOOGLE SIGN UP] NOTE: Google idToken is used only for API call and will NOT be cached/stored");
 
   // Use GET request with query params - same endpoint handles both sign in and sign up
+  // The idToken is sent to backend but NOT stored - only backend tokens from headers are stored
   const endpoint = `/auth/google/mobile-signin?role=${encodeURIComponent(role)}&idToken=${encodeURIComponent(idToken)}`;
   
   console.log("🔵 [GOOGLE SIGN UP] Making GET request to:", endpoint.replace(/idToken=[^&]+/, "idToken=***"));
@@ -143,20 +208,107 @@ export const signUpWithGoogle = async (googleData) => {
   console.log("✅ [GOOGLE SIGN UP] Response type:", typeof response);
   console.log("✅ [GOOGLE SIGN UP] Response keys:", Object.keys(response || {}));
   
-  if (response.user) {
-    console.log("✅ [GOOGLE SIGN UP] User data:", JSON.stringify(response.user, null, 2));
-    console.log("✅ [GOOGLE SIGN UP] User ID:", response.user.id || response.user._id || "N/A");
-    console.log("✅ [GOOGLE SIGN UP] User email:", response.user.email || "N/A");
-    console.log("✅ [GOOGLE SIGN UP] User name:", response.user.fullName || response.user.name || "N/A");
+  // Cache the full response data
+  try {
+    await storeGoogleSignInResponse(response);
+    console.log("💾 [GOOGLE SIGN UP] Response data cached successfully!");
+  } catch (cacheError) {
+    console.warn("⚠️ [GOOGLE SIGN UP] Failed to cache response data:", cacheError);
   }
   
-  if (response.accessToken) {
-    console.log("✅ [GOOGLE SIGN UP] Access token:", "***" + response.accessToken.slice(-10));
-  } else {
-    console.warn("⚠️ [GOOGLE SIGN UP] No access token in response");
+  // Handle new response format: response.data contains user data
+  // Tokens are now in response headers (handled by api.js)
+  const userDataFromResponse = response.data || response.user;
+  
+  if (userDataFromResponse) {
+    console.log("✅ [GOOGLE SIGN UP] User data:", JSON.stringify(userDataFromResponse, null, 2));
+    console.log("✅ [GOOGLE SIGN UP] User ID:", userDataFromResponse.id || userDataFromResponse._id || "N/A");
+    console.log("✅ [GOOGLE SIGN UP] User email:", userDataFromResponse.email || "N/A");
+    console.log("✅ [GOOGLE SIGN UP] User name:", userDataFromResponse.fullName || userDataFromResponse.name || "N/A");
+  }
+  
+  console.log("✅ [GOOGLE SIGN UP] Note: Access token is stored from response headers (x-access-token)");
+
+  // Return in the format expected by AuthContext
+  return {
+    user: userDataFromResponse,
+    accessToken: null, // Token is stored from headers, not needed here
+    response, // Include full response for caching
+  };
+};
+
+/**
+ * Get user profile
+ * @returns {Promise<object>} - Response with user profile data
+ */
+export const getUserProfile = async () => {
+  console.log("👤 [GET PROFILE] Fetching user profile...");
+
+  const response = await get("/users/profile");
+
+  console.log("✅ [GET PROFILE] Profile fetched successfully!");
+  console.log("✅ [GET PROFILE] Full response data:", JSON.stringify(response, null, 2));
+
+  // Cache the full response data
+  try {
+    await storeProfileResponse(response);
+    console.log("💾 [GET PROFILE] Response data cached successfully!");
+  } catch (cacheError) {
+    console.warn("⚠️ [GET PROFILE] Failed to cache response data:", cacheError);
   }
 
+  // Handle response format: response.data contains user data
+  const userDataFromResponse = response.data;
+  console.log("✅ [GET PROFILE] User data:", JSON.stringify(userDataFromResponse, null, 2));
+
+  return userDataFromResponse;
+};
+
+/**
+ * Logout user
+ * @returns {Promise<object>} - Response with success message
+ */
+export const logout = async () => {
+  console.log("🚪 [LOGOUT] Starting logout process...");
+
+  const response = await get("/auth/logout");
+
+  console.log("✅ [LOGOUT] Logout successful!");
+  console.log("✅ [LOGOUT] Full response data:", JSON.stringify(response, null, 2));
+
   return response;
+};
+
+/**
+ * Update user profile
+ * @param {object} profileData - Profile data to update
+ * @param {string} profileData.fullName - Full name
+ * @param {string} profileData.dateOfBirth - Date of birth (YYYY-MM-DD)
+ * @param {string} profileData.gender - Gender
+ * @param {string} profileData.phone - Phone number
+ * @param {string} profileData.address - Address
+ * @param {object} profileData.emergencyContact - Emergency contact info
+ * @param {string} profileData.weight - Weight
+ * @param {string} profileData.height - Height
+ * @param {string} profileData.bloodType - Blood type
+ * @returns {Promise<object>} - Response with updated user data
+ */
+export const updateProfile = async (profileData) => {
+  console.log("📝 [UPDATE PROFILE] Starting profile update...");
+  console.log("📝 [UPDATE PROFILE] Request data:", JSON.stringify(profileData, null, 2));
+
+  const response = await patch("/users/update/patient", profileData);
+
+  console.log("✅ [UPDATE PROFILE] Profile updated successfully!");
+  console.log("✅ [UPDATE PROFILE] Full response data:", JSON.stringify(response, null, 2));
+
+  // Handle response format: response.data contains user data
+  // Tokens are now in response headers (handled by api.js)
+  const userDataFromResponse = response.data || response.user;
+  console.log("✅ [UPDATE PROFILE] User data:", JSON.stringify(userDataFromResponse, null, 2));
+  console.log("✅ [UPDATE PROFILE] Note: Access token is stored from response headers (x-access-token)");
+
+  return userDataFromResponse;
 };
 
 export default {
@@ -164,5 +316,8 @@ export default {
   signIn,
   signInWithGoogle,
   signUpWithGoogle,
+  getUserProfile,
+  logout,
+  updateProfile,
 };
 

@@ -11,11 +11,15 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, Sizes } from "../../../shared/constants";
 import { useAuth } from "../../../shared/context/AuthContext";
+import { updateProfile } from "../../auth/services/authService";
+import LoadingOverlay from "../../../shared/components/LoadingOverlay";
+import { showError, showSuccess } from "../../../shared/utils/toast";
 
 export default function UpdatePhoneModal({ visible, onClose }) {
   const insets = useSafeAreaInsets();
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const [phone, setPhone] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   // Update phone when modal opens or user data changes
   useEffect(() => {
@@ -28,9 +32,26 @@ export default function UpdatePhoneModal({ visible, onClose }) {
     }
   }, [visible, user]);
 
-  const handleSave = () => {
-    // Handle save logic
-    onClose();
+  const handleSave = async () => {
+    if (!phone.trim()) {
+      showError("Phone number cannot be empty");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const fullPhone = `+234${phone.trim()}`;
+      const updatedUser = await updateProfile({ phone: fullPhone });
+      await updateUser(updatedUser);
+      showSuccess("Phone number updated successfully!");
+      onClose();
+    } catch (err) {
+      console.error("❌ [UPDATE PHONE] Error updating phone:", err);
+      showError(err.message || "Failed to update phone. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -75,11 +96,18 @@ export default function UpdatePhoneModal({ visible, onClose }) {
             </View>
           </View>
 
-          <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-            <Text style={styles.saveButtonText}>Save</Text>
+          <TouchableOpacity
+            style={[styles.saveButton, isLoading && styles.saveButtonDisabled]}
+            onPress={handleSave}
+            disabled={isLoading}
+          >
+            <Text style={styles.saveButtonText}>
+              {isLoading ? "Saving..." : "Save"}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
+      <LoadingOverlay visible={isLoading} />
     </Modal>
   );
 }
@@ -167,5 +195,15 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontSize: 16,
     fontFamily: "Poppins-Bold",
+  },
+  saveButtonDisabled: {
+    opacity: 0.6,
+  },
+  errorText: {
+    color: "#FF0000",
+    fontSize: 14,
+    fontFamily: "Poppins-Regular",
+    marginBottom: Sizes.sm,
+    textAlign: "center",
   },
 });

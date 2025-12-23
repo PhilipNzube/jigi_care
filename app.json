@@ -13,6 +13,14 @@
       "resizeMode": "cover",
       "backgroundColor": "#ffffff"
     },
+    "plugins": [
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.326138021655-4tnvd4k857q8lipkcpu4k9ka73617cmg"
+        }
+      ]
+    ],
     "ios": {
       "supportsTablet": true,
       "requireFullScreen": false

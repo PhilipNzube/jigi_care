@@ -1,173 +1,153 @@
 /**
  * Google Sign In Service
- * Handles Google authentication using expo-auth-session
+ * Handles Google authentication using @react-native-google-signin/google-signin
+ * Native implementation for npx expo run:android builds
  */
 
-import * as AuthSession from "expo-auth-session";
-import * as WebBrowser from "expo-web-browser";
+import {
+  GoogleSignin,
+  statusCodes,
+} from "@react-native-google-signin/google-signin";
 import { Platform } from "react-native";
 
-// Complete the auth session for better UX
-WebBrowser.maybeCompleteAuthSession();
-
-// Google OAuth configuration
-const discovery = {
-  authorizationEndpoint: "https://accounts.google.com/o/oauth2/v2/auth",
-  tokenEndpoint: "https://oauth2.googleapis.com/token",
-  revocationEndpoint: "https://oauth2.googleapis.com/revoke",
+/**
+ * Configure Google Sign In
+ * Call this once when your app starts (e.g., in App.js or AuthContext)
+ * @param {string} webClientId - Google OAuth Web Client ID (for getting idToken)
+ */
+export const configureGoogleSignIn = async (webClientId) => {
+  try {
+    GoogleSignin.configure({
+      webClientId: webClientId, // Required for getting idToken on Android
+      offlineAccess: true, // If you want to access Google API on behalf of the user FROM YOUR SERVER
+      forceCodeForRefreshToken: true, // Get [android/ios] refresh token on user sign in
+    });
+    console.log("✅ [GOOGLE SERVICE] Google Sign-In configured successfully");
+  } catch (error) {
+    console.error(
+      "❌ [GOOGLE SERVICE] Failed to configure Google Sign-In:",
+      error
+    );
+    throw error;
+  }
 };
 
 /**
- * Initialize Google Sign In
- * @param {string} clientId - Google OAuth client ID (Web client ID)
- * @returns {Promise<object>} - Google user info
+ * Sign in with Google
+ * @param {string} webClientId - Google OAuth Web Client ID (optional if already configured)
+ * @returns {Promise<object>} - Google user info with idToken
  */
-export const signInWithGoogle = async (clientId) => {
+export const signInWithGoogle = async (webClientId) => {
   try {
     console.log("🔵 [GOOGLE SERVICE] Starting Google authentication...");
-    console.log(
-      "🔵 [GOOGLE SERVICE] Client ID:",
-      clientId ? "***" + clientId.slice(-10) : "N/A"
-    );
     console.log("🔵 [GOOGLE SERVICE] Platform:", Platform.OS);
 
-    // Create redirect URI - use Expo's proxy for development
-    // For production, you may want to use the custom scheme instead
-    const redirectUri = AuthSession.makeRedirectUri({
-      scheme: "com.jijicare.app", // Match the package name from app.json
-      path: "auth",
-      useProxy: true, // Use Expo's proxy - this generates https://auth.expo.io/@username/slug
-    });
-
-    console.log("🔵 [GOOGLE SERVICE] Redirect URI:", redirectUri);
-    console.log(
-      "⚠️ [GOOGLE SERVICE] IMPORTANT: Make sure this redirect URI is registered in Google Cloud Console!"
-    );
-    console.log(
-      "⚠️ [GOOGLE SERVICE] Go to: https://console.cloud.google.com/apis/credentials"
-    );
-    console.log(
-      "⚠️ [GOOGLE SERVICE] Edit your OAuth 2.0 Client ID and add this URI to 'Authorized redirect URIs'"
-    );
-
-    // Create auth request - Request both token and id_token
-    // For Google OAuth, we need to request id_token explicitly
-    // Disable PKCE for implicit flow (token response type doesn't support PKCE)
-    const request = new AuthSession.AuthRequest({
-      clientId: clientId,
-      scopes: ["openid", "profile", "email"],
-      responseType: AuthSession.ResponseType.Token, // Use Token to get access_token
-      redirectUri: redirectUri,
-      usePKCE: false, // Disable PKCE for implicit flow (token response type)
-      extraParams: {},
-      additionalParameters: {
-        // Request id_token explicitly
-        response_type: "token id_token",
-      },
-    });
-
-    // Get authorization URL
-    const authUrl = await request.makeAuthUrlAsync(discovery);
-    console.log("🔵 [GOOGLE SERVICE] Auth URL created");
-
-    // Open browser for authentication - use promptAsync instead of startAsync
-    console.log("🔵 [GOOGLE SERVICE] Opening browser for authentication...");
-    const result = await request.promptAsync(discovery);
-
-    console.log("🔵 [GOOGLE SERVICE] Auth result type:", result.type);
-
-    if (result.type === "success") {
-      console.log("🔵 [GOOGLE SERVICE] Authentication successful!");
-      console.log(
-        "🔵 [GOOGLE SERVICE] Full result params:",
-        JSON.stringify(result.params, null, 2)
-      );
-
-      // Get idToken from result
-      const idToken = result.params.id_token;
-      const accessToken = result.params.access_token;
-
-      console.log(
-        "🔵 [GOOGLE SERVICE] ID Token received:",
-        idToken ? "***" + idToken.slice(-10) : "N/A"
-      );
-      console.log(
-        "🔵 [GOOGLE SERVICE] Access token received:",
-        accessToken ? "***" + accessToken.slice(-10) : "N/A"
-      );
-
-      if (!idToken) {
-        throw new Error("ID Token not received from Google");
-      }
-
-      // Get user info from Google using access token if available, otherwise decode idToken
-      let userInfo = {};
-      if (accessToken) {
-        console.log(
-          "🔵 [GOOGLE SERVICE] Fetching user info from Google using access token..."
-        );
-        const userInfoResponse = await fetch(
-          `https://www.googleapis.com/oauth2/v2/userinfo?access_token=${accessToken}`
-        );
-
-        if (userInfoResponse.ok) {
-          userInfo = await userInfoResponse.json();
-          console.log(
-            "🔵 [GOOGLE SERVICE] User info received:",
-            JSON.stringify(userInfo, null, 2)
-          );
-        } else {
-          console.warn(
-            "⚠️ [GOOGLE SERVICE] Failed to fetch user info, will use idToken only"
-          );
-        }
-      }
-
-      const googleUserData = {
-        id: userInfo.id,
-        email: userInfo.email,
-        name: userInfo.name,
-        givenName: userInfo.given_name,
-        familyName: userInfo.family_name,
-        picture: userInfo.picture,
-        accessToken: accessToken,
-        idToken: idToken, // This is the important one for the backend
-      };
-
-      console.log(
-        "✅ [GOOGLE SERVICE] Google authentication completed successfully!"
-      );
-      console.log(
-        "✅ [GOOGLE SERVICE] Returning Google user data:",
-        JSON.stringify(
-          {
-            ...googleUserData,
-            idToken: idToken ? "***" + idToken.slice(-10) : "N/A",
-            accessToken: accessToken ? "***" + accessToken.slice(-10) : "N/A",
-          },
-          null,
-          2
-        )
-      );
-
-      return googleUserData;
-    } else if (result.type === "cancel") {
-      console.log("ℹ️ [GOOGLE SERVICE] User cancelled authentication");
-      throw new Error("Google sign in was cancelled");
-    } else {
-      console.error("❌ [GOOGLE SERVICE] Authentication failed:", result);
-      throw new Error("Google sign in failed");
+    // Configure if webClientId is provided
+    if (webClientId) {
+      await configureGoogleSignIn(webClientId);
     }
+
+    // Check if Google Play Services are available
+    await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+
+    console.log("🔵 [GOOGLE SERVICE] Google Play Services available");
+
+    // Sign in
+    const userInfo = await GoogleSignin.signIn();
+
+    console.log("✅ [GOOGLE SERVICE] Google Sign-In successful!");
+    console.log(
+      "✅ [GOOGLE SERVICE] Full user info response:",
+      JSON.stringify(userInfo, null, 2)
+    );
+
+    // Get tokens (includes idToken)
+    const tokens = await GoogleSignin.getTokens();
+    const idToken = tokens.idToken;
+
+    console.log(
+      "✅ [GOOGLE SERVICE] ID Token received:",
+      idToken ? "***" + idToken.slice(-10) : "N/A"
+    );
+    console.log(
+      "✅ [GOOGLE SERVICE] Access Token received:",
+      tokens.accessToken ? "***" + tokens.accessToken.slice(-10) : "N/A"
+    );
+
+    if (!idToken) {
+      throw new Error("ID Token not received from Google");
+    }
+
+    // Extract user data from response
+    const user = userInfo.user || userInfo.data?.user || userInfo;
+
+    const googleUserData = {
+      id: user.id || userInfo.id,
+      email: user.email || userInfo.email,
+      name: user.name || userInfo.name,
+      givenName: user.givenName || userInfo.givenName,
+      familyName: user.familyName || userInfo.familyName,
+      picture: user.photo || user.picture || userInfo.photo || userInfo.picture,
+      idToken: idToken, // Used only for backend API call - DO NOT STORE/CACHE this token
+      accessToken: tokens.accessToken, // Google access token - DO NOT STORE/CACHE this token
+    };
+
+    console.log(
+      "✅ [GOOGLE SERVICE] Google authentication completed successfully!"
+    );
+    console.log(
+      "✅ [GOOGLE SERVICE] Returning Google user data:",
+      JSON.stringify(
+        {
+          ...googleUserData,
+          idToken: idToken ? "***" + idToken.slice(-10) : "N/A",
+          accessToken: tokens.accessToken
+            ? "***" + tokens.accessToken.slice(-10)
+            : "N/A",
+        },
+        null,
+        2
+      )
+    );
+
+    return googleUserData;
   } catch (error) {
     console.error("❌ [GOOGLE SERVICE] Google Sign In Error:", error);
     console.error(
       "❌ [GOOGLE SERVICE] Error details:",
       JSON.stringify(error, null, 2)
     );
+
+    if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+      console.log("ℹ️ [GOOGLE SERVICE] User cancelled the sign-in flow");
+      throw new Error("Google sign in was cancelled");
+    } else if (error.code === statusCodes.IN_PROGRESS) {
+      console.log("ℹ️ [GOOGLE SERVICE] Sign-in operation is in progress");
+      throw new Error("Google sign in is already in progress");
+    } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+      console.error("❌ [GOOGLE SERVICE] Google Play Services not available");
+      throw new Error("Google Play Services not available");
+    } else {
+      throw error;
+    }
+  }
+};
+
+/**
+ * Sign out from Google
+ */
+export const signOutFromGoogle = async () => {
+  try {
+    await GoogleSignin.signOut();
+    console.log("✅ [GOOGLE SERVICE] Signed out from Google");
+  } catch (error) {
+    console.error("❌ [GOOGLE SERVICE] Error signing out:", error);
     throw error;
   }
 };
 
 export default {
+  configureGoogleSignIn,
   signInWithGoogle,
+  signOutFromGoogle,
 };
