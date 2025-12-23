@@ -6,6 +6,9 @@ import {
   Modal,
   TouchableOpacity,
   TextInput,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -13,6 +16,7 @@ import { Colors, Sizes } from "../../../shared/constants";
 import { useAuth } from "../../../shared/context/AuthContext";
 import { updateProfile } from "../../auth/services/authService";
 import LoadingOverlay from "../../../shared/components/LoadingOverlay";
+import { showError, showSuccess } from "../../../shared/utils/toast";
 
 export default function UpdateAddressModal({ visible, onClose }) {
   const insets = useSafeAreaInsets();
@@ -108,7 +112,7 @@ export default function UpdateAddressModal({ visible, onClose }) {
                   placeholder="Enter city"
                   placeholderTextColor={Colors.grey}
                 />
-                <Ionicons name="chevron-down" size={16} color={Colors.grey} />
+                {/* <Ionicons name="chevron-down" size={16} color={Colors.grey} /> */}
               </View>
             </View>
 
@@ -122,7 +126,7 @@ export default function UpdateAddressModal({ visible, onClose }) {
                   placeholder="Enter state"
                   placeholderTextColor={Colors.grey}
                 />
-                <Ionicons name="chevron-down" size={16} color={Colors.grey} />
+                {/* <Ionicons name="chevron-down" size={16} color={Colors.grey} /> */}
               </View>
             </View>
           </View>

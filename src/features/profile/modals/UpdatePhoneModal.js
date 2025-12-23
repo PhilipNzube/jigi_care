@@ -1,14 +1,17 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
   StyleSheet,
   Modal,
   TouchableOpacity,
-  TextInput,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import PhoneInput from "react-native-phone-number-input";
 import { Colors, Sizes } from "../../../shared/constants";
 import { useAuth } from "../../../shared/context/AuthContext";
 import { updateProfile } from "../../auth/services/authService";
@@ -18,31 +21,42 @@ import { showError, showSuccess } from "../../../shared/utils/toast";
 export default function UpdatePhoneModal({ visible, onClose }) {
   const insets = useSafeAreaInsets();
   const { user, updateUser } = useAuth();
-  const [phone, setPhone] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [formattedPhoneNumber, setFormattedPhoneNumber] = useState("");
+  const phoneInputRef = useRef(null);
   const [isLoading, setIsLoading] = useState(false);
 
   // Update phone when modal opens or user data changes
   useEffect(() => {
     if (visible && user) {
-      // Extract phone number (remove country code if present, as we'll add it separately)
       const userPhone = user?.phone || user?.phoneNumber || user?.mobile || user?.mobileNumber || user?.contactNumber || "";
-      // Remove +234 or 234 prefix if present
-      const phoneWithoutCountryCode = userPhone.replace(/^(\+?234)?\s*/, "");
-      setPhone(phoneWithoutCountryCode);
+      if (userPhone) {
+        setPhoneNumber(userPhone);
+        setFormattedPhoneNumber(userPhone);
+      } else {
+        setPhoneNumber("");
+        setFormattedPhoneNumber("");
+      }
     }
   }, [visible, user]);
 
   const handleSave = async () => {
-    if (!phone.trim()) {
+    if (!formattedPhoneNumber.trim()) {
       showError("Phone number cannot be empty");
+      return;
+    }
+
+    // Validate phone number
+    const isValid = phoneInputRef.current?.isValidNumber(formattedPhoneNumber);
+    if (!isValid) {
+      showError("Please enter a valid phone number");
       return;
     }
 
     setIsLoading(true);
 
     try {
-      const fullPhone = `+234${phone.trim()}`;
-      const updatedUser = await updateProfile({ phone: fullPhone });
+      const updatedUser = await updateProfile({ phone: formattedPhoneNumber });
       await updateUser(updatedUser);
       showSuccess("Phone number updated successfully!");
       onClose();
@@ -61,7 +75,11 @@ export default function UpdatePhoneModal({ visible, onClose }) {
       animationType="slide"
       onRequestClose={onClose}
     >
-      <View style={styles.overlay}>
+      <KeyboardAvoidingView
+        style={styles.overlay}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={0}
+      >
         <TouchableOpacity style={styles.overlayTouchable} onPress={onClose} />
         <View
           style={[
@@ -69,44 +87,55 @@ export default function UpdatePhoneModal({ visible, onClose }) {
             { paddingBottom: Math.max(insets.bottom, Sizes.xl) },
           ]}
         >
-          <View style={styles.header}>
-            <Text style={styles.title}>UPDATE PHONE NUMBER</Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Ionicons name="close" size={24} color={Colors.grey} />
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.content}>
-            <Text style={styles.label}>Phone</Text>
-            <View style={styles.inputContainer}>
-              <View style={styles.countryCodeContainer}>
-                <Text style={styles.flag}>🇳🇬</Text>
-                <Text style={styles.countryCode}>+234</Text>
-                <Ionicons name="chevron-down" size={16} color={Colors.grey} />
-              </View>
-              <View style={styles.separator} />
-              <TextInput
-                style={styles.input}
-                value={phone}
-                onChangeText={setPhone}
-                keyboardType="phone-pad"
-                placeholder="Enter phone number"
-                placeholderTextColor={Colors.grey}
-              />
-            </View>
-          </View>
-
-          <TouchableOpacity
-            style={[styles.saveButton, isLoading && styles.saveButtonDisabled]}
-            onPress={handleSave}
-            disabled={isLoading}
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
           >
-            <Text style={styles.saveButtonText}>
-              {isLoading ? "Saving..." : "Save"}
-            </Text>
-          </TouchableOpacity>
+            <View style={styles.header}>
+              <Text style={styles.title}>UPDATE PHONE NUMBER</Text>
+              <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+                <Ionicons name="close" size={24} color={Colors.grey} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.content}>
+              <Text style={styles.label}>Phone</Text>
+              <View style={styles.phoneInputContainer}>
+                <PhoneInput
+                  ref={phoneInputRef}
+                  defaultValue={phoneNumber}
+                  defaultCode="NG"
+                  layout="first"
+                  onChangeText={(text) => {
+                    setPhoneNumber(text);
+                  }}
+                  onChangeFormattedText={(text) => {
+                    setFormattedPhoneNumber(text);
+                  }}
+                  containerStyle={styles.phoneInputContainerStyle}
+                  textContainerStyle={styles.phoneInputTextContainer}
+                  textInputStyle={styles.phoneInputText}
+                  codeTextStyle={styles.phoneInputCodeText}
+                  flagButtonStyle={styles.phoneInputFlagButton}
+                  withDarkTheme={false}
+                  withShadow={false}
+                  autoFocus={false}
+                />
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.saveButton, isLoading && styles.saveButtonDisabled]}
+              onPress={handleSave}
+              disabled={isLoading}
+            >
+              <Text style={styles.saveButtonText}>
+                {isLoading ? "Saving..." : "Save"}
+              </Text>
+            </TouchableOpacity>
+          </ScrollView>
         </View>
-      </View>
+      </KeyboardAvoidingView>
       <LoadingOverlay visible={isLoading} />
     </Modal>
   );
@@ -152,38 +181,33 @@ const styles = StyleSheet.create({
     color: "#999999",
     marginBottom: Sizes.sm,
   },
-  inputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
+  phoneInputContainer: {
+    marginBottom: Sizes.sm,
+  },
+  phoneInputContainerStyle: {
+    width: "100%",
+    backgroundColor: "transparent",
     borderBottomWidth: 1,
     borderBottomColor: "#E0E0E0",
     paddingBottom: Sizes.sm,
   },
-  countryCodeContainer: {
-    flexDirection: "row",
-    alignItems: "center",
+  phoneInputTextContainer: {
+    backgroundColor: "transparent",
+    paddingVertical: 0,
   },
-  flag: {
-    fontSize: 16,
-    marginRight: Sizes.xs,
-  },
-  countryCode: {
+  phoneInputText: {
     fontSize: 16,
     fontFamily: "Poppins-Regular",
     color: Colors.black,
-    marginRight: Sizes.xs,
+    height: 24,
   },
-  separator: {
-    width: 1,
-    height: 20,
-    backgroundColor: "#E0E0E0",
-    marginHorizontal: Sizes.sm,
-  },
-  input: {
-    flex: 1,
+  phoneInputCodeText: {
     fontSize: 16,
     fontFamily: "Poppins-Regular",
     color: Colors.black,
+  },
+  phoneInputFlagButton: {
+    marginRight: Sizes.sm,
   },
   saveButton: {
     backgroundColor: "#0098B3",

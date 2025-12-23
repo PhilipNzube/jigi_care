@@ -48,22 +48,22 @@ export default function ProfileScreen({ navigation }) {
     setShowLogoutModal(false);
     setIsLoggingOut(true);
     console.log("🚪 [PROFILE SCREEN] User confirmed logout");
-    
+
     try {
       // Sign out and clear all tokens
       await signOut();
-      
+
       // Navigate to login screen - get root navigator since we're nested in MainAppNavigator
       // Try to get the root navigator, fallback to current navigation
       let rootNavigation = navigation;
       let parent = navigation.getParent();
-      
+
       // Navigate up to find the root navigator (AppNavigator)
       while (parent) {
         rootNavigation = parent;
         parent = parent.getParent();
       }
-      
+
       // Reset navigation stack to Login screen
       rootNavigation.reset({
         index: 0,
@@ -73,19 +73,8 @@ export default function ProfileScreen({ navigation }) {
       console.error("❌ [PROFILE SCREEN] Error during logout:", error);
       // Show error to user
       showError(error.message || "Logout failed. Please try again.");
-      
-      // Still try to navigate to login even if there's an error
-      // (local logout should have happened)
-      let rootNavigation = navigation;
-      let parent = navigation.getParent();
-      while (parent) {
-        rootNavigation = parent;
-        parent = parent.getParent();
-      }
-      rootNavigation.reset({
-        index: 0,
-        routes: [{ name: "Login" }],
-      });
+      // Do NOT navigate to login if logout API call failed
+      // User remains logged in
     } finally {
       setIsLoggingOut(false);
     }

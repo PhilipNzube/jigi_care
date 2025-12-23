@@ -6,6 +6,9 @@ import {
   Modal,
   TouchableOpacity,
   TextInput,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -56,7 +59,11 @@ export default function UpdateNameModal({ visible, onClose }) {
       animationType="slide"
       onRequestClose={onClose}
     >
-      <View style={styles.overlay}>
+      <KeyboardAvoidingView
+        style={styles.overlay}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={0}
+      >
         <TouchableOpacity style={styles.overlayTouchable} onPress={onClose} />
         <View
           style={[
@@ -64,38 +71,43 @@ export default function UpdateNameModal({ visible, onClose }) {
             { paddingBottom: Math.max(insets.bottom, Sizes.xl) },
           ]}
         >
-          <View style={styles.header}>
-            <Text style={styles.title}>UPDATE NAME</Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Ionicons name="close" size={24} color={Colors.grey} />
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.content}>
-            <Text style={styles.label}>Full Name</Text>
-            <View style={styles.inputContainer}>
-              <Ionicons name="person" size={20} color={Colors.grey} />
-              <TextInput
-                style={styles.input}
-                value={name}
-                onChangeText={setName}
-                placeholder="Enter your full name"
-                placeholderTextColor={Colors.grey}
-              />
-            </View>
-          </View>
-
-          <TouchableOpacity
-            style={[styles.saveButton, isLoading && styles.saveButtonDisabled]}
-            onPress={handleSave}
-            disabled={isLoading}
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
           >
-            <Text style={styles.saveButtonText}>
-              {isLoading ? "Saving..." : "Save"}
-            </Text>
-          </TouchableOpacity>
+            <View style={styles.header}>
+              <Text style={styles.title}>UPDATE NAME</Text>
+              <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+                <Ionicons name="close" size={24} color={Colors.grey} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.content}>
+              <Text style={styles.label}>Full Name</Text>
+              <View style={styles.inputContainer}>
+                <Ionicons name="person" size={20} color={Colors.grey} />
+                <TextInput
+                  style={styles.input}
+                  value={name}
+                  onChangeText={setName}
+                  placeholder="Enter your full name"
+                  placeholderTextColor={Colors.grey}
+                />
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.saveButton, isLoading && styles.saveButtonDisabled]}
+              onPress={handleSave}
+              disabled={isLoading}
+            >
+              <Text style={styles.saveButtonText}>
+                {isLoading ? "Saving..." : "Save"}
+              </Text>
+            </TouchableOpacity>
+          </ScrollView>
         </View>
-      </View>
+      </KeyboardAvoidingView>
       <LoadingOverlay visible={isLoading} />
     </Modal>
   );

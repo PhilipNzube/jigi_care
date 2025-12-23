@@ -13,6 +13,46 @@ export default function ProfileFieldsList({ onFieldPress }) {
   // Check multiple possible phone field names from backend
   const userPhone = user?.phone || user?.phoneNumber || user?.mobile || user?.mobileNumber || user?.contactNumber || "Not set";
 
+  // Format date of birth
+  const formatDateOfBirth = (dateString) => {
+    if (!dateString) return "Not set";
+    try {
+      const date = new Date(dateString);
+      const month = date.toLocaleString("default", { month: "short" });
+      const day = date.getDate();
+      const year = date.getFullYear();
+      // Get ordinal suffix for day
+      const getOrdinalSuffix = (day) => {
+        if (day > 3 && day < 21) return "th";
+        switch (day % 10) {
+          case 1: return "st";
+          case 2: return "nd";
+          case 3: return "rd";
+          default: return "th";
+        }
+      };
+      return `${month} ${day}${getOrdinalSuffix(day)}, ${year}`;
+    } catch (error) {
+      return "Not set";
+    }
+  };
+
+  const userDateOfBirth = formatDateOfBirth(user?.dateOfBirth);
+
+  // Format gender
+  const formatGender = (gender) => {
+    if (!gender) return "Not set";
+    const genderMap = {
+      male: "Male",
+      female: "Female",
+      other: "Other",
+      prefer_not_to_say: "Prefer not to say",
+    };
+    return genderMap[gender.toLowerCase()] || gender;
+  };
+
+  const userGender = formatGender(user?.gender);
+
   const fields = [
     {
       id: "fullName",
@@ -37,12 +77,12 @@ export default function ProfileFieldsList({ onFieldPress }) {
     {
       id: "dateOfBirth",
       label: "Date of Birth",
-      value: "Aug 24th, 1829",
+      value: userDateOfBirth,
     },
     {
       id: "gender",
       label: "Gender",
-      value: "Male",
+      value: userGender,
     },
   ];
 

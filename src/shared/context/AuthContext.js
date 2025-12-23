@@ -123,6 +123,13 @@ export const AuthProvider = ({ children }) => {
 
       const { user: userData } = authData;
 
+      // Validate user data exists
+      if (!userData) {
+        console.error("❌ [AUTH CONTEXT] User data is missing from auth response");
+        console.error("❌ [AUTH CONTEXT] Auth data:", JSON.stringify(authData, null, 2));
+        throw new Error("User data is missing from authentication response");
+      }
+
       // Get tokens from storage (they were stored by api.js from response headers)
       const accessToken = await getToken();
       const refreshToken = await getRefreshToken();
@@ -171,6 +178,13 @@ export const AuthProvider = ({ children }) => {
 
       const { user: userData } = authData;
 
+      // Validate user data exists
+      if (!userData) {
+        console.error("❌ [AUTH CONTEXT] User data is missing from auth response");
+        console.error("❌ [AUTH CONTEXT] Auth data:", JSON.stringify(authData, null, 2));
+        throw new Error("User data is missing from authentication response");
+      }
+
       // Get tokens from storage (they were stored by api.js from response headers)
       const accessToken = await getToken();
       const refreshToken = await getRefreshToken();
@@ -205,6 +219,7 @@ export const AuthProvider = ({ children }) => {
 
   /**
    * Sign out user and clear all cached tokens and storage
+   * Only proceeds with local logout if server request succeeds
    */
   const signOut = async () => {
     try {
@@ -218,19 +233,12 @@ export const AuthProvider = ({ children }) => {
         token ? "***" + token.slice(-10) : "N/A"
       );
 
-      // Call logout API first
-      try {
-        console.log("🚪 [SIGN OUT] Calling logout API...");
-        await logout();
-        console.log("✅ [SIGN OUT] Logout API call successful!");
-      } catch (logoutError) {
-        console.error("❌ [SIGN OUT] Logout API call failed:", logoutError);
-        // Still proceed with local sign out even if API call fails
-        console.warn(
-          "⚠️ [SIGN OUT] Proceeding with local sign out despite API error"
-        );
-      }
+      // Call logout API first - if this fails, we don't proceed with local logout
+      console.log("🚪 [SIGN OUT] Calling logout API...");
+      await logout();
+      console.log("✅ [SIGN OUT] Logout API call successful!");
 
+      // Only proceed with local sign out if API call succeeds
       // Clear state
       console.log("🚪 [SIGN OUT] Clearing application state...");
       setUser(null);
@@ -251,6 +259,10 @@ export const AuthProvider = ({ children }) => {
         "❌ [SIGN OUT] Error details:",
         JSON.stringify(error, null, 2)
       );
+      console.error(
+        "❌ [SIGN OUT] Logout API call failed - NOT proceeding with local logout"
+      );
+      // Re-throw error so caller knows logout failed and can handle accordingly
       throw error;
     }
   };

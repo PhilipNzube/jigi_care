@@ -5,10 +5,11 @@ import {
   StyleSheet,
   Modal,
   TouchableOpacity,
-  ScrollView,
+  Dimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import DatePicker from "react-native-date-picker";
 import { Colors, Sizes } from "../../../shared/constants";
 import { useAuth } from "../../../shared/context/AuthContext";
 import { updateProfile } from "../../auth/services/authService";
@@ -18,52 +19,44 @@ import { showError, showSuccess } from "../../../shared/utils/toast";
 export default function DatePickerModal({ visible, onClose }) {
   const insets = useSafeAreaInsets();
   const { user, updateUser } = useAuth();
-  const [selectedDate, setSelectedDate] = useState("September 17 2021");
+  const [selectedDate, setSelectedDate] = useState(new Date());
   const [isLoading, setIsLoading] = useState(false);
 
   // Initialize with user's date of birth if available
   useEffect(() => {
-    if (visible && user?.dateOfBirth) {
-      const date = new Date(user.dateOfBirth);
-      const month = date.toLocaleString("default", { month: "long" });
-      const day = date.getDate();
-      const year = date.getFullYear();
-      setSelectedDate(`${month} ${day} ${year}`);
+    if (visible) {
+      if (user?.dateOfBirth) {
+        try {
+          const date = new Date(user.dateOfBirth);
+          // Validate date
+          if (!isNaN(date.getTime())) {
+            setSelectedDate(date);
+          } else {
+            // Default to current date if invalid
+            setSelectedDate(new Date());
+          }
+        } catch (error) {
+          console.error("Error parsing date of birth:", error);
+          setSelectedDate(new Date());
+        }
+      } else {
+        // Default to current date if no date of birth
+        setSelectedDate(new Date());
+      }
     }
   }, [visible, user]);
-
-  const months = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
-  ];
-
-  const days = Array.from({ length: 31 }, (_, i) => i + 1);
-  const years = Array.from({ length: 10 }, (_, i) => 2018 + i);
 
   const handleSave = async () => {
     setIsLoading(true);
 
     try {
-      // Parse the selected date string and convert to YYYY-MM-DD format
-      const dateParts = selectedDate.split(" ");
-      const monthNames = [
-        "January", "February", "March", "April", "May", "June",
-        "July", "August", "September", "October", "November", "December"
-      ];
-      const month = monthNames.indexOf(dateParts[0]);
-      const day = parseInt(dateParts[1]);
-      const year = parseInt(dateParts[2]);
-      const dateOfBirth = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+      // Convert selected date to YYYY-MM-DD format
+      const year = selectedDate.getFullYear();
+      const month = String(selectedDate.getMonth() + 1).padStart(2, "0");
+      const day = String(selectedDate.getDate()).padStart(2, "0");
+      const dateOfBirth = `${year}-${month}-${day}`;
+
+      console.log("📅 [UPDATE DATE] Saving date of birth:", dateOfBirth);
 
       const updatedUser = await updateProfile({ dateOfBirth });
       await updateUser(updatedUser);
@@ -76,6 +69,11 @@ export default function DatePickerModal({ visible, onClose }) {
       setIsLoading(false);
     }
   };
+
+  // Calculate maximum date (today - 100 years ago)
+  const maxDate = new Date();
+  const minDate = new Date();
+  minDate.setFullYear(maxDate.getFullYear() - 100);
 
   return (
     <Modal
@@ -92,83 +90,26 @@ export default function DatePickerModal({ visible, onClose }) {
             { paddingBottom: Math.max(insets.bottom, Sizes.xl) },
           ]}
         >
+          <View style={styles.header}>
+            <Text style={styles.title}>SELECT DATE OF BIRTH</Text>
+            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+              <Ionicons name="close" size={24} color={Colors.grey} />
+            </TouchableOpacity>
+          </View>
+
           <View style={styles.pickerContainer}>
-            <ScrollView
-              style={styles.pickerColumn}
-              showsVerticalScrollIndicator={false}
-            >
-              {months.map((month, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={[
-                    styles.pickerItem,
-                    selectedDate.includes(month) && styles.selectedItem,
-                  ]}
-                  onPress={() => setSelectedDate(`${month} 17 2021`)}
-                >
-                  <Text
-                    style={[
-                      styles.pickerText,
-                      selectedDate.includes(month) && styles.selectedText,
-                    ]}
-                  >
-                    {month}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-
-            <ScrollView
-              style={styles.pickerColumn}
-              showsVerticalScrollIndicator={false}
-            >
-              {days.map((day) => (
-                <TouchableOpacity
-                  key={day}
-                  style={[
-                    styles.pickerItem,
-                    selectedDate.includes(` ${day} `) && styles.selectedItem,
-                  ]}
-                  onPress={() => setSelectedDate(`September ${day} 2021`)}
-                >
-                  <Text
-                    style={[
-                      styles.pickerText,
-                      selectedDate.includes(` ${day} `) && styles.selectedText,
-                    ]}
-                  >
-                    {day}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-
-            <ScrollView
-              style={styles.pickerColumn}
-              showsVerticalScrollIndicator={false}
-            >
-              {years.map((year) => (
-                <TouchableOpacity
-                  key={year}
-                  style={[
-                    styles.pickerItem,
-                    selectedDate.includes(year.toString()) &&
-                      styles.selectedItem,
-                  ]}
-                  onPress={() => setSelectedDate(`September 17 ${year}`)}
-                >
-                  <Text
-                    style={[
-                      styles.pickerText,
-                      selectedDate.includes(year.toString()) &&
-                        styles.selectedText,
-                    ]}
-                  >
-                    {year}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
+            <DatePicker
+              date={selectedDate}
+              onDateChange={setSelectedDate}
+              mode="date"
+              maximumDate={maxDate}
+              minimumDate={minDate}
+              androidVariant="iosClone"
+              textColor={Colors.black}
+              fadeToColor="transparent"
+              style={styles.datePicker}
+              locale="en"
+            />
           </View>
 
           <TouchableOpacity
@@ -204,38 +145,36 @@ const styles = StyleSheet.create({
     paddingHorizontal: Sizes.lg,
     paddingBottom: Sizes.xl,
   },
-  pickerContainer: {
+  header: {
     flexDirection: "row",
-    height: 200,
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: Sizes.lg,
   },
-  pickerColumn: {
-    flex: 1,
-    marginHorizontal: Sizes.xs,
-  },
-  pickerItem: {
-    paddingVertical: Sizes.md,
-    alignItems: "center",
-  },
-  selectedItem: {
-    backgroundColor: "#F0F0F0",
-    borderRadius: 8,
-  },
-  pickerText: {
-    fontSize: 16,
-    fontFamily: "Poppins-Regular",
+  title: {
+    fontSize: 18,
+    fontFamily: "Poppins-Medium",
     color: Colors.grey,
   },
-  selectedText: {
-    fontSize: 18,
-    fontFamily: "Poppins-Bold",
-    color: Colors.black,
+  closeButton: {
+    padding: Sizes.xs,
+  },
+  pickerContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    marginVertical: Sizes.lg,
+    minHeight: 200,
+    width: "100%",
+  },
+  datePicker: {
+    height: 200,
   },
   saveButton: {
     backgroundColor: "#0098B3",
     paddingVertical: Sizes.md,
     borderRadius: 25,
     alignItems: "center",
+    marginTop: Sizes.lg,
   },
   saveButtonText: {
     color: Colors.white,
@@ -244,12 +183,5 @@ const styles = StyleSheet.create({
   },
   saveButtonDisabled: {
     opacity: 0.6,
-  },
-  errorText: {
-    color: "#FF0000",
-    fontSize: 14,
-    fontFamily: "Poppins-Regular",
-    marginBottom: Sizes.sm,
-    textAlign: "center",
   },
 });

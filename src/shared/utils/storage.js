@@ -48,6 +48,12 @@ export const getToken = async () => {
  */
 export const storeUserData = async (userData) => {
   try {
+    // Validate userData is not null or undefined
+    if (userData === null || userData === undefined) {
+      console.error("❌ [STORAGE] Cannot store null/undefined user data");
+      throw new Error("User data cannot be null or undefined");
+    }
+
     await AsyncStorage.setItem(
       STORAGE_KEYS.USER_DATA,
       JSON.stringify(userData)
