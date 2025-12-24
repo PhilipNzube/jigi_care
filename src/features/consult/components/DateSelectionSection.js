@@ -14,27 +14,33 @@ export default function DateSelectionSection({ selectedDate, onDateSelect }) {
   const [today, setToday] = useState(new Date());
 
   useEffect(() => {
-    // Generate this week's dates (Sunday to Saturday)
-    const weekStart = startOfWeek(new Date(), { weekStartsOn: 0 }); // Start from Sunday
+    // Generate dates starting from today, only future dates
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const weekDates = [];
 
-    for (let i = 0; i < 7; i++) {
-      const date = addDays(weekStart, i);
+    // Generate next 14 days (2 weeks) of future dates
+    for (let i = 0; i < 14; i++) {
+      const date = addDays(today, i);
       weekDates.push({
         id: format(date, "EEE d"),
         dayName: format(date, "EEE"),
         dayNumber: format(date, "d"),
+        fullDate: date, // Store full date for easier parsing
         date: date,
-        isToday: isSameDay(date, new Date()),
+        isToday: isSameDay(date, now),
       });
     }
 
     setDates(weekDates);
 
-    // Auto-select today's date
+    // Auto-select today's date if available
     const todayDate = weekDates.find((d) => d.isToday);
     if (todayDate && !selectedDate) {
       onDateSelect(todayDate.id);
+    } else if (weekDates.length > 0 && !selectedDate) {
+      // Select first available date if today is not available
+      onDateSelect(weekDates[0].id);
     }
   }, []);
 
@@ -53,7 +59,12 @@ export default function DateSelectionSection({ selectedDate, onDateSelect }) {
               styles.dateButton,
               selectedDate === date.id && styles.selectedDateButton,
             ]}
-            onPress={() => onDateSelect(date.id)}
+            onPress={() => {
+              onDateSelect(date.id);
+              if (onDateSelectWithObj) {
+                onDateSelectWithObj(date.fullDate || date.date);
+              }
+            }}
           >
             <Text
               style={[

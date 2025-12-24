@@ -14,6 +14,7 @@ export const Colors = {
   white: "#FFFFFF",
   black: "#000000",
   gray: "#9E9E9E",
+  grey: "#9E9E9E", // Alias for gray
   lightGray: "#F5F5F5",
   darkGray: "#424242",
 

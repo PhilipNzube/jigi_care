@@ -1,26 +1,20 @@
 import React from "react";
-import { View, TextInput, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
 
-export default function SearchBar({ value, onChangeText }) {
+export default function SearchBar({ onPress }) {
   return (
     <View style={styles.searchContainer}>
-      <View style={styles.searchBar}>
+      <TouchableOpacity style={styles.searchBar} onPress={onPress}>
         <Ionicons
           name="search"
           size={20}
           color="#999"
           style={styles.searchIcon}
         />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search for doctors or specialties"
-          placeholderTextColor="#999"
-          value={value}
-          onChangeText={onChangeText}
-        />
-      </View>
+        <Text style={styles.searchPlaceholder}>Search for doctors or specialties</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -42,10 +36,10 @@ const styles = StyleSheet.create({
   searchIcon: {
     marginRight: Sizes.sm,
   },
-  searchInput: {
+  searchPlaceholder: {
     flex: 1,
     fontSize: 16,
     fontFamily: "Poppins-Regular",
-    color: Colors.black,
+    color: "#999",
   },
 });

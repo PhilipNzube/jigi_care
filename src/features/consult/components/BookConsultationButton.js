@@ -16,6 +16,12 @@ export default function BookConsultationButton({
   isDisabled = false,
 }) {
   const spinValue = React.useRef(new Animated.Value(0)).current;
+  
+  // Get consultation fee from doctor data
+  const consultantData = doctor?.consultantData || {};
+  const consultationFee = consultantData.pricePerSession || 4000; // Fallback to 4000 if not available
+  const serviceFee = 500; // Service fee
+  const total = consultationFee + serviceFee;
 
   React.useEffect(() => {
     if (isLoading) {
@@ -66,7 +72,7 @@ export default function BookConsultationButton({
         <Text
           style={[styles.buttonText, isDisabled && styles.buttonTextDisabled]}
         >
-          Book Consultation - ₦4,500
+          Book Consultation - ₦{total.toLocaleString()}
         </Text>
       )}
     </TouchableOpacity>

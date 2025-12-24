@@ -4,16 +4,18 @@ import { Colors, Sizes } from "../../../shared/constants";
 
 export default function BookNowButton({ doctor, onPress, navigation }) {
   const handlePress = () => {
-    if (navigation) {
-      navigation.navigate("BookConsultation", { doctor });
-    } else if (onPress) {
+    if (onPress) {
       onPress();
+    } else if (navigation) {
+      navigation.navigate("BookConsultation", { doctor });
     }
   };
 
+  const doctorName = doctor?.name || "Doctor";
+
   return (
     <TouchableOpacity style={styles.button} onPress={handlePress}>
-      <Text style={styles.buttonText}>Book {doctor.name}</Text>
+      <Text style={styles.buttonText}>Book Consultation</Text>
     </TouchableOpacity>
   );
 }

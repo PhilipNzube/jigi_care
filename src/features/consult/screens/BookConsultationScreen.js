@@ -12,6 +12,9 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, Sizes } from "../../../shared/constants";
 import { Images } from "../../../shared/utils/imageUtils";
+import { createBooking } from "../services/bookingService";
+import { showError, showSuccess } from "../../../shared/utils/toast";
+import { format, parseISO } from "date-fns";
 
 const { height } = Dimensions.get("window");
 
@@ -35,7 +38,11 @@ export default function BookConsultationScreen({ navigation, route }) {
     price: "₦4,000/session",
   };
 
+  // Get consultantId from doctor data (userId from consultant data)
+  const consultantId = doctor.consultantData?.userId;
+
   const [selectedDate, setSelectedDate] = useState("");
+  const [selectedDateObj, setSelectedDateObj] = useState(null);
   const [selectedTime, setSelectedTime] = useState("");
   const [symptoms, setSymptoms] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -53,6 +60,10 @@ export default function BookConsultationScreen({ navigation, route }) {
     setSelectedDate(date);
   };
 
+  const handleDateSelectWithObj = (dateObj) => {
+    setSelectedDateObj(dateObj);
+  };
+
   const handleTimeSelect = (time) => {
     setSelectedTime(time);
   };
@@ -62,22 +73,92 @@ export default function BookConsultationScreen({ navigation, route }) {
   };
 
   const handleBookConsultation = async () => {
+    if (!consultantId) {
+      showError("Doctor information is missing. Please try again.");
+      return;
+    }
+
     setIsLoading(true);
 
-    // Simulate booking process
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      // Combine date and time into ISO format
+      // Use selectedDateObj if available, otherwise parse from selectedDate string
+      let bookingDate;
+      
+      if (selectedDateObj) {
+        // Use the date object directly
+        bookingDate = new Date(selectedDateObj);
+      } else {
+        // Fallback: parse from selectedDate string (format: "EEE d")
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const dateMatch = selectedDate.match(/\d+/);
+        const dayNumber = dateMatch ? parseInt(dateMatch[0]) : today.getDate();
+        bookingDate = new Date(today.getFullYear(), today.getMonth(), dayNumber);
+        
+        // If the day number is less than today's day, assume it's next month
+        if (dayNumber < today.getDate()) {
+          bookingDate = new Date(today.getFullYear(), today.getMonth() + 1, dayNumber);
+        }
+      }
+      
+      // Parse time
+      const [timePart, period] = selectedTime.split(" ");
+      const [hours, minutes] = timePart.split(":").map(Number);
+      let hour24 = hours;
+      if (period === "PM" && hours !== 12) hour24 += 12;
+      if (period === "AM" && hours === 12) hour24 = 0;
+
+      // Set time on booking date
+      bookingDate.setHours(hour24, minutes || 0, 0, 0);
+      
+      // Ensure it's not in the past
+      if (bookingDate < new Date()) {
+        showError("Please select a future date and time");
+        setIsLoading(false);
+        return;
+      }
+
+      // Convert to ISO string
+      const dateISO = bookingDate.toISOString();
+
+      // Split symptoms by comma or newline
+      const symptomsArray = symptoms
+        .split(/[,\n]/)
+        .map(s => s.trim())
+        .filter(s => s.length > 0);
+
+      // Create booking
+      const bookingData = {
+        date: dateISO,
+        duration: 2, // Default 2 hours
+        symptoms: symptomsArray,
+        consultantId: consultantId,
+      };
+
+      console.log("📝 [BOOK CONSULTATION] Creating booking:", bookingData);
+      const response = await createBooking(bookingData);
+
+      showSuccess("Booking created successfully!");
+      
       // Navigate to payment method selection
       navigation.navigate("PaymentMethod", {
-        amount: "₦4,500",
+        amount: doctor.price || "₦4,500",
         doctor: doctor,
         bookingDetails: {
           date: selectedDate,
           time: selectedTime,
           symptoms: symptoms,
+          bookingId: response.data?.id,
         },
       });
-    }, 2000);
+    } catch (error) {
+      console.error("❌ [BOOK CONSULTATION] Error:", error);
+      const errorMessage = error.data?.message || error.message || "Failed to create booking. Please try again.";
+      showError(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -109,10 +190,12 @@ export default function BookConsultationScreen({ navigation, route }) {
             <DateSelectionSection
               selectedDate={selectedDate}
               onDateSelect={handleDateSelect}
+              onDateSelectWithObj={handleDateSelectWithObj}
             />
             <TimeSelectionSection
               selectedTime={selectedTime}
               onTimeSelect={handleTimeSelect}
+              selectedDate={selectedDate}
             />
             <SymptomsInputSection
               symptoms={symptoms}

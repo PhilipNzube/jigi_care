@@ -73,7 +73,11 @@ export default function UpdateAddressModal({ visible, onClose }) {
       animationType="slide"
       onRequestClose={onClose}
     >
-      <View style={styles.overlay}>
+      <KeyboardAvoidingView
+        style={styles.overlay}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={0}
+      >
         <TouchableOpacity style={styles.overlayTouchable} onPress={onClose} />
         <View
           style={[
@@ -81,67 +85,72 @@ export default function UpdateAddressModal({ visible, onClose }) {
             { paddingBottom: Math.max(insets.bottom, Sizes.xl) },
           ]}
         >
-          <View style={styles.header}>
-            <Text style={styles.title}>UPDATE ADDRESS</Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Ionicons name="close" size={24} color={Colors.grey} />
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.content}>
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Address</Text>
-              <View style={styles.inputContainer}>
-                <TextInput
-                  style={styles.input}
-                  value={address}
-                  onChangeText={setAddress}
-                  placeholder="Enter address"
-                  placeholderTextColor={Colors.grey}
-                />
-              </View>
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>City</Text>
-              <View style={styles.inputContainer}>
-                <TextInput
-                  style={styles.input}
-                  value={city}
-                  onChangeText={setCity}
-                  placeholder="Enter city"
-                  placeholderTextColor={Colors.grey}
-                />
-                {/* <Ionicons name="chevron-down" size={16} color={Colors.grey} /> */}
-              </View>
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>State/Province</Text>
-              <View style={styles.inputContainer}>
-                <TextInput
-                  style={styles.input}
-                  value={state}
-                  onChangeText={setState}
-                  placeholder="Enter state"
-                  placeholderTextColor={Colors.grey}
-                />
-                {/* <Ionicons name="chevron-down" size={16} color={Colors.grey} /> */}
-              </View>
-            </View>
-          </View>
-
-          <TouchableOpacity
-            style={[styles.saveButton, isLoading && styles.saveButtonDisabled]}
-            onPress={handleSave}
-            disabled={isLoading}
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
           >
-            <Text style={styles.saveButtonText}>
-              {isLoading ? "Saving..." : "Save"}
-            </Text>
-          </TouchableOpacity>
+            <View style={styles.header}>
+              <Text style={styles.title}>UPDATE ADDRESS</Text>
+              <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+                <Ionicons name="close" size={24} color={Colors.grey} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.content}>
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Address</Text>
+                <View style={styles.inputContainer}>
+                  <TextInput
+                    style={styles.input}
+                    value={address}
+                    onChangeText={setAddress}
+                    placeholder="Enter address"
+                    placeholderTextColor={Colors.grey}
+                  />
+                </View>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>City</Text>
+                <View style={styles.inputContainer}>
+                  <TextInput
+                    style={styles.input}
+                    value={city}
+                    onChangeText={setCity}
+                    placeholder="Enter city"
+                    placeholderTextColor={Colors.grey}
+                  />
+                  {/* <Ionicons name="chevron-down" size={16} color={Colors.grey} /> */}
+                </View>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>State/Province</Text>
+                <View style={styles.inputContainer}>
+                  <TextInput
+                    style={styles.input}
+                    value={state}
+                    onChangeText={setState}
+                    placeholder="Enter state"
+                    placeholderTextColor={Colors.grey}
+                  />
+                  {/* <Ionicons name="chevron-down" size={16} color={Colors.grey} /> */}
+                </View>
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.saveButton, isLoading && styles.saveButtonDisabled]}
+              onPress={handleSave}
+              disabled={isLoading}
+            >
+              <Text style={styles.saveButtonText}>
+                {isLoading ? "Saving..." : "Save"}
+              </Text>
+            </TouchableOpacity>
+          </ScrollView>
         </View>
-      </View>
+      </KeyboardAvoidingView>
       <LoadingOverlay visible={isLoading} />
     </Modal>
   );
@@ -162,7 +171,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 20,
     paddingTop: Sizes.lg,
     paddingHorizontal: Sizes.lg,
-    paddingBottom: Sizes.xl,
+    maxHeight: "90%",
   },
   header: {
     flexDirection: "row",

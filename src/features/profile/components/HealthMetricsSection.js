@@ -1,19 +1,42 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { Colors, Sizes } from "../../../shared/constants";
+import { useAuth } from "../../../shared/context/AuthContext";
 
 export default function HealthMetricsSection() {
+  const { user } = useAuth();
+
+  // Format weight, height, and blood type with N/A fallback
+  const formatWeight = (weight) => {
+    if (!weight) return "N/A";
+    return weight;
+  };
+
+  const formatHeight = (height) => {
+    if (!height) return "N/A";
+    return height;
+  };
+
+  const formatBloodType = (bloodType) => {
+    if (!bloodType) return "N/A";
+    return bloodType;
+  };
+
+  const userWeight = formatWeight(user?.weight);
+  const userHeight = formatHeight(user?.height);
+  const userBloodType = formatBloodType(user?.bloodType);
+
   const metrics = [
     {
-      value: "0+",
+      value: userBloodType,
       label: "Blood Type",
     },
     {
-      value: "165 lbs",
+      value: userWeight,
       label: "Weight",
     },
     {
-      value: "5'10\"",
+      value: userHeight,
       label: "Height",
     },
   ];

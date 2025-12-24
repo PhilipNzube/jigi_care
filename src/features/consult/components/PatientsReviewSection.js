@@ -4,55 +4,51 @@ import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
 
 export default function PatientsReviewSection({ doctor }) {
-  const reviews = [
-    {
-      id: 1,
-      name: "Victor Elumelu",
-      rating: 4.8,
-      timeAgo: "2 weeks ago",
-      review:
-        "Dr. Johnson is incredibly thorough and caring. She takes time to listen and explain everything clearly.",
-    },
-    {
-      id: 2,
-      name: "Elizabeth Adewunmi",
-      rating: 4.5,
-      timeAgo: "1 month ago",
-      review:
-        "Excellent doctor! Very professional and knowledgeable. Highly recommend.",
-    },
-    {
-      id: 3,
-      name: "Esther Okoye",
-      rating: 4.9,
-      timeAgo: "3 weeks ago",
-      review:
-        "I highly recommend Dr. Johnson. She is knowledgeable and her approach is very reassuring.",
-    },
-  ];
+  // Get reviews from doctor data (if available from API)
+  // For now, using empty array as reviews are not in the API response
+  const consultantData = doctor?.consultantData || {};
+  const reviews = consultantData.reviews || [];
+
+  // If no reviews, show empty state
+  if (!reviews || reviews.length === 0) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.title}>Patients Review</Text>
+        <View style={styles.emptyContainer}>
+          <Ionicons name="star-outline" size={64} color="#B0B0B0" />
+          <Text style={styles.emptyTitle}>No Reviews Yet</Text>
+          <Text style={styles.emptyText}>
+            This doctor hasn't received any reviews yet. Be the first to leave a review after your consultation.
+          </Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Patients Review</Text>
       {reviews.map((review, index) => (
-        <View key={review.id} style={styles.reviewCard}>
+        <View key={review.id || index} style={styles.reviewCard}>
           <View style={styles.reviewHeader}>
             <Image
               source={{
-                uri: `https://ui-avatars.com/api/?name=${review.name}&background=0098B3&color=fff&size=40`,
+                uri: `https://ui-avatars.com/api/?name=${encodeURIComponent(review.name || "Patient")}&background=0098B3&color=fff&size=40`,
               }}
               style={styles.reviewerImage}
             />
             <View style={styles.reviewerInfo}>
-              <Text style={styles.reviewerName}>{review.name}</Text>
+              <Text style={styles.reviewerName}>{review.name || "Anonymous"}</Text>
               <View style={styles.ratingContainer}>
                 <Ionicons name="star" size={14} color="#FFD700" />
-                <Text style={styles.ratingText}>{review.rating}</Text>
+                <Text style={styles.ratingText}>{review.rating || 0}</Text>
               </View>
             </View>
-            <Text style={styles.timeAgo}>{review.timeAgo}</Text>
+            {review.timeAgo && (
+              <Text style={styles.timeAgo}>{review.timeAgo}</Text>
+            )}
           </View>
-          <Text style={styles.reviewText}>{review.review}</Text>
+          <Text style={styles.reviewText}>{review.review || review.comment || ""}</Text>
           {index < reviews.length - 1 && <View style={styles.divider} />}
         </View>
       ))}
@@ -118,5 +114,25 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: "#E0E0E0",
     marginTop: Sizes.md,
+  },
+  emptyContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: Sizes.xl * 2,
+    paddingHorizontal: Sizes.lg,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontFamily: "Poppins-SemiBold",
+    color: Colors.black,
+    marginTop: Sizes.md,
+    marginBottom: Sizes.sm,
+  },
+  emptyText: {
+    fontSize: 14,
+    fontFamily: "Poppins-Regular",
+    color: "#666",
+    textAlign: "center",
+    lineHeight: 20,
   },
 });

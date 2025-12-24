@@ -2,23 +2,44 @@ import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
+import { useAuth } from "../../../shared/context/AuthContext";
 
 export default function EmergencyContactsSection() {
-  const contacts = [
-    {
-      id: 1,
-      name: "John Doe",
-      phone: "+234 1000 000 000",
-      relationship: "Spouse",
-    },
-  ];
+  const { user } = useAuth();
+  const emergencyContact = user?.emergencyContact;
+
+  // If no emergency contact, show empty state
+  if (!emergencyContact || !emergencyContact.name) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Emergency Contacts</Text>
+          <View style={styles.emptyContent}>
+            <Ionicons name="person-outline" size={48} color="#B0B0B0" />
+            <Text style={styles.emptyText}>No emergency contact set</Text>
+            <Text style={styles.emptySubtext}>
+              Add an emergency contact in your profile settings
+            </Text>
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  // Create contacts array from user data
+  const contacts = [{
+    id: 1,
+    name: emergencyContact.name,
+    phone: emergencyContact.phone || "Not provided",
+    relationship: emergencyContact.relationship || "Contact",
+  }];
 
   return (
     <View style={styles.container}>
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Emergency Contacts</Text>
         <View style={styles.content}>
-          {contacts.map((contact, index) => (
+          {contacts.map((contact) => (
             <View key={contact.id}>
               <View style={styles.contactItem}>
                 <View style={styles.contactInfo}>
@@ -115,5 +136,24 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: "Poppins-Medium",
     color: "#E91E63",
+  },
+  emptyContent: {
+    padding: Sizes.xl,
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 120,
+  },
+  emptyText: {
+    fontSize: 16,
+    fontFamily: "Poppins-Medium",
+    color: Colors.black,
+    marginTop: Sizes.md,
+    marginBottom: Sizes.xs,
+  },
+  emptySubtext: {
+    fontSize: 12,
+    fontFamily: "Poppins-Regular",
+    color: "#666666",
+    textAlign: "center",
   },
 });

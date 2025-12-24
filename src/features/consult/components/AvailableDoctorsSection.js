@@ -1,7 +1,8 @@
 import React from "react";
-import { View, Text, StyleSheet, ActivityIndicator } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
 import { Colors, Sizes } from "../../../shared/constants";
 import DoctorCard from "./DoctorCard";
+import DoctorCardSkeleton from "./DoctorCardSkeleton";
 
 export default function AvailableDoctorsSection({ 
   doctors = [], 
@@ -13,30 +14,30 @@ export default function AvailableDoctorsSection({
     <View style={styles.container}>
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Available Doctors</Text>
-        {isLoading && (
-          <ActivityIndicator size="small" color={Colors.primary} style={styles.loader} />
-        )}
       </View>
 
       <View style={styles.doctorsList}>
         {isLoading && doctors.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyStateText}>Searching for doctors...</Text>
-          </View>
+          // Show skeleton loaders while searching
+          <>
+            <DoctorCardSkeleton />
+            <DoctorCardSkeleton />
+            <DoctorCardSkeleton />
+          </>
         ) : doctors.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyStateText}>
-              {isLoading ? "Searching..." : "No doctors found. Try a different search."}
+              No doctors found. Try a different search.
             </Text>
           </View>
         ) : (
           doctors.map((doctor) => (
-            <DoctorCard
-              key={doctor.id}
-              doctor={doctor}
-              onPress={() => onDoctorPress(doctor)}
-              navigation={navigation}
-            />
+          <DoctorCard
+            key={doctor.id}
+            doctor={doctor}
+            onPress={() => onDoctorPress(doctor)}
+            navigation={navigation}
+          />
           ))
         )}
       </View>
@@ -60,9 +61,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontFamily: "Poppins-Medium",
     color: Colors.black,
-  },
-  loader: {
-    marginLeft: Sizes.sm,
   },
   emptyState: {
     paddingVertical: Sizes.xl,

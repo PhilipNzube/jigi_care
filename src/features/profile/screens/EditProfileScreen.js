@@ -35,12 +35,14 @@ export default function EditProfileScreen({ navigation }) {
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
   const [showDatePickerModal, setShowDatePickerModal] = useState(false);
   const [showGenderModal, setShowGenderModal] = useState(false);
+  const [selectedField, setSelectedField] = useState(null);
 
   const handleFieldPress = (field) => {
     switch (field) {
       case "weight":
       case "height":
       case "bloodType":
+        setSelectedField(field);
         setShowUpdateDataModal(true);
         break;
       case "fullName":
@@ -88,7 +90,11 @@ export default function EditProfileScreen({ navigation }) {
 
       <UpdateDataModal
         visible={showUpdateDataModal}
-        onClose={() => setShowUpdateDataModal(false)}
+        onClose={() => {
+          setShowUpdateDataModal(false);
+          setSelectedField(null);
+        }}
+        field={selectedField}
       />
 
       <UpdateNameModal

@@ -4,13 +4,17 @@ import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
 
 export default function DoctorCard({ doctor, onPress, navigation }) {
+  const isAvailable = doctor.isAvailable !== false;
+
   return (
     <View style={styles.card}>
       {/* Availability Status */}
-      <View style={styles.availabilityContainer}>
-        <View style={styles.availabilityDot} />
-        <Text style={styles.availabilityText}>Available Now</Text>
-      </View>
+      {isAvailable && (
+        <View style={styles.availabilityContainer}>
+          <View style={styles.availabilityDot} />
+          <Text style={styles.availabilityText}>Available Now</Text>
+        </View>
+      )}
 
       {/* Doctor Info */}
       <View style={styles.doctorInfo}>

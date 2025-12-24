@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -20,6 +20,7 @@ export default function HeroSection({ insets, navigation }) {
   const { user } = useAuth();
   const [currentSlide, setCurrentSlide] = useState(0);
   const scrollViewRef = useRef(null);
+  const autoScrollIntervalRef = useRef(null);
 
   // Extract first name from fullName for greeting
   const getFirstName = () => {
@@ -66,6 +67,31 @@ export default function HeroSection({ insets, navigation }) {
       x: index * width,
       animated: true,
     });
+  };
+
+  // Auto-scroll carousel
+  useEffect(() => {
+    autoScrollIntervalRef.current = setInterval(() => {
+      const nextSlide = (currentSlide + 1) % heroSlides.length;
+      scrollToSlide(nextSlide);
+      setCurrentSlide(nextSlide);
+    }, 4000); // Change slide every 4 seconds
+
+    return () => {
+      if (autoScrollIntervalRef.current) {
+        clearInterval(autoScrollIntervalRef.current);
+      }
+    };
+  }, [currentSlide]);
+
+  const handleButtonPress = (buttonText) => {
+    if (buttonText === "Book Appointment" || buttonText === "Consult Now") {
+      // Navigate to Consult tab in bottom nav
+      navigation.navigate("BottomTabs", { screen: "consult" });
+    } else if (buttonText === "Get Started") {
+      // Navigate to Health Monitoring page
+      navigation.navigate("HealthMonitoring");
+    }
   };
 
   return (
@@ -130,7 +156,10 @@ export default function HeroSection({ insets, navigation }) {
               <View style={styles.slideContent}>
                 <Text style={styles.slideTitle}>{slide.title}</Text>
                 <Text style={styles.slideSubtitle}>{slide.subtitle}</Text>
-                <TouchableOpacity style={styles.bookButton}>
+                <TouchableOpacity 
+                  style={styles.bookButton}
+                  onPress={() => handleButtonPress(slide.buttonText)}
+                >
                   <Text style={styles.bookButtonText}>{slide.buttonText}</Text>
                 </TouchableOpacity>
               </View>

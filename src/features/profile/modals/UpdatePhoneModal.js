@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,10 +8,11 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Dimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import PhoneInput from "react-native-phone-number-input";
+import PhoneInput from "@sesamsolutions/phone-input";
 import { Colors, Sizes } from "../../../shared/constants";
 import { useAuth } from "../../../shared/context/AuthContext";
 import { updateProfile } from "../../auth/services/authService";
@@ -22,33 +23,35 @@ export default function UpdatePhoneModal({ visible, onClose }) {
   const insets = useSafeAreaInsets();
   const { user, updateUser } = useAuth();
   const [phoneNumber, setPhoneNumber] = useState("");
-  const [formattedPhoneNumber, setFormattedPhoneNumber] = useState("");
-  const phoneInputRef = useRef(null);
+  const [phoneData, setPhoneData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
   // Update phone when modal opens or user data changes
   useEffect(() => {
     if (visible && user) {
-      const userPhone = user?.phone || user?.phoneNumber || user?.mobile || user?.mobileNumber || user?.contactNumber || "";
+      const userPhone =
+        user?.phone ||
+        user?.phoneNumber ||
+        user?.mobile ||
+        user?.mobileNumber ||
+        user?.contactNumber ||
+        "";
       if (userPhone) {
         setPhoneNumber(userPhone);
-        setFormattedPhoneNumber(userPhone);
       } else {
         setPhoneNumber("");
-        setFormattedPhoneNumber("");
       }
     }
   }, [visible, user]);
 
-  const handleSave = async () => {
-    if (!formattedPhoneNumber.trim()) {
-      showError("Phone number cannot be empty");
-      return;
-    }
+  const handlePhoneChange = (data) => {
+    setPhoneData(data);
+    // data contains: { phoneNumber, e164, isValid, countryCode, country }
+    setPhoneNumber(data?.phoneNumber || "");
+  };
 
-    // Validate phone number
-    const isValid = phoneInputRef.current?.isValidNumber(formattedPhoneNumber);
-    if (!isValid) {
+  const handleSave = async () => {
+    if (!phoneNumber.trim() || !phoneData?.isValid) {
       showError("Please enter a valid phone number");
       return;
     }
@@ -56,7 +59,9 @@ export default function UpdatePhoneModal({ visible, onClose }) {
     setIsLoading(true);
 
     try {
-      const updatedUser = await updateProfile({ phone: formattedPhoneNumber });
+      // Use E.164 format if available, otherwise use phoneNumber
+      const fullPhoneNumber = phoneData?.e164 || phoneNumber;
+      const updatedUser = await updateProfile({ phone: fullPhoneNumber });
       await updateUser(updatedUser);
       showSuccess("Phone number updated successfully!");
       onClose();
@@ -100,32 +105,34 @@ export default function UpdatePhoneModal({ visible, onClose }) {
 
             <View style={styles.content}>
               <Text style={styles.label}>Phone</Text>
-              <View style={styles.phoneInputContainer}>
+              <View style={styles.phoneInputWrapper}>
                 <PhoneInput
-                  ref={phoneInputRef}
-                  defaultValue={phoneNumber}
-                  defaultCode="NG"
-                  layout="first"
-                  onChangeText={(text) => {
-                    setPhoneNumber(text);
+                  initialCountry="ng"
+                  value={phoneNumber}
+                  onChange={handlePhoneChange}
+                  style={styles.phoneInput}
+                  textInputProps={{
+                    placeholder: "Enter phone number",
+                    placeholderTextColor: Colors.grey,
+                    style: styles.phoneInputText,
                   }}
-                  onChangeFormattedText={(text) => {
-                    setFormattedPhoneNumber(text);
+                  countryPickerProps={{
+                    modalProps: {
+                      presentationStyle:
+                        Platform.OS === "ios" ? "fullScreen" : undefined,
+                      animationType: "slide",
+                    },
+                    modalStyle: styles.pickerModalStyle,
                   }}
-                  containerStyle={styles.phoneInputContainerStyle}
-                  textContainerStyle={styles.phoneInputTextContainer}
-                  textInputStyle={styles.phoneInputText}
-                  codeTextStyle={styles.phoneInputCodeText}
-                  flagButtonStyle={styles.phoneInputFlagButton}
-                  withDarkTheme={false}
-                  withShadow={false}
-                  autoFocus={false}
                 />
               </View>
             </View>
 
             <TouchableOpacity
-              style={[styles.saveButton, isLoading && styles.saveButtonDisabled]}
+              style={[
+                styles.saveButton,
+                isLoading && styles.saveButtonDisabled,
+              ]}
               onPress={handleSave}
               disabled={isLoading}
             >
@@ -181,33 +188,29 @@ const styles = StyleSheet.create({
     color: "#999999",
     marginBottom: Sizes.sm,
   },
-  phoneInputContainer: {
+  phoneInputWrapper: {
     marginBottom: Sizes.sm,
-  },
-  phoneInputContainerStyle: {
-    width: "100%",
-    backgroundColor: "transparent",
     borderBottomWidth: 1,
     borderBottomColor: "#E0E0E0",
     paddingBottom: Sizes.sm,
+    paddingTop: Sizes.xs,
   },
-  phoneInputTextContainer: {
-    backgroundColor: "transparent",
-    paddingVertical: 0,
+  phoneInput: {
+    minHeight: 40,
   },
   phoneInputText: {
     fontSize: 16,
     fontFamily: "Poppins-Regular",
     color: Colors.black,
-    height: 24,
+    paddingVertical: 0,
   },
-  phoneInputCodeText: {
-    fontSize: 16,
-    fontFamily: "Poppins-Regular",
-    color: Colors.black,
-  },
-  phoneInputFlagButton: {
-    marginRight: Sizes.sm,
+  pickerModalStyle: {
+    backgroundColor: Colors.white,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingTop: Sizes.lg,
+    height: Dimensions.get("window").height,
+    maxHeight: Dimensions.get("window").height,
   },
   saveButton: {
     backgroundColor: "#0098B3",
@@ -222,12 +225,5 @@ const styles = StyleSheet.create({
   },
   saveButtonDisabled: {
     opacity: 0.6,
-  },
-  errorText: {
-    color: "#FF0000",
-    fontSize: 14,
-    fontFamily: "Poppins-Regular",
-    marginBottom: Sizes.sm,
-    textAlign: "center",
   },
 });

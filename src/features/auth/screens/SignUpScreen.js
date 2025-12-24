@@ -227,6 +227,12 @@ export default function SignUpScreen({ navigation }) {
 
       console.log("🔵 [GOOGLE SIGN UP] Initiating Google authentication...");
 
+      // On Android, add a small delay to ensure Activity context is ready
+      // This is especially important after navigation/redirects
+      if (Platform.OS === "android") {
+        await new Promise((resolve) => setTimeout(resolve, 200));
+      }
+
       // Sign in with Google
       const googleUser = await googleSignIn(GOOGLE_WEB_CLIENT_ID);
 

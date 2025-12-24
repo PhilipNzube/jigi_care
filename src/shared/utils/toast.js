@@ -50,9 +50,25 @@ export const showInfo = (message, title = "Info") => {
   });
 };
 
+/**
+ * Show warning toast
+ * @param {string} message - Warning message to display
+ * @param {string} title - Optional title (defaults to "Warning")
+ */
+export const showWarning = (message, title = "Warning") => {
+  Toast.show({
+    type: "info",
+    text1: title,
+    text2: message,
+    position: "bottom",
+    visibilityTime: 2000,
+  });
+};
+
 export default {
   showSuccess,
   showError,
   showInfo,
+  showWarning,
 };
 

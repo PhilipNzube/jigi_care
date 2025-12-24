@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -8,37 +8,103 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
+import { getUpcomingAppointments } from "../../consult/services/bookingService";
+import { format, parseISO } from "date-fns";
+import DoctorCardSkeleton from "../../consult/components/DoctorCardSkeleton";
 
-export default function UpcomingAppointmentsList({ navigation }) {
-  const upcomingAppointments = [
-    {
-      id: 1,
-      date: "Sep 23rd, 2025",
-      time: "12:00 PM",
-      doctor: {
-        name: "Dr. Sarah Olukoya",
-        specialty: "Neurologist",
-        rating: 4.8,
-      },
-    },
-    {
-      id: 2,
-      date: "Sep 25th, 2025",
-      time: "12:00 PM",
-      doctor: {
-        name: "Dr. Hadiza Musa",
-        specialty: "Pediatrician",
-        rating: 4.8,
-      },
-      hasChatButton: true,
-    },
-  ];
+export default function UpcomingAppointmentsList({ navigation, refreshKey }) {
+  const [appointments, setAppointments] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Refresh when refreshKey changes (from parent pull-to-refresh)
+  useEffect(() => {
+    if (refreshKey > 0) {
+      fetchAppointments(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshKey]);
+
+  const fetchAppointments = React.useCallback(async (silent = false) => {
+    try {
+      // Only show loading if this is not a silent refresh
+      if (!silent) {
+        setIsLoading(true);
+      }
+      
+      const result = await getUpcomingAppointments();
+      
+      // Map API response to appointment format
+      const mappedAppointments = (result.data || []).map((appointment) => {
+        const appointmentDate = parseISO(appointment.date);
+        return {
+          id: appointment.id,
+          date: format(appointmentDate, "MMM d, yyyy"),
+          time: format(appointmentDate, "h:mm a"),
+          doctor: {
+            name: appointment.consultant?.fullName || "Dr. Unknown",
+            specialty: appointment.consultant?.speciality || "General Practitioner",
+            rating: 4.5, // Default rating since not in API
+          },
+          appointmentData: appointment,
+        };
+      });
+
+      setAppointments(mappedAppointments);
+    } catch (error) {
+      console.error("Error fetching appointments:", error);
+      // Only clear appointments if this is not a silent refresh
+      if (!silent) {
+        setAppointments([]);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }, []); // Empty deps - we check appointments.length inside
+
+  useEffect(() => {
+    fetchAppointments();
+  }, [fetchAppointments]);
+
+  // Refresh when screen comes into focus
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      // Silently refresh appointments (don't show loading if data exists)
+      // Check if we have data before calling
+      const hasData = appointments.length > 0;
+      fetchAppointments(hasData);
+    });
+
+    return unsubscribe;
+  }, [navigation, fetchAppointments]);
+
+  if (isLoading) {
+    return (
+      <View style={styles.appointmentsSection}>
+        <Text style={styles.sectionTitle}>Upcoming Appointments</Text>
+        <View style={styles.appointmentsContainer}>
+          <DoctorCardSkeleton />
+          <DoctorCardSkeleton />
+        </View>
+      </View>
+    );
+  }
+
+  if (appointments.length === 0) {
+    return (
+      <View style={styles.appointmentsSection}>
+        <Text style={styles.sectionTitle}>Upcoming Appointments</Text>
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>No upcoming appointments</Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.appointmentsSection}>
       <Text style={styles.sectionTitle}>Upcoming Appointments</Text>
       <View style={styles.appointmentsContainer}>
-        {upcomingAppointments.map((appointment) => (
+        {appointments.map((appointment) => (
           <TouchableOpacity
             key={appointment.id}
             style={styles.appointmentCard}
@@ -163,5 +229,14 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins-Medium",
     color: Colors.white,
     marginLeft: Sizes.xs,
+  },
+  emptyContainer: {
+    paddingVertical: Sizes.xl,
+    alignItems: "center",
+  },
+  emptyText: {
+    fontSize: 14,
+    fontFamily: "Poppins-Regular",
+    color: Colors.textSecondary,
   },
 });

@@ -3,8 +3,10 @@ import { View, Text, StyleSheet } from "react-native";
 import { Colors, Sizes } from "../../../shared/constants";
 
 export default function PaymentSummarySection({ doctor }) {
-  const consultationFee = 4000;
-  const serviceFee = 500;
+  // Get consultation fee from doctor data
+  const consultantData = doctor?.consultantData || {};
+  const consultationFee = consultantData.pricePerSession || 4000; // Fallback to 4000 if not available
+  const serviceFee = 500; // Keep dummy service fee as requested
   const total = consultationFee + serviceFee;
 
   return (

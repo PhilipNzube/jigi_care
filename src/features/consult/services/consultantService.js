@@ -6,6 +6,38 @@
 import { get } from "../../../shared/services/api";
 
 /**
+ * Get list of all consultants
+ * @returns {Promise<object>} - Response with consultant list data
+ */
+export const getConsultantsList = async () => {
+  console.log("📋 [CONSULTANT LIST] Fetching consultants list...");
+
+  try {
+    const endpoint = `/consultant/list`;
+    console.log("📋 [CONSULTANT LIST] Making GET request to:", endpoint);
+
+    const response = await get(endpoint);
+
+    console.log("✅ [CONSULTANT LIST] Fetch successful!");
+    console.log("✅ [CONSULTANT LIST] Full response data:", JSON.stringify(response, null, 2));
+
+    // Handle response format - response.data contains the array
+    const consultants = response.data || response.consultants || response || [];
+    console.log("✅ [CONSULTANT LIST] Consultants found:", consultants.length);
+
+    return {
+      success: true,
+      data: consultants,
+      response, // Include full response for logging
+    };
+  } catch (error) {
+    console.error("❌ [CONSULTANT LIST] Fetch error:", error);
+    console.error("❌ [CONSULTANT LIST] Error details:", JSON.stringify(error, null, 2));
+    throw error;
+  }
+};
+
+/**
  * Search for consultants
  * @param {string} query - Search query (e.g., "dentist", "cardiologist")
  * @returns {Promise<object>} - Response with consultant data
@@ -48,6 +80,7 @@ export const searchConsultants = async (query) => {
 };
 
 export default {
+  getConsultantsList,
   searchConsultants,
 };
 

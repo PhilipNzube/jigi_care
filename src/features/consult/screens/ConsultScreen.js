@@ -1,8 +1,16 @@
-import React, { useState, useEffect, useRef } from "react";
-import { View, StyleSheet, ScrollView } from "react-native";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import {
+  View,
+  StyleSheet,
+  ScrollView,
+  BackHandler,
+  Platform,
+  RefreshControl,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useFocusEffect } from "@react-navigation/native";
 import { Colors, Sizes } from "../../../shared/constants";
-import { searchConsultants } from "../services/consultantService";
+import { getConsultantsList } from "../services/consultantService";
 
 // Import components
 import ConsultationsHeader from "../components/ConsultationsHeader";
@@ -11,77 +19,119 @@ import SpecialtySection from "../components/SpecialtySection";
 import AvailableDoctorsSection from "../components/AvailableDoctorsSection";
 import EmergencySection from "../components/EmergencySection";
 
-export default function ConsultScreen({ navigation }) {
-  const [searchQuery, setSearchQuery] = useState("");
+export default function ConsultScreen({ navigation, route }) {
   const [doctors, setDoctors] = useState([]);
-  const [isSearching, setIsSearching] = useState(false);
+  const [isLoadingList, setIsLoadingList] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const insets = useSafeAreaInsets();
-  const searchTimeoutRef = useRef(null);
 
-  // Debounced search function
-  useEffect(() => {
-    // Clear previous timeout
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current);
-    }
+  // Refresh when screen comes into focus (tab change)
+  React.useEffect(() => {
+    const unsubscribe = navigation.addListener("focus", () => {
+      // Silently refresh data (don't show loading if data exists)
+      fetchConsultantsList(true);
+    });
 
-    // If search query is empty, clear results
-    if (!searchQuery || searchQuery.trim() === "") {
-      setDoctors([]);
-      setIsSearching(false);
-      return;
-    }
+    return unsubscribe;
+  }, [navigation, fetchConsultantsList]);
 
-    // Set loading state
-    setIsSearching(true);
+  // Handle back button - navigate to home
+  useFocusEffect(
+    React.useCallback(() => {
+      const onBackPress = () => {
+        if (Platform.OS === "android") {
+          // Navigate to home tab using the tab navigation
+          if (navigation.navigate) {
+            navigation.navigate("BottomTabs", { screen: "home" });
+          }
+          return true; // Prevent default back behavior
+        }
+        return false;
+      };
 
-    // Debounce search - wait 500ms after user stops typing
-    searchTimeoutRef.current = setTimeout(async () => {
+      const subscription = BackHandler.addEventListener(
+        "hardwareBackPress",
+        onBackPress
+      );
+
+      return () => subscription.remove();
+    }, [navigation])
+  );
+
+  /**
+   * Map consultant data from API to doctor card format
+   */
+  const mapConsultantToDoctor = (consultant) => {
+    return {
+      id: consultant.id || consultant._id,
+      name: consultant.fullName || consultant.name || "Dr. Unknown",
+      specialty:
+        consultant.speciality || consultant.specialty || "General Practitioner",
+      rating: consultant.rating || 4.5, // Dummy rating since not in API
+      experience: consultant.yrsOfExperience
+        ? `${consultant.yrsOfExperience}+ years experience`
+        : "Experienced",
+      languages: consultant.languages
+        ? Array.isArray(consultant.languages)
+          ? consultant.languages.join(", ")
+          : consultant.languages
+        : "English",
+      price: consultant.pricePerSession
+        ? `₦${consultant.pricePerSession.toLocaleString()}`
+        : "Contact for pricing",
+      isAvailable: consultant.availability === true,
+      image: consultant.dp || consultant.profileImage || null,
+      // Include full consultant data for navigation
+      consultantData: consultant,
+    };
+  };
+
+  /**
+   * Fetch consultants list
+   */
+  const fetchConsultantsList = useCallback(
+    async (silent = false) => {
       try {
-        console.log("🔍 [CONSULT SCREEN] Searching for:", searchQuery);
-        const result = await searchConsultants(searchQuery);
-        
-        // Map API response to doctor card format
-        const mappedDoctors = (result.data || []).map((consultant) => ({
-          id: consultant.id || consultant._id,
-          name: consultant.fullName || consultant.name || "Dr. Unknown",
-          specialty: consultant.speciality || consultant.specialty || "General",
-          rating: consultant.rating || 4.5,
-          experience: consultant.yrsOfExperience 
-            ? `${consultant.yrsOfExperience}+ years experience`
-            : "Experienced",
-          languages: consultant.languages 
-            ? (Array.isArray(consultant.languages) 
-                ? consultant.languages.join(", ") 
-                : consultant.languages)
-            : "English",
-          price: consultant.price || "Contact for pricing",
-          isAvailable: consultant.availability !== false,
-          image: consultant.dp || consultant.profileImage || null,
-          // Include full consultant data for navigation
-          consultantData: consultant,
-        }));
+        // Only show loading if no data exists (first load)
+        if (!silent && doctors.length === 0) {
+          setIsLoadingList(true);
+        }
+        console.log("📋 [CONSULT SCREEN] Fetching consultants list...");
+        const result = await getConsultantsList();
 
-        console.log("✅ [CONSULT SCREEN] Mapped doctors:", JSON.stringify(mappedDoctors, null, 2));
+        // Map API response to doctor card format
+        const mappedDoctors = (result.data || []).map(mapConsultantToDoctor);
+
+        console.log(
+          "✅ [CONSULT SCREEN] Consultants list loaded:",
+          mappedDoctors.length
+        );
         setDoctors(mappedDoctors);
       } catch (error) {
-        console.error("❌ [CONSULT SCREEN] Search error:", error);
-        setDoctors([]);
+        console.error(
+          "❌ [CONSULT SCREEN] Error fetching consultants list:",
+          error
+        );
+        // Only clear doctors if this is not a silent refresh
+        if (!silent) {
+          setDoctors([]);
+        }
       } finally {
-        setIsSearching(false);
+        setIsLoadingList(false);
       }
-    }, 500); // 500ms debounce
+    },
+    [doctors.length]
+  ); // Include doctors.length to check if data exists
 
-    // Cleanup timeout on unmount or query change
-    return () => {
-      if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current);
-      }
-    };
-  }, [searchQuery]);
+  /**
+   * Fetch consultants list on mount
+   */
+  useEffect(() => {
+    fetchConsultantsList();
+  }, []); // Only run on mount
 
-  const handleSearch = (query) => {
-    setSearchQuery(query);
+  const handleSearchPress = () => {
+    navigation.navigate("SearchConsultation");
   };
 
   const handleDoctorPress = (doctor) => {
@@ -91,8 +141,18 @@ export default function ConsultScreen({ navigation }) {
 
   const handleSpecialtyPress = (specialty) => {
     console.log("Specialty pressed:", specialty.name);
-    // Filter doctors by specialty
+    // Navigate to search screen with specialty pre-filled
+    navigation.navigate("SearchConsultation", { initialQuery: specialty.name });
   };
+
+  const onRefresh = React.useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await fetchConsultantsList(true);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [fetchConsultantsList]);
 
   return (
     <View style={styles.container}>
@@ -100,20 +160,27 @@ export default function ConsultScreen({ navigation }) {
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
       >
         {/* Header */}
         <View style={[styles.headerContainer, { paddingTop: insets.top }]}>
           <ConsultationsHeader />
-          <SearchBar value={searchQuery} onChangeText={handleSearch} />
+          <SearchBar onPress={handleSearchPress} />
         </View>
 
         {/* Choose Specialty Section */}
-        <SpecialtySection onSpecialtyPress={handleSpecialtyPress} />
+        <SpecialtySection
+          onSpecialtyPress={handleSpecialtyPress}
+          doctors={doctors}
+          isLoading={isLoadingList}
+        />
 
         {/* Available Doctors Section */}
         <AvailableDoctorsSection
           doctors={doctors}
-          isLoading={isSearching}
+          isLoading={isLoadingList}
           onDoctorPress={handleDoctorPress}
           navigation={navigation}
         />

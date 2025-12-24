@@ -9,6 +9,7 @@ import { Images } from "../utils/imageUtils";
 // Import screens
 import HomeScreen from "../../features/home/screens/HomeScreen";
 import ConsultScreen from "../../features/consult/screens/ConsultScreen";
+import SearchConsultationScreen from "../../features/consult/screens/SearchConsultationScreen";
 import MedicationScreen from "../../features/medications/screens/MedicationScreen";
 import ProfileScreen from "../../features/profile/screens/ProfileScreen";
 import DoctorProfileScreen from "../../features/consult/screens/DoctorProfileScreen";
@@ -38,6 +39,7 @@ const Stack = createStackNavigator();
 function BottomTabNavigator({ navigation, route }) {
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState("home");
+  const [refreshKey, setRefreshKey] = useState(0);
 
   // Handle tab switching from navigation params
   React.useEffect(() => {
@@ -45,6 +47,15 @@ function BottomTabNavigator({ navigation, route }) {
       setActiveTab(route.params.screen);
     }
   }, [route?.params?.screen]);
+
+  // Handle tab change - refresh the screen
+  const handleTabChange = (tabId) => {
+    if (activeTab !== tabId) {
+      setActiveTab(tabId);
+      // Trigger refresh by updating key
+      setRefreshKey(prev => prev + 1);
+    }
+  };
 
   const tabs = [
     {
@@ -83,7 +94,7 @@ function BottomTabNavigator({ navigation, route }) {
         <TouchableOpacity
           key={tab.id}
           style={styles.navItem}
-          onPress={() => setActiveTab(tab.id)}
+          onPress={() => handleTabChange(tab.id)}
         >
           <Image
             source={activeTab === tab.id ? tab.activeIcon : tab.icon}
@@ -110,10 +121,24 @@ function BottomTabNavigator({ navigation, route }) {
   const ActiveComponent =
     tabs.find((tab) => tab.id === activeTab)?.component || HomeScreen;
 
+  // Create navigation prop with tab switching capability
+  const tabNavigation = {
+    ...navigation,
+    navigate: (name, params) => {
+      if (name === "BottomTabs" && params?.screen) {
+        // Handle tab switching
+        handleTabChange(params.screen);
+      } else {
+        // Regular navigation
+        navigation.navigate(name, params);
+      }
+    },
+  };
+
   return (
     <View style={styles.container}>
-      <View style={styles.content}>
-        <ActiveComponent navigation={navigation} />
+      <View style={styles.content} key={refreshKey}>
+        <ActiveComponent navigation={tabNavigation} route={route} />
       </View>
       {renderBottomNavigation()}
     </View>
@@ -124,6 +149,7 @@ export default function MainAppNavigator() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="BottomTabs" component={BottomTabNavigator} />
+      <Stack.Screen name="SearchConsultation" component={SearchConsultationScreen} />
       <Stack.Screen name="DoctorProfile" component={DoctorProfileScreen} />
       <Stack.Screen
         name="BookConsultation"

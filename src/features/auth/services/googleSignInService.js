@@ -42,6 +42,12 @@ export const signInWithGoogle = async (webClientId) => {
     console.log("🔵 [GOOGLE SERVICE] Starting Google authentication...");
     console.log("🔵 [GOOGLE SERVICE] Platform:", Platform.OS);
 
+    // On Android, ensure Activity context is ready before proceeding
+    if (Platform.OS === "android") {
+      // Small delay to ensure Activity context is available after navigation
+      await new Promise((resolve) => setTimeout(resolve, 300));
+    }
+
     // Configure if webClientId is provided
     if (webClientId) {
       await configureGoogleSignIn(webClientId);
@@ -52,7 +58,66 @@ export const signInWithGoogle = async (webClientId) => {
 
     console.log("🔵 [GOOGLE SERVICE] Google Play Services available");
 
-    // Sign in
+    // Force sign out and revoke access before showing sign-in dialog to allow account switching
+    // This prevents Google from auto-selecting the previously used account
+    // Always sign out and revoke access regardless of current state to ensure account picker shows
+    try {
+      console.log(
+        "🔵 [GOOGLE SERVICE] Forcing sign out and revoking access to clear cached account..."
+      );
+
+      // Check if there's a current user and get their info first
+      try {
+        const currentUser = await GoogleSignin.getCurrentUser();
+        if (currentUser) {
+          console.log("🔵 [GOOGLE SERVICE] Found cached user, clearing...");
+        }
+      } catch (e) {
+        // No current user, that's fine
+      }
+
+      // Revoke access first (this is more aggressive and clears deeper cache)
+      // This disconnects the app from the Google account completely
+      try {
+        await GoogleSignin.revokeAccess();
+        console.log(
+          "✅ [GOOGLE SERVICE] Access revoked successfully, cached account cleared"
+        );
+      } catch (revokeError) {
+        console.log(
+          "ℹ️ [GOOGLE SERVICE] Revoke access attempted (may not have had access to revoke):",
+          revokeError.message
+        );
+      }
+
+      // Sign out second (clears the session)
+      try {
+        await GoogleSignin.signOut();
+        console.log("✅ [GOOGLE SERVICE] Signed out successfully");
+      } catch (signOutError) {
+        console.log(
+          "ℹ️ [GOOGLE SERVICE] Sign out attempted (may not have been signed in):",
+          signOutError.message
+        );
+      }
+
+      // Longer delay to ensure the sign out/revoke operations complete and Android clears the cache
+      // Android sometimes needs a moment to clear system-level account cache
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      console.log(
+        "✅ [GOOGLE SERVICE] Account cache cleared, user can now select account"
+      );
+    } catch (error) {
+      // If both fail, continue anyway - might not be signed in
+      console.log(
+        "ℹ️ [GOOGLE SERVICE] Account clearing attempted:",
+        error.message
+      );
+    }
+
+    // Sign in - this will now show account selection dialog since we cleared the cache
+    // On Android, this should show the account picker after revokeAccess
     const userInfo = await GoogleSignin.signIn();
 
     console.log("✅ [GOOGLE SERVICE] Google Sign-In successful!");

@@ -16,6 +16,8 @@ import {
   getUserProfile,
   logout,
 } from "../../features/auth/services/authService";
+import { showError } from "../utils/toast";
+import { resetToLogin } from "../navigation/navigationRef";
 
 const AuthContext = createContext(null);
 
@@ -41,7 +43,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   /**
-   * Load authentication data from storage and fetch fresh profile
+   * Load authentication data from storage and fetch fresh profile in background
    */
   const loadStoredAuth = async () => {
     try {
@@ -53,57 +55,112 @@ export const AuthProvider = ({ children }) => {
         setToken(storedToken);
         setIsAuthenticated(true);
 
-        // If we have a token, try to fetch fresh user profile
-        try {
-          console.log("🔄 [AUTH CONTEXT] Fetching fresh user profile...");
-          const profileData = await getUserProfile();
-
-          if (profileData) {
-            setUser(profileData);
-            await storeUserData(profileData);
-            console.log("✅ [AUTH CONTEXT] Fresh profile loaded successfully!");
-          } else {
-            // Fallback to stored user data if profile fetch fails
-            if (storedUser) {
-              setUser(storedUser);
-              console.log(
-                "⚠️ [AUTH CONTEXT] Using stored user data as fallback"
-              );
-            }
-          }
-        } catch (profileError) {
-          console.error(
-            "❌ [AUTH CONTEXT] Error fetching profile:",
-            profileError
+        // Use stored user data immediately for faster navigation
+        if (storedUser) {
+          setUser(storedUser);
+          console.log(
+            "✅ [AUTH CONTEXT] Using stored user data for immediate navigation"
           );
-          // If profile fetch fails but we have stored user, use that
-          if (storedUser) {
-            setUser(storedUser);
-            console.log(
-              "⚠️ [AUTH CONTEXT] Using stored user data due to profile fetch error"
-            );
-          } else {
-            // If no stored user and profile fetch fails, sign out
-            console.log(
-              "⚠️ [AUTH CONTEXT] No stored user and profile fetch failed, signing out"
-            );
-            setIsAuthenticated(false);
-            setUser(null);
-            setToken(null);
-            await clearStorage();
-          }
         }
+
+        // Set loading to false immediately to allow navigation
+        setIsLoading(false);
+
+        // Fetch fresh profile in background (non-blocking)
+        loadProfileInBackground(storedToken, storedUser);
       } else {
         setIsAuthenticated(false);
         setUser(null);
+        setIsLoading(false);
       }
     } catch (error) {
       console.error("❌ [AUTH CONTEXT] Error loading stored auth:", error);
       setIsAuthenticated(false);
       setUser(null);
       setToken(null);
-    } finally {
       setIsLoading(false);
+    }
+  };
+
+  /**
+   * Load user profile in background after navigation
+   */
+  const loadProfileInBackground = async (token, fallbackUser) => {
+    try {
+      console.log(
+        "🔄 [AUTH CONTEXT] Fetching fresh user profile in background..."
+      );
+      const profileData = await getUserProfile();
+
+      if (profileData) {
+        setUser(profileData);
+        await storeUserData(profileData);
+        console.log(
+          "✅ [AUTH CONTEXT] Fresh profile loaded successfully in background!"
+        );
+      } else {
+        // Fallback to stored user data if profile fetch fails
+        if (fallbackUser) {
+          setUser(fallbackUser);
+          console.log("⚠️ [AUTH CONTEXT] Using stored user data as fallback");
+        }
+      }
+    } catch (profileError) {
+      console.error(
+        "❌ [AUTH CONTEXT] Error fetching profile in background:",
+        profileError
+      );
+
+      // Check if this is a session expiration error
+      const isSessionExpired =
+        profileError.statusCode === 400 &&
+        profileError.data?.message === "Cannot GET /signin" &&
+        profileError.data?.error === "Unauthorized";
+
+      if (isSessionExpired) {
+        console.log(
+          "🔒 [AUTH CONTEXT] Session expired - clearing data and redirecting to login"
+        );
+
+        // Clear all state
+        setIsAuthenticated(false);
+        setUser(null);
+        setToken(null);
+
+        // Clear all storage
+        await clearStorage();
+
+        // Show toast message
+        showError(
+          "Your session has expired. Please log in again.",
+          "Session Expired"
+        );
+
+        // Navigate to login screen directly
+        // Use longer delay to ensure Activity context is ready for Google Sign-In
+        setTimeout(() => {
+          resetToLogin();
+        }, 1000);
+
+        return;
+      }
+
+      // If profile fetch fails but we have stored user, use that
+      if (fallbackUser) {
+        setUser(fallbackUser);
+        console.log(
+          "⚠️ [AUTH CONTEXT] Using stored user data due to profile fetch error"
+        );
+      } else {
+        // If no stored user and profile fetch fails, sign out
+        console.log(
+          "⚠️ [AUTH CONTEXT] No stored user and profile fetch failed, signing out"
+        );
+        setIsAuthenticated(false);
+        setUser(null);
+        setToken(null);
+        await clearStorage();
+      }
     }
   };
 
@@ -125,8 +182,13 @@ export const AuthProvider = ({ children }) => {
 
       // Validate user data exists
       if (!userData) {
-        console.error("❌ [AUTH CONTEXT] User data is missing from auth response");
-        console.error("❌ [AUTH CONTEXT] Auth data:", JSON.stringify(authData, null, 2));
+        console.error(
+          "❌ [AUTH CONTEXT] User data is missing from auth response"
+        );
+        console.error(
+          "❌ [AUTH CONTEXT] Auth data:",
+          JSON.stringify(authData, null, 2)
+        );
         throw new Error("User data is missing from authentication response");
       }
 
@@ -180,8 +242,13 @@ export const AuthProvider = ({ children }) => {
 
       // Validate user data exists
       if (!userData) {
-        console.error("❌ [AUTH CONTEXT] User data is missing from auth response");
-        console.error("❌ [AUTH CONTEXT] Auth data:", JSON.stringify(authData, null, 2));
+        console.error(
+          "❌ [AUTH CONTEXT] User data is missing from auth response"
+        );
+        console.error(
+          "❌ [AUTH CONTEXT] Auth data:",
+          JSON.stringify(authData, null, 2)
+        );
         throw new Error("User data is missing from authentication response");
       }
 

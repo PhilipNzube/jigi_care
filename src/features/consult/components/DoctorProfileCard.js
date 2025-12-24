@@ -4,38 +4,49 @@ import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
 
 export default function DoctorProfileCard({ doctor }) {
+  if (!doctor) {
+    return null;
+  }
+
+  const doctorName = doctor.name || "Dr. Unknown";
+  const specialty = doctor.specialty || doctor.consultantData?.speciality || "General Practitioner";
+  const languages = doctor.languages || "English";
+  const rating = doctor.rating || 4.5;
+  const experience = doctor.experience || "Experienced";
+  const price = doctor.price || "Contact for pricing";
+
   return (
     <View style={styles.card}>
       <View style={styles.doctorInfo}>
         <View style={styles.doctorImageContainer}>
           <Image
             source={{
-              uri: `https://ui-avatars.com/api/?name=${doctor.name}&background=0098B3&color=fff&size=80`,
+              uri: `https://ui-avatars.com/api/?name=${encodeURIComponent(doctorName)}&background=0098B3&color=fff&size=80`,
             }}
             style={styles.doctorImage}
           />
         </View>
 
         <View style={styles.doctorDetails}>
-          <Text style={styles.doctorName}>{doctor.name}</Text>
-          <Text style={styles.doctorSpecialty}>{doctor.specialty}</Text>
+          <Text style={styles.doctorName}>{doctorName}</Text>
+          <Text style={styles.doctorSpecialty}>{specialty}</Text>
           <View style={styles.languageContainer}>
             <Ionicons
               name="chatbubble-outline"
               size={12}
               color={Colors.white}
             />
-            <Text style={styles.languageText}>{doctor.languages}</Text>
+            <Text style={styles.languageText}>{languages}</Text>
           </View>
         </View>
 
         <View style={styles.doctorStats}>
           <View style={styles.ratingContainer}>
             <Ionicons name="star" size={16} color="#FFD700" />
-            <Text style={styles.ratingText}>{doctor.rating}</Text>
+            <Text style={styles.ratingText}>{rating}</Text>
           </View>
-          <Text style={styles.experienceText}>{doctor.experience}</Text>
-          <Text style={styles.priceText}>{doctor.price}</Text>
+          <Text style={styles.experienceText}>{experience}</Text>
+          <Text style={styles.priceText}>{price}</Text>
         </View>
       </View>
     </View>

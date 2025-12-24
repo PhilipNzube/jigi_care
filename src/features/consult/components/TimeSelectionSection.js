@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -7,19 +7,48 @@ import {
   ScrollView,
 } from "react-native";
 import { Colors, Sizes } from "../../../shared/constants";
+import { isToday, isPast, setHours, setMinutes } from "date-fns";
 
-export default function TimeSelectionSection({ selectedTime, onTimeSelect }) {
-  const timeSlots = [
-    { id: "9:00 AM", label: "9:00 AM" },
-    { id: "10:00 AM", label: "10:00 AM" },
-    { id: "11:00 AM", label: "11:00 AM" },
-    { id: "12:00 PM", label: "12:00 PM" },
-    { id: "1:00 PM", label: "1:00 PM" },
-    { id: "2:00 PM", label: "2:00 PM" },
-    { id: "3:00 PM", label: "3:00 PM" },
-    { id: "4:00 PM", label: "4:00 PM" },
-    { id: "5:00 PM", label: "5:00 PM" },
+export default function TimeSelectionSection({ selectedTime, onTimeSelect, selectedDate }) {
+  const allTimeSlots = [
+    { id: "9:00 AM", label: "9:00 AM", hour: 9, minute: 0 },
+    { id: "10:00 AM", label: "10:00 AM", hour: 10, minute: 0 },
+    { id: "11:00 AM", label: "11:00 AM", hour: 11, minute: 0 },
+    { id: "12:00 PM", label: "12:00 PM", hour: 12, minute: 0 },
+    { id: "1:00 PM", label: "1:00 PM", hour: 13, minute: 0 },
+    { id: "2:00 PM", label: "2:00 PM", hour: 14, minute: 0 },
+    { id: "3:00 PM", label: "3:00 PM", hour: 15, minute: 0 },
+    { id: "4:00 PM", label: "4:00 PM", hour: 16, minute: 0 },
+    { id: "5:00 PM", label: "5:00 PM", hour: 17, minute: 0 },
   ];
+
+  const [availableTimeSlots, setAvailableTimeSlots] = useState(allTimeSlots);
+
+  useEffect(() => {
+    if (selectedDate && isToday(selectedDate)) {
+      // If selected date is today, filter out past times
+      const now = new Date();
+      const filteredSlots = allTimeSlots.filter(slot => {
+        const slotDateTime = setMinutes(setHours(selectedDate, slot.hour), slot.minute);
+        return !isPast(slotDateTime);
+      });
+      setAvailableTimeSlots(filteredSlots);
+      
+      // If the currently selected time is now in the past, clear it
+      if (selectedTime) {
+        const currentSelectedSlot = allTimeSlots.find(s => s.id === selectedTime);
+        if (currentSelectedSlot) {
+          const currentSelectedDateTime = setMinutes(setHours(selectedDate, currentSelectedSlot.hour), currentSelectedSlot.minute);
+          if (isPast(currentSelectedDateTime)) {
+            onTimeSelect(""); // Clear selected time if it's in the past
+          }
+        }
+      }
+    } else {
+      // For future dates, show all time slots
+      setAvailableTimeSlots(allTimeSlots);
+    }
+  }, [selectedDate, selectedTime, onTimeSelect]);
 
   return (
     <View style={styles.container}>
@@ -29,7 +58,7 @@ export default function TimeSelectionSection({ selectedTime, onTimeSelect }) {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.timesContainer}
       >
-        {timeSlots.map((time) => (
+        {availableTimeSlots.map((time) => (
           <TouchableOpacity
             key={time.id}
             style={[

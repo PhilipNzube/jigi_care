@@ -115,7 +115,12 @@ export default function ChatBotInterface({ visible, onClose }) {
             <Text style={styles.botName}>JigiBot</Text>
           </View>
         </View>
-        <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+        <TouchableOpacity 
+          style={styles.closeButton} 
+          onPress={() => {
+            onClose();
+          }}
+        >
           <Ionicons name="close" size={20} color="#666666" />
         </TouchableOpacity>
       </View>

@@ -66,20 +66,43 @@ export default function CombinedProfileSection({ onFieldPress }) {
 
   const userEmergencyContact = formatEmergencyContact(user?.emergencyContact);
 
+  // Format weight, height, and blood type with N/A fallback
+  const formatWeight = (weight) => {
+    if (!weight) return "N/A";
+    return weight;
+  };
+
+  const formatHeight = (height) => {
+    if (!height) return "N/A";
+    return height;
+  };
+
+  const formatBloodType = (bloodType) => {
+    if (!bloodType) return "N/A";
+    return bloodType;
+  };
+
+  const userWeight = formatWeight(user?.weight);
+  const userHeight = formatHeight(user?.height);
+  const userBloodType = formatBloodType(user?.bloodType);
+
   const stats = [
     {
+      id: "weight",
       icon: "scale",
-      value: "64.00 kg",
+      value: userWeight,
       label: "Weight",
     },
     {
+      id: "height",
       icon: "resize",
-      value: "5.80 ft",
+      value: userHeight,
       label: "Height",
     },
     {
+      id: "bloodType",
       icon: "water",
-      value: "0+",
+      value: userBloodType,
       label: "Blood Type",
     },
   ];
@@ -132,19 +155,24 @@ export default function CombinedProfileSection({ onFieldPress }) {
       <View style={styles.card}>
         <View style={styles.statsSection}>
           {stats.map((stat, index) => (
-            <View
-              key={index}
+            <TouchableOpacity
+              key={stat.id}
               style={[
                 styles.statCard,
                 index === stats.length - 1 && styles.lastStatCard,
               ]}
+              onPress={() => onFieldPress(stat.id)}
+              activeOpacity={0.7}
             >
-              <Text style={styles.value}>{stat.value}</Text>
+              <View style={styles.statHeader}>
+                <Text style={styles.value}>{stat.value}</Text>
+                <Ionicons name="pencil" size={14} color="#0098B3" />
+              </View>
               <View style={styles.labelContainer}>
                 <Ionicons name={stat.icon} size={16} color="#999999" />
                 <Text style={styles.label}>{stat.label}</Text>
               </View>
-            </View>
+            </TouchableOpacity>
           ))}
         </View>
         <View style={styles.fieldsSection}>
@@ -209,11 +237,17 @@ const styles = StyleSheet.create({
   lastStatCard: {
     borderRightWidth: 0,
   },
+  statHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: Sizes.xs,
+  },
   value: {
     fontSize: 16,
     fontFamily: "Poppins-Bold",
     color: Colors.black,
-    marginBottom: Sizes.xs,
+    marginRight: Sizes.xs,
   },
   labelContainer: {
     flexDirection: "row",

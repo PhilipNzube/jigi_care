@@ -322,30 +322,36 @@ export const signUpWithGoogle = async (googleData) => {
 export const getUserProfile = async () => {
   console.log("👤 [GET PROFILE] Fetching user profile...");
 
-  const response = await get("/users/patient/profile");
-
-  console.log("✅ [GET PROFILE] Profile fetched successfully!");
-  console.log(
-    "✅ [GET PROFILE] Full response data:",
-    JSON.stringify(response, null, 2)
-  );
-
-  // Cache the full response data
   try {
-    await storeProfileResponse(response);
-    console.log("💾 [GET PROFILE] Response data cached successfully!");
-  } catch (cacheError) {
-    console.warn("⚠️ [GET PROFILE] Failed to cache response data:", cacheError);
+    const response = await get("/users/patient/profile");
+
+    console.log("✅ [GET PROFILE] Profile fetched successfully!");
+    console.log(
+      "✅ [GET PROFILE] Full response data:",
+      JSON.stringify(response, null, 2)
+    );
+
+    // Cache the full response data
+    try {
+      await storeProfileResponse(response);
+      console.log("💾 [GET PROFILE] Response data cached successfully!");
+    } catch (cacheError) {
+      console.warn("⚠️ [GET PROFILE] Failed to cache response data:", cacheError);
+    }
+
+    // Handle response format: response.data contains user data
+    const userDataFromResponse = response.data;
+    console.log(
+      "✅ [GET PROFILE] User data:",
+      JSON.stringify(userDataFromResponse, null, 2)
+    );
+
+    return userDataFromResponse;
+  } catch (error) {
+    // Re-throw the error so AuthContext can handle session expiration
+    // The error will be caught and checked in AuthContext
+    throw error;
   }
-
-  // Handle response format: response.data contains user data
-  const userDataFromResponse = response.data;
-  console.log(
-    "✅ [GET PROFILE] User data:",
-    JSON.stringify(userDataFromResponse, null, 2)
-  );
-
-  return userDataFromResponse;
 };
 
 /**

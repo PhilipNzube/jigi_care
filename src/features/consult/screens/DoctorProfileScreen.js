@@ -28,13 +28,14 @@ export default function DoctorProfileScreen({ route, navigation }) {
 
   // Default doctor data if none provided
   const defaultDoctor = {
-    name: "Dr. Sarah Olukoya",
-    specialty: "Neurologist",
-    rating: 4.8,
-    experience: "7+ years experience",
+    name: "Dr. Unknown",
+    specialty: "General Practitioner",
+    rating: 4.5,
+    experience: "Experienced",
     languages: "English",
-    price: "₦4,000/session",
-    isAvailable: true,
+    price: "Contact for pricing",
+    isAvailable: false,
+    consultantData: {},
   };
 
   const doctorData = doctor || defaultDoctor;
@@ -44,8 +45,8 @@ export default function DoctorProfileScreen({ route, navigation }) {
   };
 
   const handleBookNow = () => {
-    console.log("Book now pressed for:", doctorData.name);
-    // Implement booking functionality
+    // Navigate to BookConsultationScreen with doctor data
+    navigation.navigate("BookConsultation", { doctor: doctorData });
   };
 
   return (
@@ -64,18 +65,18 @@ export default function DoctorProfileScreen({ route, navigation }) {
           <DoctorProfileHeader onBackPress={handleBackPress} />
 
           {/* Doctor Profile Card - Compact like home screen */}
-          <DoctorProfileCard doctor={doctor} />
+          <DoctorProfileCard doctor={doctorData} />
         </ImageBackground>
 
         {/* Content with curved top */}
         <View style={styles.contentWrapper}>
           {/* Content Sections */}
           <View style={styles.contentContainer}>
-            <AboutSection doctor={doctor} />
-            <EducationSection doctor={doctor} />
-            <CertificationsSection doctor={doctor} />
-            <WorkingHoursSection doctor={doctor} />
-            <PatientsReviewSection doctor={doctor} />
+            <AboutSection doctor={doctorData} />
+            <EducationSection doctor={doctorData} />
+            <CertificationsSection doctor={doctorData} />
+            <WorkingHoursSection doctor={doctorData} />
+            <PatientsReviewSection doctor={doctorData} />
           </View>
         </View>
       </ScrollView>
@@ -85,7 +86,7 @@ export default function DoctorProfileScreen({ route, navigation }) {
         style={[styles.bookButtonContainer, { paddingBottom: insets.bottom }]}
       >
         <BookNowButton
-          doctor={doctor}
+          doctor={doctorData}
           onPress={handleBookNow}
           navigation={navigation}
         />
