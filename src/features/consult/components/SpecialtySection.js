@@ -14,17 +14,16 @@ import ShimmerLoader from "../../../shared/components/ShimmerLoader";
 // Specialty Card Skeleton Component
 function SpecialtyCardSkeleton() {
   return (
-    <View style={styles.specialtyCard}>
-      <ShimmerLoader>
+    <ShimmerLoader>
+      <View style={styles.specialtyCard}>
         <View style={styles.skeletonCardBackground}>
-          <View style={styles.skeletonOverlay} />
           <View style={styles.cardContent}>
             <View style={styles.skeletonSpecialtyName} />
             <View style={styles.skeletonDoctorCount} />
           </View>
         </View>
-      </ShimmerLoader>
-    </View>
+      </View>
+    </ShimmerLoader>
   );
 }
 
@@ -185,31 +184,17 @@ const styles = StyleSheet.create({
   skeletonCardBackground: {
     flex: 1,
     justifyContent: "flex-end",
-    backgroundColor: Colors.lightGray,
-    borderRadius: 12,
-  },
-  skeletonOverlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "rgba(0, 0, 0, 0.2)",
     borderRadius: 12,
   },
   skeletonSpecialtyName: {
     width: 120,
     height: 16,
-    backgroundColor: Colors.lightGray,
     borderRadius: 4,
     marginBottom: Sizes.xs,
-    opacity: 0.8,
   },
   skeletonDoctorCount: {
     width: 80,
     height: 14,
-    backgroundColor: Colors.lightGray,
     borderRadius: 4,
-    opacity: 0.8,
   },
 });

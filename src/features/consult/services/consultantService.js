@@ -79,9 +79,48 @@ export const searchConsultants = async (query) => {
   }
 };
 
+/**
+ * Get reviews for a consultant
+ * @param {string} consultantId - Consultant ID
+ * @returns {Promise<object>} - Response with reviews data
+ */
+export const getConsultantReviews = async (consultantId) => {
+  console.log("⭐ [CONSULTANT REVIEWS] Fetching reviews for consultant:", consultantId);
+
+  if (!consultantId) {
+    console.log("⚠️ [CONSULTANT REVIEWS] No consultant ID provided");
+    return { success: true, data: [] };
+  }
+
+  try {
+    const endpoint = `/rating/consultant?consultantId=${encodeURIComponent(consultantId)}`;
+    console.log("⭐ [CONSULTANT REVIEWS] Making GET request to:", endpoint);
+
+    const response = await get(endpoint);
+
+    console.log("✅ [CONSULTANT REVIEWS] Fetch successful!");
+    console.log("✅ [CONSULTANT REVIEWS] Full response data:", JSON.stringify(response, null, 2));
+
+    // Handle response format - response.data contains the array
+    const reviews = response.data || response.reviews || [];
+    console.log("✅ [CONSULTANT REVIEWS] Reviews found:", reviews.length);
+
+    return {
+      success: true,
+      data: reviews,
+      response, // Include full response for logging
+    };
+  } catch (error) {
+    console.error("❌ [CONSULTANT REVIEWS] Fetch error:", error);
+    console.error("❌ [CONSULTANT REVIEWS] Error details:", JSON.stringify(error, null, 2));
+    throw error;
+  }
+};
+
 export default {
   getConsultantsList,
   searchConsultants,
+  getConsultantReviews,
 };
 
 
