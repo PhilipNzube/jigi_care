@@ -68,11 +68,6 @@ export default function EmergencyContactModal({ visible, onClose }) {
       return;
     }
 
-    if (!phoneData?.isValid) {
-      showError("Please enter a valid phone number");
-      return;
-    }
-
     setIsLoading(true);
 
     try {
@@ -161,7 +156,8 @@ export default function EmergencyContactModal({ visible, onClose }) {
                     }}
                     countryPickerProps={{
                       modalProps: {
-                        presentationStyle: Platform.OS === "ios" ? "fullScreen" : undefined,
+                        presentationStyle:
+                          Platform.OS === "ios" ? "fullScreen" : undefined,
                         animationType: "slide",
                       },
                       modalStyle: styles.pickerModalStyle,

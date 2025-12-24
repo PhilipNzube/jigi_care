@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -10,18 +10,32 @@ import {
   KeyboardAvoidingView,
   Platform,
   Keyboard,
+  ActivityIndicator,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, Sizes } from "../../../shared/constants";
 import { Images } from "../../../shared/utils/imageUtils";
 import Ionicons from "react-native-vector-icons/Ionicons";
+import { useAuth } from "../../../shared/context/AuthContext";
+import { getConversations, sendMessage } from "../services/chatService";
+import { format, parseISO } from "date-fns";
+import { showError } from "../../../shared/utils/toast";
 
 export default function ChatPage({ navigation, route }) {
   const insets = useSafeAreaInsets();
   const { doctor } = route.params || {};
+  const { user } = useAuth();
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
-
   const [message, setMessage] = useState("");
+  const [messages, setMessages] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSending, setIsSending] = useState(false);
+  const [conversationId, setConversationId] = useState(null);
+  const scrollViewRef = useRef(null);
+
+  // Get consultantId and patientId
+  const consultantId = doctor?.consultantId || doctor?.consultantData?.userId;
+  const patientId = user?.id; // User ID from AuthContext
 
   useEffect(() => {
     const keyboardDidShowListener = Keyboard.addListener(
@@ -43,78 +57,150 @@ export default function ChatPage({ navigation, route }) {
     };
   }, []);
 
-  const [messages, setMessages] = useState([
-    {
-      id: 1,
-      text: "Good afternoon, doctor. I've been feeling a bit dizzy lately.",
-      sender: "user",
-      time: "9:45am",
-      status: "read",
-    },
-    {
-      id: 2,
-      text: "Good afternoon! I'm sorry to hear that. How long have you been experiencing the dizziness?",
-      sender: "doctor",
-      time: "9:48am",
-    },
-    {
-      id: 3,
-      text: "It started about three days ago",
-      sender: "user",
-      time: "9:50am",
-      status: "read",
-    },
-    {
-      id: 4,
-      text: "Okay. Do you also feel headaches, blurred vision, or nausea?",
-      sender: "doctor",
-      time: "9:51am",
-    },
-    {
-      id: 5,
-      text: "Yes, I sometimes get mild headaches with it.",
-      sender: "user",
-      time: "9:51am",
-      status: "read",
-    },
-    {
-      id: 6,
-      text: "I recommend checking your blood pressure today. I'll also suggest a few lifestyle adjustments, but if it persists, we'll schedule a physical meeting",
-      sender: "doctor",
-      time: "9:55am",
-    },
-    {
-      id: 7,
-      text: "Alright, thank you doctor.",
-      sender: "user",
-      time: "9:57am",
-      status: "read",
-    },
-    {
-      id: 8,
-      text: "You're welcome! Please take care and keep me updated",
-      sender: "doctor",
-      time: "9:58am",
-    },
-  ]);
+  // Fetch conversations and messages on mount
+  useEffect(() => {
+    if (consultantId && patientId) {
+      fetchConversations();
+    } else {
+      setIsLoading(false);
+    }
+  }, [consultantId, patientId]);
 
-  const handleSendMessage = () => {
-    if (message.trim()) {
-      const newMessage = {
-        id: messages.length + 1,
-        text: message.trim(),
-        sender: "user",
-        time: new Date()
-          .toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: true,
-          })
-          .toLowerCase(),
-        status: "sent",
-      };
-      setMessages([...messages, newMessage]);
-      setMessage("");
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    if (scrollViewRef.current && messages.length > 0) {
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    }
+  }, [messages]);
+
+  /**
+   * Fetch conversations and messages
+   */
+  const fetchConversations = async () => {
+    try {
+      setIsLoading(true);
+      console.log("💬 [CHAT PAGE] Fetching conversations...");
+      const response = await getConversations(consultantId, patientId);
+      
+      // Handle array response
+      const conversations = Array.isArray(response) ? response : (response.data || []);
+      
+      if (conversations.length > 0) {
+        const conversation = conversations[0]; // Get first conversation
+        setConversationId(conversation.id);
+        
+        // Map messages from API to display format
+        const mappedMessages = (conversation.messages || []).map((msg) => {
+          const messageDate = parseISO(msg.createdAt);
+          const isUserMessage = msg.senderType === "patient";
+          
+          return {
+            id: msg.id,
+            text: msg.content,
+            sender: isUserMessage ? "user" : "doctor",
+            time: format(messageDate, "h:mm a").toLowerCase(),
+            status: msg.isRead ? "read" : "sent",
+            createdAt: msg.createdAt,
+          };
+        });
+        
+        // Sort messages by createdAt
+        mappedMessages.sort((a, b) => {
+          const dateA = new Date(a.createdAt || 0);
+          const dateB = new Date(b.createdAt || 0);
+          return dateA - dateB;
+        });
+        
+        setMessages(mappedMessages);
+        console.log("✅ [CHAT PAGE] Messages loaded:", mappedMessages.length);
+      } else {
+        // No conversation exists yet
+        setMessages([]);
+        setConversationId(null);
+        console.log("ℹ️ [CHAT PAGE] No conversation found");
+      }
+    } catch (error) {
+      console.error("❌ [CHAT PAGE] Error fetching conversations:", error);
+      showError(error.message || "Failed to load messages");
+      setMessages([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  /**
+   * Send a message
+   */
+  const handleSendMessage = async () => {
+    if (!message.trim() || isSending) return;
+    if (!consultantId || !patientId) {
+      showError("Unable to send message. Missing user information.");
+      return;
+    }
+
+    const messageContent = message.trim();
+    setMessage(""); // Clear input immediately for better UX
+
+    // Optimistically add message to UI
+    const tempMessage = {
+      id: `temp-${Date.now()}`,
+      text: messageContent,
+      sender: "user",
+      time: format(new Date(), "h:mm a").toLowerCase(),
+      status: "sent",
+      createdAt: new Date().toISOString(),
+    };
+    setMessages((prev) => [...prev, tempMessage]);
+
+    try {
+      setIsSending(true);
+      console.log("📤 [CHAT PAGE] Sending message...");
+      
+      const response = await sendMessage({
+        consultantId,
+        patientId,
+        content: messageContent,
+        senderType: "patient",
+      });
+
+      // Update conversation ID if this is a new conversation
+      if (response.conversation?.id && !conversationId) {
+        setConversationId(response.conversation.id);
+      }
+
+      // Replace temp message with real message from API
+      if (response.message) {
+        const realMessage = {
+          id: response.message.id,
+          text: response.message.content,
+          sender: "user",
+          time: format(parseISO(response.message.createdAt), "h:mm a").toLowerCase(),
+          status: response.message.isRead ? "read" : "sent",
+          createdAt: response.message.createdAt,
+        };
+        
+        setMessages((prev) => {
+          // Remove temp message and add real one
+          const filtered = prev.filter((msg) => msg.id !== tempMessage.id);
+          return [...filtered, realMessage];
+        });
+      } else {
+        // If API doesn't return message, keep the temp one but mark it as sent
+        setMessages((prev) => prev);
+      }
+      
+      console.log("✅ [CHAT PAGE] Message sent successfully");
+    } catch (error) {
+      console.error("❌ [CHAT PAGE] Error sending message:", error);
+      showError(error.message || "Failed to send message");
+      
+      // Remove temp message on error
+      setMessages((prev) => prev.filter((msg) => msg.id !== tempMessage.id));
+      setMessage(messageContent); // Restore message in input
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -169,11 +255,24 @@ export default function ChatPage({ navigation, route }) {
       </View>
 
       <ScrollView
+        ref={scrollViewRef}
         style={styles.messagesContainer}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {messages.map((msg) => (
+        {isLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={Colors.primary} />
+            <Text style={styles.loadingText}>Loading messages...</Text>
+          </View>
+        ) : messages.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Ionicons name="chatbubbles-outline" size={64} color={Colors.grey} />
+            <Text style={styles.emptyText}>No messages yet</Text>
+            <Text style={styles.emptySubText}>Start the conversation by sending a message</Text>
+          </View>
+        ) : (
+          messages.map((msg) => (
           <View
             key={msg.id}
             style={[
@@ -217,7 +316,8 @@ export default function ChatPage({ navigation, route }) {
               </View>
             </View>
           </View>
-        ))}
+          ))
+        )}
       </ScrollView>
 
       <View
@@ -239,8 +339,16 @@ export default function ChatPage({ navigation, route }) {
           multiline
         />
 
-        <TouchableOpacity style={styles.sendButton} onPress={handleSendMessage}>
-          <Ionicons name="send" size={20} color={Colors.white} />
+        <TouchableOpacity
+          style={[styles.sendButton, (isSending || !message.trim()) && styles.sendButtonDisabled]}
+          onPress={handleSendMessage}
+          disabled={isSending || !message.trim()}
+        >
+          {isSending ? (
+            <ActivityIndicator size="small" color={Colors.white} />
+          ) : (
+            <Ionicons name="send" size={20} color={Colors.white} />
+          )}
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
@@ -394,5 +502,40 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginLeft: Sizes.sm,
+  },
+  sendButtonDisabled: {
+    opacity: 0.5,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: Sizes.xl,
+  },
+  loadingText: {
+    marginTop: Sizes.md,
+    fontSize: 14,
+    fontFamily: "Poppins-Regular",
+    color: Colors.grey,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: Sizes.xl * 2,
+  },
+  emptyText: {
+    marginTop: Sizes.md,
+    fontSize: 16,
+    fontFamily: "Poppins-SemiBold",
+    color: Colors.black,
+  },
+  emptySubText: {
+    marginTop: Sizes.xs,
+    fontSize: 14,
+    fontFamily: "Poppins-Regular",
+    color: Colors.grey,
+    textAlign: "center",
+    paddingHorizontal: Sizes.lg,
   },
 });

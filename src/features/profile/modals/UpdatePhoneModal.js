@@ -51,8 +51,8 @@ export default function UpdatePhoneModal({ visible, onClose }) {
   };
 
   const handleSave = async () => {
-    if (!phoneNumber.trim() || !phoneData?.isValid) {
-      showError("Please enter a valid phone number");
+    if (!phoneNumber.trim()) {
+      showError("Please enter a phone number");
       return;
     }
 

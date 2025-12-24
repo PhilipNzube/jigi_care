@@ -44,6 +44,7 @@ export default function UpcomingAppointmentsList({ navigation, refreshKey }) {
             name: appointment.consultant?.fullName || "Dr. Unknown",
             specialty: appointment.consultant?.speciality || "General Practitioner",
             rating: 4.5, // Default rating since not in API
+            consultantId: appointment.consultantId, // Pass consultantId for chat
           },
           appointmentData: appointment,
         };
