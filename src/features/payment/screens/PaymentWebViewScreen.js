@@ -8,7 +8,7 @@ import {
 } from "react-native";
 import { WebView } from "react-native-webview";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect, CommonActions } from "@react-navigation/native";
 import { verifyPayment } from "../services/paymentService";
 import { showError, showSuccess } from "../../../shared/utils/toast";
 
@@ -30,9 +30,12 @@ export default function PaymentWebViewScreen({ navigation, route }) {
       };
 
       if (Platform.OS === "android") {
-        BackHandler.addEventListener("hardwareBackPress", onBackPress);
+        const backHandler = BackHandler.addEventListener(
+          "hardwareBackPress",
+          onBackPress
+        );
         return () => {
-          BackHandler.removeEventListener("hardwareBackPress", onBackPress);
+          backHandler.remove();
         };
       }
     }, [navigation])
@@ -53,14 +56,17 @@ export default function PaymentWebViewScreen({ navigation, route }) {
       const referenceMatch = url.match(/[?&](?:reference|trxref)=([^&]+)/);
       if (referenceMatch) {
         paymentReference = decodeURIComponent(referenceMatch[1]);
-        console.log("🔍 [PAYMENT WEBVIEW] Extracted reference from URL:", paymentReference);
+        console.log(
+          "🔍 [PAYMENT WEBVIEW] Extracted reference from URL:",
+          paymentReference
+        );
       }
     }
 
     // Check if payment was successful (redirected to callback URL)
     // Paystack redirects to callback URL on success
-    const isCallbackUrl = 
-      url.includes("/payments/callback") || 
+    const isCallbackUrl =
+      url.includes("/payments/callback") ||
       url.includes("callback-test") ||
       url.includes("callback") ||
       (callbackUrl && url.includes(callbackUrl)) ||
@@ -68,47 +74,73 @@ export default function PaymentWebViewScreen({ navigation, route }) {
       url.includes("verify");
 
     // Also check for Paystack close URL (3DS completion)
-    const isPaystackClose = url === "https://standard.paystack.co/close" || 
-                           url.includes("standard.paystack.co/close");
+    const isPaystackClose =
+      url === "https://standard.paystack.co/close" ||
+      url.includes("standard.paystack.co/close");
 
     if (isCallbackUrl || isPaystackClose) {
-      console.log("✅ [PAYMENT WEBVIEW] Callback detected, verifying payment...");
-      
+      console.log(
+        "✅ [PAYMENT WEBVIEW] Callback detected, verifying payment..."
+      );
+
       if (!hasVerifiedRef.current && paymentReference) {
         hasVerifiedRef.current = true; // Set immediately to prevent multiple calls
         setHasVerified(true);
         setIsLoading(true);
-        
+
         try {
-          console.log("🔍 [PAYMENT WEBVIEW] Verifying payment with reference:", paymentReference);
+          console.log(
+            "🔍 [PAYMENT WEBVIEW] Verifying payment with reference:",
+            paymentReference
+          );
           const verificationResult = await verifyPayment(paymentReference);
-          
-          console.log("📋 [PAYMENT WEBVIEW] Verification result:", JSON.stringify(verificationResult, null, 2));
-          
-          if (verificationResult.success && verificationResult.data?.status === "success") {
+
+          console.log(
+            "📋 [PAYMENT WEBVIEW] Verification result:",
+            JSON.stringify(verificationResult, null, 2)
+          );
+
+          if (
+            verificationResult.success &&
+            verificationResult.data?.status === "success"
+          ) {
             console.log("✅ [PAYMENT WEBVIEW] Payment verified successfully!");
             showSuccess("Payment successful!");
-            
-            // Close WebView and navigate back to consult screen
+
+            // Close WebView and navigate to Consult screen
             setTimeout(() => {
-              navigation.reset({
-                index: 0,
-                routes: [
-                  {
-                    name: "BottomTabs",
-                    params: { screen: "Consult" },
-                  },
-                ],
-              });
+              // Reset navigation stack and navigate to Consult tab
+              navigation.dispatch(
+                CommonActions.reset({
+                  index: 0,
+                  routes: [
+                    {
+                      name: "BottomTabs",
+                      params: {
+                        screen: "consult", // Match the tab ID from BottomTabNavigator
+                      },
+                    },
+                  ],
+                })
+              );
+              console.log("✅ [PAYMENT WEBVIEW] Navigated to Consult screen");
             }, 1500);
           } else {
-            console.warn("⚠️ [PAYMENT WEBVIEW] Payment verification returned non-success status");
+            console.warn(
+              "⚠️ [PAYMENT WEBVIEW] Payment verification returned non-success status"
+            );
             throw new Error("Payment verification failed");
           }
         } catch (error) {
-          console.error("❌ [PAYMENT WEBVIEW] Payment verification error:", error);
-          showError(error.message || "Payment verification failed. Please contact support.");
-          
+          console.error(
+            "❌ [PAYMENT WEBVIEW] Payment verification error:",
+            error
+          );
+          showError(
+            error.message ||
+              "Payment verification failed. Please contact support."
+          );
+
           // Still close the WebView even if verification fails
           setTimeout(() => {
             navigation.goBack();
@@ -117,7 +149,9 @@ export default function PaymentWebViewScreen({ navigation, route }) {
           setIsLoading(false);
         }
       } else if (!paymentReference) {
-        console.warn("⚠️ [PAYMENT WEBVIEW] No reference available for verification");
+        console.warn(
+          "⚠️ [PAYMENT WEBVIEW] No reference available for verification"
+        );
         showError("Payment reference missing. Please contact support.");
         setTimeout(() => {
           navigation.goBack();
@@ -181,4 +215,3 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
 });
-
