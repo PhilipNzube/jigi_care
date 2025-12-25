@@ -33,6 +33,31 @@ export const getUpcomingAppointments = async () => {
 };
 
 /**
+ * Get available time slots for a consultant on a specific date
+ * @param {string} consultantId - Consultant/Doctor user ID
+ * @param {string} date - Date in ISO format (e.g., "2025-12-29T10:00:00")
+ * @returns {Promise<object>} - Response with available slots
+ */
+export const getAvailableSlots = async (consultantId, date) => {
+  console.log("📅 [BOOKING SERVICE] Fetching available slots...");
+  console.log("📅 [BOOKING SERVICE] Consultant ID:", consultantId);
+  console.log("📅 [BOOKING SERVICE] Date:", date);
+
+  try {
+    const endpoint = `/booking/available-slots/${consultantId}?consultantId=${encodeURIComponent(consultantId)}&date=${encodeURIComponent(date)}`;
+    const response = await get(endpoint);
+
+    console.log("✅ [BOOKING SERVICE] Available slots fetched successfully!");
+    console.log("✅ [BOOKING SERVICE] Response:", JSON.stringify(response, null, 2));
+
+    return response;
+  } catch (error) {
+    console.error("❌ [BOOKING SERVICE] Error fetching available slots:", error);
+    throw error;
+  }
+};
+
+/**
  * Create a booking
  * @param {object} bookingData - Booking data
  * @param {string} bookingData.date - Date in ISO format (e.g., "2025-12-25T09:05:30.123Z")
@@ -60,6 +85,7 @@ export const createBooking = async (bookingData) => {
 
 export default {
   getUpcomingAppointments,
+  getAvailableSlots,
   createBooking,
 };
 

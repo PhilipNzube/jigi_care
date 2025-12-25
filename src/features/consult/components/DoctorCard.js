@@ -10,10 +10,10 @@ export default function DoctorCard({ doctor, onPress, navigation }) {
     <View style={styles.card}>
       {/* Availability Status */}
       {isAvailable && (
-        <View style={styles.availabilityContainer}>
-          <View style={styles.availabilityDot} />
-          <Text style={styles.availabilityText}>Available Now</Text>
-        </View>
+      <View style={styles.availabilityContainer}>
+        <View style={styles.availabilityDot} />
+        <Text style={styles.availabilityText}>Available Now</Text>
+      </View>
       )}
 
       {/* Doctor Info */}

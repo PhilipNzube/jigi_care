@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   StyleSheet,
@@ -12,9 +12,10 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, Sizes } from "../../../shared/constants";
 import { Images } from "../../../shared/utils/imageUtils";
-import { createBooking } from "../services/bookingService";
+import { createBooking, getAvailableSlots } from "../services/bookingService";
+import { initializePayment } from "../../payment/services/paymentService";
 import { showError, showSuccess } from "../../../shared/utils/toast";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, formatISO } from "date-fns";
 
 const { height } = Dimensions.get("window");
 
@@ -46,6 +47,8 @@ export default function BookConsultationScreen({ navigation, route }) {
   const [selectedTime, setSelectedTime] = useState("");
   const [symptoms, setSymptoms] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [availableSlots, setAvailableSlots] = useState([]);
+  const [isLoadingSlots, setIsLoadingSlots] = useState(false);
 
   // Validation function
   const isFormValid = () => {
@@ -60,8 +63,40 @@ export default function BookConsultationScreen({ navigation, route }) {
     setSelectedDate(date);
   };
 
-  const handleDateSelectWithObj = (dateObj) => {
+  const handleDateSelectWithObj = async (dateObj) => {
     setSelectedDateObj(dateObj);
+    setSelectedTime(""); // Clear selected time when date changes
+
+    // Fetch available slots for the selected date
+    if (consultantId && dateObj) {
+      setIsLoadingSlots(true);
+      try {
+        // Format date for API: YYYY-MM-DDTHH:mm:ss format
+        // Use a default time (10:00:00) for the date query
+        // Ensure we're using the date part only and adding time
+        const year = dateObj.getFullYear();
+        const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+        const day = String(dateObj.getDate()).padStart(2, "0");
+        const dateForApi = `${year}-${month}-${day}T10:00:00`;
+        console.log("📅 [BOOK CONSULTATION] Fetching slots for date:", dateForApi);
+        
+        const response = await getAvailableSlots(consultantId, dateForApi);
+        
+        if (response.data && response.data.availableSlots) {
+          setAvailableSlots(response.data.availableSlots);
+          console.log("✅ [BOOK CONSULTATION] Available slots:", response.data.availableSlots.length);
+        } else {
+          setAvailableSlots([]);
+          console.log("⚠️ [BOOK CONSULTATION] No available slots found");
+        }
+      } catch (error) {
+        console.error("❌ [BOOK CONSULTATION] Error fetching slots:", error);
+        setAvailableSlots([]);
+        showError("Failed to load available time slots");
+      } finally {
+        setIsLoadingSlots(false);
+      }
+    }
   };
 
   const handleTimeSelect = (time) => {
@@ -102,15 +137,21 @@ export default function BookConsultationScreen({ navigation, route }) {
         }
       }
       
-      // Parse time
-      const [timePart, period] = selectedTime.split(" ");
-      const [hours, minutes] = timePart.split(":").map(Number);
-      let hour24 = hours;
-      if (period === "PM" && hours !== 12) hour24 += 12;
-      if (period === "AM" && hours === 12) hour24 = 0;
-
-      // Set time on booking date
-      bookingDate.setHours(hour24, minutes || 0, 0, 0);
+      // Parse time - use value from API slot if available, otherwise parse display format
+      const selectedSlot = availableSlots.find(slot => slot.display === selectedTime);
+      if (selectedSlot && selectedSlot.value) {
+        // Use the value from API (format: "HH:mm:ss")
+        const [hours, minutes, seconds] = selectedSlot.value.split(":").map(Number);
+        bookingDate.setHours(hours, minutes || 0, seconds || 0);
+      } else {
+        // Fallback: parse display format (e.g., "10:00 AM")
+        const [timePart, period] = selectedTime.split(" ");
+        const [hours, minutes] = timePart.split(":").map(Number);
+        let hour24 = hours;
+        if (period === "PM" && hours !== 12) hour24 += 12;
+        if (period === "AM" && hours === 12) hour24 = 0;
+        bookingDate.setHours(hour24, minutes || 0, 0);
+      }
       
       // Ensure it's not in the past
       if (bookingDate < new Date()) {
@@ -131,7 +172,7 @@ export default function BookConsultationScreen({ navigation, route }) {
       // Create booking
       const bookingData = {
         date: dateISO,
-        duration: 2, // Default 2 hours
+        duration: 1, // Changed to 1 hour
         symptoms: symptomsArray,
         consultantId: consultantId,
       };
@@ -139,23 +180,40 @@ export default function BookConsultationScreen({ navigation, route }) {
       console.log("📝 [BOOK CONSULTATION] Creating booking:", bookingData);
       const response = await createBooking(bookingData);
 
-      showSuccess("Booking created successfully!");
-      
-      // Navigate to payment method selection
-      navigation.navigate("PaymentMethod", {
-        amount: doctor.price || "₦4,500",
-        doctor: doctor,
-        bookingDetails: {
-          date: selectedDate,
-          time: selectedTime,
-          symptoms: symptoms,
-          bookingId: response.data?.id,
-        },
+      if (!response.data || !response.data.id) {
+        throw new Error("Booking created but no booking ID received");
+      }
+
+      const bookingId = response.data.id;
+      console.log("✅ [BOOK CONSULTATION] Booking created with ID:", bookingId);
+
+      // Initialize payment
+      console.log("💳 [BOOK CONSULTATION] Initializing payment...");
+      const paymentResponse = await initializePayment(bookingId, consultantId);
+
+      if (!paymentResponse.data || !paymentResponse.data.authorization_url) {
+        throw new Error("Payment initialization failed");
+      }
+
+      const { authorization_url, reference } = paymentResponse.data;
+      console.log("✅ [BOOK CONSULTATION] Payment initialized, opening WebView...");
+
+      // Navigate to payment WebView
+      navigation.navigate("PaymentWebView", {
+        authorizationUrl: authorization_url,
+        reference: reference,
+        callbackUrl: "https://yourcallback.com", // You may want to configure this
       });
     } catch (error) {
       console.error("❌ [BOOK CONSULTATION] Error:", error);
-      const errorMessage = error.data?.message || error.message || "Failed to create booking. Please try again.";
-      showError(errorMessage);
+      
+      // Check for specific error messages
+      if (error.data?.message && error.data.message.includes("already booked")) {
+        showError(error.data.message);
+      } else {
+        const errorMessage = error.data?.message || error.message || "Failed to create booking. Please try again.";
+        showError(errorMessage);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -195,7 +253,9 @@ export default function BookConsultationScreen({ navigation, route }) {
             <TimeSelectionSection
               selectedTime={selectedTime}
               onTimeSelect={handleTimeSelect}
-              selectedDate={selectedDate}
+              selectedDate={selectedDateObj}
+              availableSlots={availableSlots}
+              isLoadingSlots={isLoadingSlots}
             />
             <SymptomsInputSection
               symptoms={symptoms}

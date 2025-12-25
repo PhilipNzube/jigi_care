@@ -90,77 +90,77 @@ export const AuthProvider = ({ children }) => {
       console.log(
         "🔄 [AUTH CONTEXT] Fetching fresh user profile in background..."
       );
-      const profileData = await getUserProfile();
+          const profileData = await getUserProfile();
 
-      if (profileData) {
-        setUser(profileData);
-        await storeUserData(profileData);
+          if (profileData) {
+            setUser(profileData);
+            await storeUserData(profileData);
         console.log(
           "✅ [AUTH CONTEXT] Fresh profile loaded successfully in background!"
         );
-      } else {
-        // Fallback to stored user data if profile fetch fails
+          } else {
+            // Fallback to stored user data if profile fetch fails
         if (fallbackUser) {
           setUser(fallbackUser);
           console.log("⚠️ [AUTH CONTEXT] Using stored user data as fallback");
-        }
-      }
-    } catch (profileError) {
-      console.error(
+            }
+          }
+        } catch (profileError) {
+          console.error(
         "❌ [AUTH CONTEXT] Error fetching profile in background:",
-        profileError
-      );
+            profileError
+          );
 
-      // Check if this is a session expiration error
-      const isSessionExpired =
-        profileError.statusCode === 400 &&
-        profileError.data?.message === "Cannot GET /signin" &&
-        profileError.data?.error === "Unauthorized";
+          // Check if this is a session expiration error
+          const isSessionExpired =
+            profileError.statusCode === 400 &&
+            profileError.data?.message === "Cannot GET /signin" &&
+            profileError.data?.error === "Unauthorized";
 
-      if (isSessionExpired) {
-        console.log(
-          "🔒 [AUTH CONTEXT] Session expired - clearing data and redirecting to login"
-        );
+          if (isSessionExpired) {
+            console.log(
+              "🔒 [AUTH CONTEXT] Session expired - clearing data and redirecting to login"
+            );
 
         // Clear all state
-        setIsAuthenticated(false);
-        setUser(null);
-        setToken(null);
+            setIsAuthenticated(false);
+            setUser(null);
+            setToken(null);
 
-        // Clear all storage
-        await clearStorage();
+            // Clear all storage
+            await clearStorage();
 
-        // Show toast message
-        showError(
-          "Your session has expired. Please log in again.",
-          "Session Expired"
-        );
+            // Show toast message
+            showError(
+              "Your session has expired. Please log in again.",
+              "Session Expired"
+            );
 
         // Navigate to login screen directly
         // Use longer delay to ensure Activity context is ready for Google Sign-In
-        setTimeout(() => {
-          resetToLogin();
+            setTimeout(() => {
+              resetToLogin();
         }, 1000);
 
         return;
-      }
+          }
 
-      // If profile fetch fails but we have stored user, use that
+          // If profile fetch fails but we have stored user, use that
       if (fallbackUser) {
         setUser(fallbackUser);
-        console.log(
-          "⚠️ [AUTH CONTEXT] Using stored user data due to profile fetch error"
-        );
-      } else {
-        // If no stored user and profile fetch fails, sign out
-        console.log(
-          "⚠️ [AUTH CONTEXT] No stored user and profile fetch failed, signing out"
-        );
-        setIsAuthenticated(false);
-        setUser(null);
-        setToken(null);
-        await clearStorage();
-      }
+            console.log(
+              "⚠️ [AUTH CONTEXT] Using stored user data due to profile fetch error"
+            );
+          } else {
+            // If no stored user and profile fetch fails, sign out
+            console.log(
+              "⚠️ [AUTH CONTEXT] No stored user and profile fetch failed, signing out"
+            );
+            setIsAuthenticated(false);
+            setUser(null);
+            setToken(null);
+            await clearStorage();
+          }
     }
   };
 

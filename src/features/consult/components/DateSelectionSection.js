@@ -9,7 +9,7 @@ import {
 import { Colors, Sizes } from "../../../shared/constants";
 import { startOfWeek, addDays, format, isSameDay } from "date-fns";
 
-export default function DateSelectionSection({ selectedDate, onDateSelect }) {
+export default function DateSelectionSection({ selectedDate, onDateSelect, onDateSelectWithObj }) {
   const [dates, setDates] = useState([]);
   const [today, setToday] = useState(new Date());
 
@@ -38,9 +38,16 @@ export default function DateSelectionSection({ selectedDate, onDateSelect }) {
     const todayDate = weekDates.find((d) => d.isToday);
     if (todayDate && !selectedDate) {
       onDateSelect(todayDate.id);
+      if (onDateSelectWithObj) {
+        onDateSelectWithObj(todayDate.fullDate || todayDate.date);
+      }
     } else if (weekDates.length > 0 && !selectedDate) {
       // Select first available date if today is not available
-      onDateSelect(weekDates[0].id);
+      const firstDate = weekDates[0];
+      onDateSelect(firstDate.id);
+      if (onDateSelectWithObj) {
+        onDateSelectWithObj(firstDate.fullDate || firstDate.date);
+      }
     }
   }, []);
 

@@ -40,7 +40,7 @@ export default function UpcomingAppointmentsList({ navigation, refreshKey }) {
           id: appointment.id,
           date: format(appointmentDate, "MMM d, yyyy"),
           time: format(appointmentDate, "h:mm a"),
-          doctor: {
+      doctor: {
             name: appointment.consultant?.fullName || "Dr. Unknown",
             specialty: appointment.consultant?.speciality || "General Practitioner",
             rating: 4.5, // Default rating since not in API

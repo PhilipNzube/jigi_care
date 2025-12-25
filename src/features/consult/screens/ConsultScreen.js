@@ -63,26 +63,26 @@ export default function ConsultScreen({ navigation, route }) {
    */
   const mapConsultantToDoctor = (consultant) => {
     return {
-      id: consultant.id || consultant._id,
-      name: consultant.fullName || consultant.name || "Dr. Unknown",
+          id: consultant.id || consultant._id,
+          name: consultant.fullName || consultant.name || "Dr. Unknown",
       specialty:
         consultant.speciality || consultant.specialty || "General Practitioner",
       rating: consultant.rating || 4.5, // Dummy rating since not in API
-      experience: consultant.yrsOfExperience
-        ? `${consultant.yrsOfExperience}+ years experience`
-        : "Experienced",
-      languages: consultant.languages
+          experience: consultant.yrsOfExperience 
+            ? `${consultant.yrsOfExperience}+ years experience`
+            : "Experienced",
+          languages: consultant.languages 
         ? Array.isArray(consultant.languages)
-          ? consultant.languages.join(", ")
+                ? consultant.languages.join(", ") 
           : consultant.languages
-        : "English",
+            : "English",
       price: consultant.pricePerSession
         ? `₦${consultant.pricePerSession.toLocaleString()}`
         : "Contact for pricing",
       isAvailable: consultant.availability === true,
-      image: consultant.dp || consultant.profileImage || null,
-      // Include full consultant data for navigation
-      consultantData: consultant,
+          image: consultant.dp || consultant.profileImage || null,
+          // Include full consultant data for navigation
+          consultantData: consultant,
     };
   };
 
@@ -114,7 +114,7 @@ export default function ConsultScreen({ navigation, route }) {
         );
         // Only clear doctors if this is not a silent refresh
         if (!silent) {
-          setDoctors([]);
+        setDoctors([]);
         }
       } finally {
         setIsLoadingList(false);

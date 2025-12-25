@@ -19,6 +19,7 @@ import VoiceCallPage from "../../features/consult/screens/VoiceCallPage";
 import VideoCallPage from "../../features/consult/screens/VideoCallPage";
 import ConsultationSummaryPage from "../../features/consult/screens/ConsultationSummaryPage";
 import PaymentMethodScreen from "../../features/payment/screens/PaymentMethodScreen";
+import PaymentWebViewScreen from "../../features/payment/screens/PaymentWebViewScreen";
 import CardPaymentScreen from "../../features/payment/screens/CardPaymentScreen";
 import BankTransferScreen from "../../features/payment/screens/BankTransferScreen";
 import USSDPaymentScreen from "../../features/payment/screens/USSDPaymentScreen";
@@ -163,6 +164,7 @@ export default function MainAppNavigator() {
         component={ConsultationSummaryPage}
       />
       <Stack.Screen name="PaymentMethod" component={PaymentMethodScreen} />
+      <Stack.Screen name="PaymentWebView" component={PaymentWebViewScreen} />
       <Stack.Screen name="CardPayment" component={CardPaymentScreen} />
       <Stack.Screen name="BankTransfer" component={BankTransferScreen} />
       <Stack.Screen name="USSDPayment" component={USSDPaymentScreen} />
