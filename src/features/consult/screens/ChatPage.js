@@ -20,6 +20,7 @@ import { useAuth } from "../../../shared/context/AuthContext";
 import { getConversations, sendMessage } from "../services/chatService";
 import { format, parseISO } from "date-fns";
 import { showError } from "../../../shared/utils/toast";
+import ShimmerLoader from "../../../shared/components/ShimmerLoader";
 
 export default function ChatPage({ navigation, route }) {
   const insets = useSafeAreaInsets();
@@ -83,19 +84,21 @@ export default function ChatPage({ navigation, route }) {
       setIsLoading(true);
       console.log("💬 [CHAT PAGE] Fetching conversations...");
       const response = await getConversations(consultantId, patientId);
-      
+
       // Handle array response
-      const conversations = Array.isArray(response) ? response : (response.data || []);
-      
+      const conversations = Array.isArray(response)
+        ? response
+        : response.data || [];
+
       if (conversations.length > 0) {
         const conversation = conversations[0]; // Get first conversation
         setConversationId(conversation.id);
-        
+
         // Map messages from API to display format
         const mappedMessages = (conversation.messages || []).map((msg) => {
           const messageDate = parseISO(msg.createdAt);
           const isUserMessage = msg.senderType === "patient";
-          
+
           return {
             id: msg.id,
             text: msg.content,
@@ -105,14 +108,14 @@ export default function ChatPage({ navigation, route }) {
             createdAt: msg.createdAt,
           };
         });
-        
+
         // Sort messages by createdAt
         mappedMessages.sort((a, b) => {
           const dateA = new Date(a.createdAt || 0);
           const dateB = new Date(b.createdAt || 0);
           return dateA - dateB;
         });
-        
+
         setMessages(mappedMessages);
         console.log("✅ [CHAT PAGE] Messages loaded:", mappedMessages.length);
       } else {
@@ -157,7 +160,7 @@ export default function ChatPage({ navigation, route }) {
     try {
       setIsSending(true);
       console.log("📤 [CHAT PAGE] Sending message...");
-      
+
       const response = await sendMessage({
         consultantId,
         patientId,
@@ -176,11 +179,14 @@ export default function ChatPage({ navigation, route }) {
           id: response.message.id,
           text: response.message.content,
           sender: "user",
-          time: format(parseISO(response.message.createdAt), "h:mm a").toLowerCase(),
+          time: format(
+            parseISO(response.message.createdAt),
+            "h:mm a"
+          ).toLowerCase(),
           status: response.message.isRead ? "read" : "sent",
           createdAt: response.message.createdAt,
         };
-        
+
         setMessages((prev) => {
           // Remove temp message and add real one
           const filtered = prev.filter((msg) => msg.id !== tempMessage.id);
@@ -190,12 +196,12 @@ export default function ChatPage({ navigation, route }) {
         // If API doesn't return message, keep the temp one but mark it as sent
         setMessages((prev) => prev);
       }
-      
+
       console.log("✅ [CHAT PAGE] Message sent successfully");
     } catch (error) {
       console.error("❌ [CHAT PAGE] Error sending message:", error);
       showError(error.message || "Failed to send message");
-      
+
       // Remove temp message on error
       setMessages((prev) => prev.filter((msg) => msg.id !== tempMessage.id));
       setMessage(messageContent); // Restore message in input
@@ -234,23 +240,26 @@ export default function ChatPage({ navigation, route }) {
             <Text style={styles.doctorName}>
               {doctor?.name || "Dr. Sarah Olukoya"}
             </Text>
-            <Text style={styles.doctorStatus}>Online</Text>
+            {/* Online status - commented out */}
+            {/* <Text style={styles.doctorStatus}>Online</Text> */}
           </View>
         </View>
 
         <View style={styles.headerActions}>
-          <TouchableOpacity
+          {/* Voice call icon - commented out */}
+          {/* <TouchableOpacity
             style={styles.actionButton}
             onPress={handleVoiceCall}
           >
             <Ionicons name="call" size={24} color={Colors.black} />
-          </TouchableOpacity>
-          <TouchableOpacity
+          </TouchableOpacity> */}
+          {/* Video call icon - commented out */}
+          {/* <TouchableOpacity
             style={styles.actionButton}
             onPress={handleVideoCall}
           >
             <Ionicons name="videocam" size={24} color={Colors.black} />
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
       </View>
 
@@ -262,60 +271,84 @@ export default function ChatPage({ navigation, route }) {
       >
         {isLoading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={Colors.primary} />
-            <Text style={styles.loadingText}>Loading messages...</Text>
+            {[1, 2, 3, 4].map((index) => (
+              <ShimmerLoader key={index}>
+                <View
+                  style={[
+                    styles.messageSkeleton,
+                    index % 2 === 0
+                      ? styles.skeletonUserMessage
+                      : styles.skeletonDoctorMessage,
+                  ]}
+                >
+                  <View style={styles.skeletonBubble} />
+                </View>
+              </ShimmerLoader>
+            ))}
           </View>
         ) : messages.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Ionicons name="chatbubbles-outline" size={64} color={Colors.grey} />
+            <Ionicons
+              name="chatbubbles-outline"
+              size={64}
+              color={Colors.grey}
+            />
             <Text style={styles.emptyText}>No messages yet</Text>
-            <Text style={styles.emptySubText}>Start the conversation by sending a message</Text>
+            <Text style={styles.emptySubText}>
+              Start the conversation by sending a message
+            </Text>
           </View>
         ) : (
           messages.map((msg) => (
-          <View
-            key={msg.id}
-            style={[
-              styles.messageContainer,
-              msg.sender === "user" ? styles.userMessage : styles.doctorMessage,
-            ]}
-          >
             <View
+              key={msg.id}
               style={[
-                styles.messageBubble,
-                msg.sender === "user" ? styles.userBubble : styles.doctorBubble,
+                styles.messageContainer,
+                msg.sender === "user"
+                  ? styles.userMessage
+                  : styles.doctorMessage,
               ]}
             >
-              <Text
+              <View
                 style={[
-                  styles.messageText,
-                  msg.sender === "user" ? styles.userText : styles.doctorText,
+                  styles.messageBubble,
+                  msg.sender === "user"
+                    ? styles.userBubble
+                    : styles.doctorBubble,
                 ]}
               >
-                {msg.text}
-              </Text>
-              <View style={styles.messageFooter}>
                 <Text
                   style={[
-                    styles.messageTime,
-                    msg.sender === "user" ? styles.userTime : styles.doctorTime,
+                    styles.messageText,
+                    msg.sender === "user" ? styles.userText : styles.doctorText,
                   ]}
                 >
-                  {msg.time}
+                  {msg.text}
                 </Text>
-                {msg.sender === "user" && (
-                  <Ionicons
-                    name={
-                      msg.status === "read" ? "checkmark-done" : "checkmark"
-                    }
-                    size={16}
-                    color={Colors.white}
-                    style={styles.statusIcon}
-                  />
-                )}
+                <View style={styles.messageFooter}>
+                  <Text
+                    style={[
+                      styles.messageTime,
+                      msg.sender === "user"
+                        ? styles.userTime
+                        : styles.doctorTime,
+                    ]}
+                  >
+                    {msg.time}
+                  </Text>
+                  {msg.sender === "user" && (
+                    <Ionicons
+                      name={
+                        msg.status === "read" ? "checkmark-done" : "checkmark"
+                      }
+                      size={16}
+                      color={Colors.white}
+                      style={styles.statusIcon}
+                    />
+                  )}
+                </View>
               </View>
             </View>
-          </View>
           ))
         )}
       </ScrollView>
@@ -326,9 +359,10 @@ export default function ChatPage({ navigation, route }) {
           { paddingBottom: isKeyboardVisible ? 0 : insets.bottom },
         ]}
       >
-        <TouchableOpacity style={styles.attachButton}>
+        {/* Camera icon - commented out */}
+        {/* <TouchableOpacity style={styles.attachButton}>
           <Ionicons name="camera" size={24} color={Colors.grey} />
-        </TouchableOpacity>
+        </TouchableOpacity> */}
 
         <TextInput
           style={styles.textInput}
@@ -340,7 +374,10 @@ export default function ChatPage({ navigation, route }) {
         />
 
         <TouchableOpacity
-          style={[styles.sendButton, (isSending || !message.trim()) && styles.sendButtonDisabled]}
+          style={[
+            styles.sendButton,
+            (isSending || !message.trim()) && styles.sendButtonDisabled,
+          ]}
           onPress={handleSendMessage}
           disabled={isSending || !message.trim()}
         >
@@ -508,15 +545,23 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingVertical: Sizes.xl,
+    paddingHorizontal: Sizes.md,
+    paddingVertical: Sizes.sm,
   },
-  loadingText: {
-    marginTop: Sizes.md,
-    fontSize: 14,
-    fontFamily: "Poppins-Regular",
-    color: Colors.grey,
+  messageSkeleton: {
+    marginVertical: Sizes.xs,
+  },
+  skeletonUserMessage: {
+    alignItems: "flex-end",
+  },
+  skeletonDoctorMessage: {
+    alignItems: "flex-start",
+  },
+  skeletonBubble: {
+    width: "60%",
+    height: 60,
+    borderRadius: 20,
+    backgroundColor: Colors.lightGray,
   },
   emptyContainer: {
     flex: 1,

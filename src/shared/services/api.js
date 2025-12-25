@@ -55,13 +55,21 @@ const refreshAccessToken = async () => {
       }
 
       const url = `${BASE_URL}/auth/refresh`;
+      const requestHeaders = {
+        "Content-Type": "application/json",
+        "x-client-type": "mobile",
+        "x-refresh-token": refreshToken, // Pass stored refresh token in header
+      };
+
+      console.log("🔄 [REFRESH TOKEN] Making PATCH request to:", url);
+      console.log(
+        "🔄 [REFRESH TOKEN] Sending x-refresh-token in header (last 10 chars):",
+        "***" + refreshToken.slice(-10)
+      );
+
       const response = await fetch(url, {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          "x-client-type": "mobile",
-          "x-refresh-token": refreshToken,
-        },
+        headers: requestHeaders,
       });
 
       const data = await response.json();

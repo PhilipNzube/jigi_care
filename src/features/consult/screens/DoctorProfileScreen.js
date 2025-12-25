@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   StyleSheet,
@@ -9,6 +9,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, Sizes } from "../../../shared/constants";
 import { Images } from "../../../shared/utils/imageUtils";
+import ShimmerLoader from "../../../shared/components/ShimmerLoader";
 
 const { height } = Dimensions.get("window");
 
@@ -22,9 +23,94 @@ import WorkingHoursSection from "../components/WorkingHoursSection";
 import PatientsReviewSection from "../components/PatientsReviewSection";
 import BookNowButton from "../components/BookNowButton";
 
+// Skeleton Components
+function DoctorProfileSkeleton({ insets }) {
+  return (
+    <View style={styles.container}>
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        <ImageBackground
+          source={Images.bgImg}
+          style={[styles.backgroundImage, { paddingTop: insets.top }]}
+          resizeMode="cover"
+        >
+          {/* Header Skeleton */}
+          <ShimmerLoader>
+            <View style={styles.skeletonHeader} />
+          </ShimmerLoader>
+
+          {/* Doctor Card Skeleton */}
+          <ShimmerLoader>
+            <View style={styles.skeletonDoctorCard} />
+          </ShimmerLoader>
+        </ImageBackground>
+
+        {/* Content Skeleton */}
+        <View style={styles.contentWrapper}>
+          <View style={styles.contentContainer}>
+            {/* About Section Skeleton */}
+            <ShimmerLoader>
+              <View style={styles.skeletonSection}>
+                <View style={styles.skeletonTitle} />
+                <View style={styles.skeletonText} />
+                <View style={[styles.skeletonText, { width: "80%" }]} />
+              </View>
+            </ShimmerLoader>
+
+            {/* Education Section Skeleton */}
+            <ShimmerLoader>
+              <View style={styles.skeletonSection}>
+                <View style={styles.skeletonTitle} />
+                <View style={styles.skeletonText} />
+              </View>
+            </ShimmerLoader>
+
+            {/* Certifications Section Skeleton */}
+            <ShimmerLoader>
+              <View style={styles.skeletonSection}>
+                <View style={styles.skeletonTitle} />
+                <View style={styles.skeletonText} />
+              </View>
+            </ShimmerLoader>
+
+            {/* Working Hours Section Skeleton */}
+            <ShimmerLoader>
+              <View style={styles.skeletonSection}>
+                <View style={styles.skeletonTitle} />
+                <View style={styles.skeletonText} />
+              </View>
+            </ShimmerLoader>
+
+            {/* Reviews Section Skeleton */}
+            <ShimmerLoader>
+              <View style={styles.skeletonSection}>
+                <View style={styles.skeletonTitle} />
+                {[1, 2].map((index) => (
+                  <View key={index} style={styles.skeletonReviewCard} />
+                ))}
+              </View>
+            </ShimmerLoader>
+          </View>
+        </View>
+      </ScrollView>
+
+      {/* Book Button Skeleton */}
+      <View style={[styles.bookButtonContainer, { paddingBottom: insets.bottom }]}>
+        <ShimmerLoader>
+          <View style={styles.skeletonButton} />
+        </ShimmerLoader>
+      </View>
+    </View>
+  );
+}
+
 export default function DoctorProfileScreen({ route, navigation }) {
   const insets = useSafeAreaInsets();
   const { doctor } = route.params || {};
+  const [isLoading, setIsLoading] = useState(!doctor);
 
   // Default doctor data if none provided
   const defaultDoctor = {
@@ -40,6 +126,18 @@ export default function DoctorProfileScreen({ route, navigation }) {
 
   const doctorData = doctor || defaultDoctor;
 
+  useEffect(() => {
+    // Simulate loading if doctor data is not immediately available
+    if (!doctor) {
+      const timer = setTimeout(() => {
+        setIsLoading(false);
+      }, 500);
+      return () => clearTimeout(timer);
+    } else {
+      setIsLoading(false);
+    }
+  }, [doctor]);
+
   const handleBackPress = () => {
     navigation.goBack();
   };
@@ -48,6 +146,10 @@ export default function DoctorProfileScreen({ route, navigation }) {
     // Navigate to BookConsultationScreen with doctor data
     navigation.navigate("BookConsultation", { doctor: doctorData });
   };
+
+  if (isLoading) {
+    return <DoctorProfileSkeleton insets={insets} />;
+  }
 
   return (
     <View style={styles.container}>
@@ -129,5 +231,48 @@ const styles = StyleSheet.create({
     backgroundColor: "#F8F8F8",
     paddingHorizontal: Sizes.lg,
     paddingTop: Sizes.md,
+  },
+  // Skeleton styles
+  skeletonHeader: {
+    height: 60,
+    marginHorizontal: Sizes.lg,
+    marginTop: Sizes.md,
+    borderRadius: 8,
+    backgroundColor: Colors.lightGray,
+  },
+  skeletonDoctorCard: {
+    height: 120,
+    marginHorizontal: Sizes.lg,
+    marginTop: Sizes.md,
+    borderRadius: 16,
+    backgroundColor: Colors.lightGray,
+  },
+  skeletonSection: {
+    marginBottom: Sizes.xl,
+  },
+  skeletonTitle: {
+    width: "60%",
+    height: 20,
+    borderRadius: 4,
+    backgroundColor: Colors.lightGray,
+    marginBottom: Sizes.md,
+  },
+  skeletonText: {
+    width: "100%",
+    height: 16,
+    borderRadius: 4,
+    backgroundColor: Colors.lightGray,
+    marginBottom: Sizes.xs,
+  },
+  skeletonReviewCard: {
+    height: 100,
+    borderRadius: 8,
+    backgroundColor: Colors.lightGray,
+    marginBottom: Sizes.md,
+  },
+  skeletonButton: {
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: Colors.lightGray,
   },
 });

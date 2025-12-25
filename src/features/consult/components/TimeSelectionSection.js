@@ -5,10 +5,10 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  ActivityIndicator,
 } from "react-native";
 import { Colors, Sizes } from "../../../shared/constants";
 import { isToday, isPast, setHours, setMinutes } from "date-fns";
+import ShimmerLoader from "../../../shared/components/ShimmerLoader";
 
 export default function TimeSelectionSection({ 
   selectedTime, 
@@ -65,10 +65,17 @@ export default function TimeSelectionSection({
     <View style={styles.container}>
       <Text style={styles.title}>Select Time</Text>
       {isLoadingSlots ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="small" color="#0098B3" />
-          <Text style={styles.loadingText}>Loading available times...</Text>
-        </View>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.timesContainer}
+        >
+          {[1, 2, 3, 4, 5].map((index) => (
+            <ShimmerLoader key={index}>
+              <View style={styles.timeButtonSkeleton} />
+            </ShimmerLoader>
+          ))}
+        </ScrollView>
       ) : availableTimeSlots.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>No available time slots for this date</Text>
@@ -138,17 +145,12 @@ const styles = StyleSheet.create({
   selectedTimeText: {
     color: Colors.white,
   },
-  loadingContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: Sizes.md,
-  },
-  loadingText: {
-    marginLeft: Sizes.sm,
-    fontSize: 14,
-    fontFamily: "Poppins-Regular",
-    color: "#666",
+  timeButtonSkeleton: {
+    width: 80,
+    height: 36,
+    borderRadius: 20,
+    backgroundColor: Colors.lightGray,
+    marginRight: Sizes.sm,
   },
   emptyContainer: {
     paddingVertical: Sizes.md,

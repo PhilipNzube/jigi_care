@@ -16,6 +16,7 @@ import { createBooking, getAvailableSlots } from "../services/bookingService";
 import { initializePayment } from "../../payment/services/paymentService";
 import { showError, showSuccess } from "../../../shared/utils/toast";
 import { format, parseISO, formatISO } from "date-fns";
+import ShimmerLoader from "../../../shared/components/ShimmerLoader";
 
 const { height } = Dimensions.get("window");
 
@@ -27,6 +28,92 @@ import TimeSelectionSection from "../components/TimeSelectionSection";
 import SymptomsInputSection from "../components/SymptomsInputSection";
 import PaymentSummarySection from "../components/PaymentSummarySection";
 import BookConsultationButton from "../components/BookConsultationButton";
+
+// Skeleton Component
+function BookConsultationSkeleton({ insets }) {
+  return (
+    <View style={styles.container}>
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        <ImageBackground
+          source={Images.bgImg}
+          style={[styles.backgroundImage, { paddingTop: insets.top }]}
+          resizeMode="cover"
+        >
+          {/* Header Skeleton */}
+          <ShimmerLoader>
+            <View style={styles.skeletonHeader} />
+          </ShimmerLoader>
+
+          {/* Doctor Card Skeleton */}
+          <ShimmerLoader>
+            <View style={styles.skeletonDoctorCard} />
+          </ShimmerLoader>
+        </ImageBackground>
+
+        {/* Content Skeleton */}
+        <View style={styles.contentWrapper}>
+          <View style={styles.contentContainer}>
+            {/* Date Selection Skeleton */}
+            <View style={styles.skeletonSection}>
+              <ShimmerLoader>
+                <View style={styles.skeletonTitle} />
+              </ShimmerLoader>
+              <View style={styles.skeletonDateRow}>
+                {[1, 2, 3, 4, 5, 6, 7].map((index) => (
+                  <ShimmerLoader key={index}>
+                    <View style={styles.skeletonDateButton} />
+                  </ShimmerLoader>
+                ))}
+              </View>
+            </View>
+
+            {/* Time Selection Skeleton */}
+            <View style={styles.skeletonSection}>
+              <ShimmerLoader>
+                <View style={styles.skeletonTitle} />
+              </ShimmerLoader>
+              <View style={styles.skeletonTimeRow}>
+                {[1, 2, 3, 4, 5].map((index) => (
+                  <ShimmerLoader key={index}>
+                    <View style={styles.skeletonTimeButton} />
+                  </ShimmerLoader>
+                ))}
+              </View>
+            </View>
+
+            {/* Symptoms Input Skeleton */}
+            <ShimmerLoader>
+              <View style={styles.skeletonSection}>
+                <View style={styles.skeletonTitle} />
+                <View style={styles.skeletonInput} />
+              </View>
+            </ShimmerLoader>
+
+            {/* Payment Summary Skeleton */}
+            <ShimmerLoader>
+              <View style={styles.skeletonSection}>
+                <View style={styles.skeletonTitle} />
+                <View style={styles.skeletonPaymentRow} />
+                <View style={styles.skeletonPaymentRow} />
+              </View>
+            </ShimmerLoader>
+          </View>
+        </View>
+      </ScrollView>
+
+      {/* Button Skeleton */}
+      <View style={[styles.bookButtonContainer, { paddingBottom: insets.bottom }]}>
+        <ShimmerLoader>
+          <View style={styles.skeletonButton} />
+        </ShimmerLoader>
+      </View>
+    </View>
+  );
+}
 
 export default function BookConsultationScreen({ navigation, route }) {
   const insets = useSafeAreaInsets();
@@ -47,8 +134,21 @@ export default function BookConsultationScreen({ navigation, route }) {
   const [selectedTime, setSelectedTime] = useState("");
   const [symptoms, setSymptoms] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(!doctor);
   const [availableSlots, setAvailableSlots] = useState([]);
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
+
+  useEffect(() => {
+    // Simulate loading if doctor data is not immediately available
+    if (!doctor) {
+      const timer = setTimeout(() => {
+        setIsInitialLoading(false);
+      }, 500);
+      return () => clearTimeout(timer);
+    } else {
+      setIsInitialLoading(false);
+    }
+  }, [doctor]);
 
   // Validation function
   const isFormValid = () => {
@@ -82,9 +182,12 @@ export default function BookConsultationScreen({ navigation, route }) {
         
         const response = await getAvailableSlots(consultantId, dateForApi);
         
-        if (response.data && response.data.availableSlots) {
-          setAvailableSlots(response.data.availableSlots);
-          console.log("✅ [BOOK CONSULTATION] Available slots:", response.data.availableSlots.length);
+        // Handle response - availableSlots can be directly on response or in response.data
+        const availableSlots = response.availableSlots || response.data?.availableSlots || [];
+        
+        if (availableSlots.length > 0) {
+          setAvailableSlots(availableSlots);
+          console.log("✅ [BOOK CONSULTATION] Available slots:", availableSlots.length);
         } else {
           setAvailableSlots([]);
           console.log("⚠️ [BOOK CONSULTATION] No available slots found");
@@ -219,6 +322,10 @@ export default function BookConsultationScreen({ navigation, route }) {
     }
   };
 
+  if (isInitialLoading) {
+    return <BookConsultationSkeleton insets={insets} />;
+  }
+
   return (
     <View style={styles.container}>
       <ScrollView
@@ -315,5 +422,69 @@ const styles = StyleSheet.create({
     backgroundColor: "#F8F8F8",
     paddingHorizontal: Sizes.lg,
     paddingTop: Sizes.md,
+  },
+  // Skeleton styles
+  skeletonHeader: {
+    height: 60,
+    marginHorizontal: Sizes.lg,
+    marginTop: Sizes.md,
+    borderRadius: 8,
+    backgroundColor: Colors.lightGray,
+  },
+  skeletonDoctorCard: {
+    height: 120,
+    marginHorizontal: Sizes.lg,
+    marginTop: Sizes.md,
+    borderRadius: 16,
+    backgroundColor: Colors.lightGray,
+  },
+  skeletonSection: {
+    marginBottom: Sizes.xl,
+  },
+  skeletonTitle: {
+    width: "50%",
+    height: 20,
+    borderRadius: 4,
+    backgroundColor: Colors.lightGray,
+    marginBottom: Sizes.md,
+  },
+  skeletonDateRow: {
+    flexDirection: "row",
+    gap: Sizes.sm,
+    marginTop: Sizes.sm,
+  },
+  skeletonDateButton: {
+    width: 50,
+    height: 70,
+    borderRadius: 25,
+    backgroundColor: Colors.lightGray,
+  },
+  skeletonTimeRow: {
+    flexDirection: "row",
+    gap: Sizes.sm,
+    marginTop: Sizes.sm,
+  },
+  skeletonTimeButton: {
+    width: 80,
+    height: 36,
+    borderRadius: 20,
+    backgroundColor: Colors.lightGray,
+  },
+  skeletonInput: {
+    height: 100,
+    borderRadius: 8,
+    backgroundColor: Colors.lightGray,
+  },
+  skeletonPaymentRow: {
+    height: 20,
+    borderRadius: 4,
+    backgroundColor: Colors.lightGray,
+    marginBottom: Sizes.xs,
+    width: "70%",
+  },
+  skeletonButton: {
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: Colors.lightGray,
   },
 });

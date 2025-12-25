@@ -17,6 +17,7 @@ export default function PaymentWebViewScreen({ navigation, route }) {
   const { authorizationUrl, reference, callbackUrl } = route.params || {};
   const webViewRef = useRef(null);
   const [isLoading, setIsLoading] = useState(true);
+  const hasVerifiedRef = useRef(false); // Use ref to prevent multiple verifications
   const [hasVerified, setHasVerified] = useState(false);
 
   // Handle Android back button
@@ -40,31 +41,55 @@ export default function PaymentWebViewScreen({ navigation, route }) {
   const handleNavigationStateChange = async (navState) => {
     const { url } = navState;
 
-    if (!url) return;
+    if (!url || hasVerifiedRef.current) {
+      return; // Don't process if already verified
+    }
 
     console.log("🌐 [PAYMENT WEBVIEW] Navigation to:", url);
 
-    // Check if payment was successful (redirected to callback URL or any success indicator)
-    // Paystack redirects to callback URL on success, or we can check for success patterns
-    const isSuccessUrl = callbackUrl 
-      ? url.includes(callbackUrl) 
-      : url.includes("success") || url.includes("callback") || url.includes("verify");
-    
-    if (isSuccessUrl) {
-      console.log("✅ [PAYMENT WEBVIEW] Payment successful, verifying...");
+    // Extract reference from URL if not provided
+    let paymentReference = reference;
+    if (!paymentReference && url) {
+      const referenceMatch = url.match(/[?&](?:reference|trxref)=([^&]+)/);
+      if (referenceMatch) {
+        paymentReference = decodeURIComponent(referenceMatch[1]);
+        console.log("🔍 [PAYMENT WEBVIEW] Extracted reference from URL:", paymentReference);
+      }
+    }
+
+    // Check if payment was successful (redirected to callback URL)
+    // Paystack redirects to callback URL on success
+    const isCallbackUrl = 
+      url.includes("/payments/callback") || 
+      url.includes("callback-test") ||
+      url.includes("callback") ||
+      (callbackUrl && url.includes(callbackUrl)) ||
+      url.includes("success") ||
+      url.includes("verify");
+
+    // Also check for Paystack close URL (3DS completion)
+    const isPaystackClose = url === "https://standard.paystack.co/close" || 
+                           url.includes("standard.paystack.co/close");
+
+    if (isCallbackUrl || isPaystackClose) {
+      console.log("✅ [PAYMENT WEBVIEW] Callback detected, verifying payment...");
       
-      if (!hasVerified && reference) {
+      if (!hasVerifiedRef.current && paymentReference) {
+        hasVerifiedRef.current = true; // Set immediately to prevent multiple calls
         setHasVerified(true);
         setIsLoading(true);
         
         try {
-          const verificationResult = await verifyPayment(reference);
+          console.log("🔍 [PAYMENT WEBVIEW] Verifying payment with reference:", paymentReference);
+          const verificationResult = await verifyPayment(paymentReference);
+          
+          console.log("📋 [PAYMENT WEBVIEW] Verification result:", JSON.stringify(verificationResult, null, 2));
           
           if (verificationResult.success && verificationResult.data?.status === "success") {
             console.log("✅ [PAYMENT WEBVIEW] Payment verified successfully!");
             showSuccess("Payment successful!");
             
-            // Navigate back to consult screen
+            // Close WebView and navigate back to consult screen
             setTimeout(() => {
               navigation.reset({
                 index: 0,
@@ -75,24 +100,29 @@ export default function PaymentWebViewScreen({ navigation, route }) {
                   },
                 ],
               });
-            }, 1000);
+            }, 1500);
           } else {
+            console.warn("⚠️ [PAYMENT WEBVIEW] Payment verification returned non-success status");
             throw new Error("Payment verification failed");
           }
         } catch (error) {
           console.error("❌ [PAYMENT WEBVIEW] Payment verification error:", error);
-          showError("Payment verification failed. Please contact support.");
-          navigation.goBack();
+          showError(error.message || "Payment verification failed. Please contact support.");
+          
+          // Still close the WebView even if verification fails
+          setTimeout(() => {
+            navigation.goBack();
+          }, 2000);
         } finally {
           setIsLoading(false);
         }
+      } else if (!paymentReference) {
+        console.warn("⚠️ [PAYMENT WEBVIEW] No reference available for verification");
+        showError("Payment reference missing. Please contact support.");
+        setTimeout(() => {
+          navigation.goBack();
+        }, 2000);
       }
-    }
-
-    // Handle 3DS close redirect
-    if (url === "https://standard.paystack.co/close") {
-      console.log("🔄 [PAYMENT WEBVIEW] 3DS close detected, continuing...");
-      // Continue processing - the callback URL should be hit next
     }
   };
 

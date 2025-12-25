@@ -1,13 +1,16 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   StyleSheet,
   ScrollView,
   ImageBackground,
   Dimensions,
+  RefreshControl,
 } from "react-native";
-import { Sizes } from "../../../shared/constants";
+import { Sizes, Colors } from "../../../shared/constants";
 import { Images } from "../../../shared/utils/imageUtils";
+import { connectNotificationStream } from "../services/notificationService";
+import ShimmerLoader from "../../../shared/components/ShimmerLoader";
 
 // Import components
 import NotificationsHeader from "../components/NotificationsHeader";
@@ -16,57 +19,105 @@ import EmptyNotificationsState from "../components/EmptyNotificationsState";
 
 const { width, height } = Dimensions.get("window");
 
-export default function NotificationsScreen({ navigation }) {
-  const [hasNotifications, setHasNotifications] = useState(true);
+/**
+ * Map API notification to UI format
+ */
+const mapNotificationToUI = (apiNotification) => {
+  // Determine icon based on category
+  let iconImage = Images.consult; // Default
+  let action = "View";
 
-  const notifications = [
-    {
-      id: 1,
-      iconImage: Images.consult,
-      title: "Consultation Reminder",
-      description: "Your consultation with Dr. Benson starts in 10 mins.",
-      action: "Join Now",
-    },
-    {
-      id: 2,
-      iconImage: Images.healthMonitoring,
-      title: "Health Tips & Articles",
-      description: "New Article: Managing stress for better sleep.",
-      action: "Read Now",
-    },
-    {
-      id: 3,
-      iconImage: Images.labTest,
-      title: "Lab Test Update",
-      description: "Your blood test results are now available.",
-      action: "View Results",
-    },
-    {
-      id: 4,
-      iconImage: Images.healthMonitoring,
-      title: "Health Tips & Articles",
-      description: "New Article: Managing stress for better sleep.",
-      action: "Read Now",
-    },
-    {
-      id: 5,
-      iconImage: Images.medications,
-      title: "Medicine Reminder",
-      description: "Time to your 8 AM medicine.",
-      action: "Mark as Taken",
-    },
-    {
-      id: 6,
-      iconImage: Images.consult,
-      title: "Consultation Reminder",
-      description: "Your consultation with Dr. Benson starts in 30 mins.",
-      action: "Join Now",
-    },
-  ];
+  if (apiNotification.category === "booking") {
+    iconImage = Images.consult;
+    action = "View Booking";
+  } else if (apiNotification.category === "order") {
+    iconImage = Images.medications;
+    action = "View Order";
+  }
+
+  return {
+    id: apiNotification.id,
+    iconImage: iconImage,
+    title: apiNotification.title || "Notification",
+    description: apiNotification.message || "",
+    action: action,
+    status: apiNotification.status,
+    category: apiNotification.category,
+    createdAt: apiNotification.createdAt,
+    originalData: apiNotification, // Keep original for actions
+  };
+};
+
+export default function NotificationsScreen({ navigation }) {
+  const [notifications, setNotifications] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const cleanupRef = useRef(null);
+
+  useEffect(() => {
+    let hasReceivedData = false;
+
+    // Connect to notification stream
+    const cleanup = connectNotificationStream(
+      (data) => {
+        console.log("🔔 [NOTIFICATIONS SCREEN] Received notification data:", data);
+        
+        if (data && data.notifications && Array.isArray(data.notifications)) {
+          // Map API notifications to UI format
+          const mappedNotifications = data.notifications.map(mapNotificationToUI);
+          
+          // Sort by createdAt (newest first)
+          mappedNotifications.sort((a, b) => {
+            const dateA = new Date(a.createdAt || 0);
+            const dateB = new Date(b.createdAt || 0);
+            return dateB - dateA;
+          });
+          
+          setNotifications(mappedNotifications);
+          
+          // Only set loading to false once we've received data
+          if (!hasReceivedData) {
+            hasReceivedData = true;
+            setIsLoading(false);
+          }
+          setRefreshing(false);
+        }
+      },
+      (error) => {
+        console.error("❌ [NOTIFICATIONS SCREEN] Notification stream error:", error);
+        setIsLoading(false);
+        setRefreshing(false);
+      }
+    );
+
+    cleanupRef.current = cleanup;
+
+    return () => {
+      if (cleanupRef.current) {
+        cleanupRef.current();
+      }
+    };
+  }, []);
+
+  const onRefresh = React.useCallback(async () => {
+    setRefreshing(true);
+    // The stream will automatically send updated data
+    // We just need to wait for it
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 2000);
+  }, []);
 
   const handleNotificationAction = (notification) => {
     console.log("Notification action pressed:", notification.action);
-    // Handle different notification actions here
+    // Handle different notification actions based on category
+    if (notification.category === "booking") {
+      // Navigate to booking details or consult screen
+      navigation.navigate("BottomTabs", { screen: "Consult" });
+    } else if (notification.category === "order") {
+      // Navigate to order details
+      navigation.navigate("BottomTabs", { screen: "Medication" });
+    }
   };
 
   return (
@@ -84,8 +135,29 @@ export default function NotificationsScreen({ navigation }) {
           style={styles.content}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.contentContainer}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
         >
-          {hasNotifications ? (
+          {isLoading ? (
+            <View style={styles.loadingContainer}>
+              {[1, 2, 3, 4, 5].map((index) => (
+                <ShimmerLoader key={index}>
+                  <View style={styles.notificationSkeleton}>
+                    <View style={styles.skeletonContent}>
+                      <View style={styles.skeletonIcon} />
+                      <View style={styles.skeletonTextContainer}>
+                        <View style={styles.skeletonTitle} />
+                        <View style={styles.skeletonDescription} />
+                      </View>
+                      <View style={styles.skeletonActionButton} />
+                    </View>
+                    {index < 5 && <View style={styles.skeletonDivider} />}
+                  </View>
+                </ShimmerLoader>
+              ))}
+            </View>
+          ) : notifications.length > 0 ? (
             <NotificationsList
               notifications={notifications}
               onNotificationAction={handleNotificationAction}
@@ -115,5 +187,55 @@ const styles = StyleSheet.create({
   contentContainer: {
     paddingHorizontal: Sizes.lg,
     paddingBottom: Sizes.xl,
+  },
+  loadingContainer: {
+    backgroundColor: "#FFFFFF14",
+    borderRadius: 16,
+    padding: Sizes.lg,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.2)",
+  },
+  notificationSkeleton: {
+    paddingVertical: Sizes.sm,
+  },
+  skeletonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  skeletonIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 24,
+    backgroundColor: Colors.lightGray,
+    marginRight: Sizes.md,
+  },
+  skeletonTextContainer: {
+    flex: 1,
+    marginRight: Sizes.sm,
+  },
+  skeletonTitle: {
+    width: "70%",
+    height: 16,
+    borderRadius: 4,
+    backgroundColor: Colors.lightGray,
+    marginBottom: Sizes.xs,
+  },
+  skeletonDescription: {
+    width: "90%",
+    height: 14,
+    borderRadius: 4,
+    backgroundColor: Colors.lightGray,
+  },
+  skeletonActionButton: {
+    width: 80,
+    height: 32,
+    borderRadius: 20,
+    backgroundColor: Colors.lightGray,
+  },
+  skeletonDivider: {
+    height: 1,
+    backgroundColor: "#FFFFFF40",
+    marginTop: Sizes.sm,
+    marginHorizontal: Sizes.sm,
   },
 });
