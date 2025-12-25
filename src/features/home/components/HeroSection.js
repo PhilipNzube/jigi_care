@@ -156,7 +156,7 @@ export default function HeroSection({ insets, navigation }) {
               <View style={styles.slideContent}>
                 <Text style={styles.slideTitle}>{slide.title}</Text>
                 <Text style={styles.slideSubtitle}>{slide.subtitle}</Text>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.bookButton}
                   onPress={() => handleButtonPress(slide.buttonText)}
                 >
@@ -218,7 +218,7 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.2,
     shadowRadius: 24,
-    elevation: 1,
+    elevation: 0,
   },
   header: {
     flexDirection: "row",
@@ -297,7 +297,7 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.2,
     shadowRadius: 24,
-    elevation: 1,
+    elevation: 0,
   },
   slideTitle: {
     fontSize: 15,

@@ -1,5 +1,11 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { View, Text, StyleSheet, ScrollView, RefreshControl } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  RefreshControl,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { Colors, Sizes } from "../../../shared/constants";
@@ -38,9 +44,14 @@ const mapPrescriptionToUI = (apiPrescription) => {
   // Determine status based on pills remaining or API status
   let status = "Active";
   let statusColor = "#0098B314"; // Light blue for active
-  
-  const pillsRemaining = apiPrescription.pillsRemaining || apiPrescription.remainingQuantity || 0;
-  const totalPills = apiPrescription.totalPills || apiPrescription.totalQuantity || apiPrescription.quantity || 30;
+
+  const pillsRemaining =
+    apiPrescription.pillsRemaining || apiPrescription.remainingQuantity || 0;
+  const totalPills =
+    apiPrescription.totalPills ||
+    apiPrescription.totalQuantity ||
+    apiPrescription.quantity ||
+    30;
   const percentage = totalPills > 0 ? (pillsRemaining / totalPills) * 100 : 0;
 
   if (pillsRemaining === 0) {
@@ -52,15 +63,17 @@ const mapPrescriptionToUI = (apiPrescription) => {
   }
 
   // Format dosage
-  const dosage = apiPrescription.dosage || 
-                 `${apiPrescription.dose || ""}${apiPrescription.doseUnit || ""} • ${apiPrescription.frequency || "As prescribed"}` ||
-                 "As prescribed";
+  const dosage =
+    apiPrescription.dosage ||
+    `${apiPrescription.dose || ""}${apiPrescription.doseUnit || ""} • ${apiPrescription.frequency || "As prescribed"}` ||
+    "As prescribed";
 
   // Format doctor name
-  const doctor = apiPrescription.doctor?.fullName || 
-                 apiPrescription.consultant?.fullName ||
-                 apiPrescription.prescribedBy ||
-                 "Dr. Unknown";
+  const doctor =
+    apiPrescription.doctor?.fullName ||
+    apiPrescription.consultant?.fullName ||
+    apiPrescription.prescribedBy ||
+    "Dr. Unknown";
 
   // Format refill date
   let refillDate = "No refills available";
@@ -72,7 +85,10 @@ const mapPrescriptionToUI = (apiPrescription) => {
     }
   } else if (apiPrescription.nextRefillDate) {
     try {
-      refillDate = format(parseISO(apiPrescription.nextRefillDate), "MMM d, yyyy");
+      refillDate = format(
+        parseISO(apiPrescription.nextRefillDate),
+        "MMM d, yyyy"
+      );
     } catch (error) {
       refillDate = apiPrescription.nextRefillDate;
     }
@@ -80,7 +96,11 @@ const mapPrescriptionToUI = (apiPrescription) => {
 
   return {
     id: apiPrescription.id || apiPrescription._id,
-    name: apiPrescription.medicationName || apiPrescription.name || apiPrescription.medication || "Unknown Medication",
+    name:
+      apiPrescription.medicationName ||
+      apiPrescription.name ||
+      apiPrescription.medication ||
+      "Unknown Medication",
     dosage: dosage,
     doctor: doctor,
     status: status,
@@ -100,16 +120,22 @@ export default function PrescriptionsTab({ navigation }) {
     if (!silent) {
       setIsLoading(true);
     }
-    
+
     try {
       console.log("💊 [PRESCRIPTIONS TAB] Fetching prescriptions...");
       const result = await getPrescriptions();
-      
+
       const mappedPrescriptions = (result.data || []).map(mapPrescriptionToUI);
       setPrescriptions(mappedPrescriptions);
-      console.log("✅ [PRESCRIPTIONS TAB] Prescriptions loaded:", mappedPrescriptions.length);
+      console.log(
+        "✅ [PRESCRIPTIONS TAB] Prescriptions loaded:",
+        mappedPrescriptions.length
+      );
     } catch (error) {
-      console.error("❌ [PRESCRIPTIONS TAB] Error fetching prescriptions:", error);
+      console.error(
+        "❌ [PRESCRIPTIONS TAB] Error fetching prescriptions:",
+        error
+      );
       setPrescriptions([]);
     } finally {
       setIsLoading(false);
@@ -149,7 +175,7 @@ export default function PrescriptionsTab({ navigation }) {
         }
       >
         <Text style={styles.sectionTitle}>Current Prescriptions</Text>
-        
+
         {isLoading ? (
           <View>
             {[1, 2, 3].map((index) => (
@@ -161,12 +187,16 @@ export default function PrescriptionsTab({ navigation }) {
             <Ionicons name="medical-outline" size={64} color={Colors.grey} />
             <Text style={styles.emptyTitle}>No Prescriptions</Text>
             <Text style={styles.emptyText}>
-              You don't have any active prescriptions yet. Your prescriptions will appear here once they are prescribed by a doctor.
+              You don't have any active prescriptions yet. Your prescriptions
+              will appear here once they are prescribed by a doctor.
             </Text>
           </View>
         ) : (
           prescriptions.map((prescription) => (
-            <PrescriptionCard key={prescription.id} prescription={prescription} />
+            <PrescriptionCard
+              key={prescription.id}
+              prescription={prescription}
+            />
           ))
         )}
       </ScrollView>
@@ -280,7 +310,3 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
 });
-
-
-
-

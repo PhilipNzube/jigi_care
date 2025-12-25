@@ -138,11 +138,11 @@ export default function PatientsReviewSection({ doctor }) {
               </View>
             </View>
             {review.timeAgo && (
-              <Text style={styles.timeAgo}>{review.timeAgo}</Text>
+            <Text style={styles.timeAgo}>{review.timeAgo}</Text>
             )}
           </View>
           {review.review && (
-            <Text style={styles.reviewText}>{review.review}</Text>
+          <Text style={styles.reviewText}>{review.review}</Text>
           )}
           {index < reviews.length - 1 && <View style={styles.divider} />}
         </View>

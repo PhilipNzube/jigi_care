@@ -98,18 +98,18 @@ export default function DateSelectionSection({ selectedDate, onDateSelect, onDat
           const isDisabled = date.isPast;
           
           return (
-            <TouchableOpacity
-              key={date.id}
+          <TouchableOpacity
+            key={date.id}
               ref={(ref) => {
                 if (ref) {
                   dateRefs.current[date.id] = ref;
                 }
               }}
-              style={[
-                styles.dateButton,
-                selectedDate === date.id && styles.selectedDateButton,
+            style={[
+              styles.dateButton,
+              selectedDate === date.id && styles.selectedDateButton,
                 isDisabled && styles.disabledDateButton,
-              ]}
+            ]}
               onPress={() => {
                 if (!isDisabled) {
                   onDateSelect(date.id);
@@ -132,34 +132,34 @@ export default function DateSelectionSection({ selectedDate, onDateSelect, onDat
                 }
               }}
               disabled={isDisabled}
+          >
+            <Text
+              style={[
+                styles.dayNameText,
+                selectedDate === date.id && styles.selectedDateText,
+                  isDisabled && styles.disabledText,
+              ]}
+            >
+              {date.dayName}
+            </Text>
+            <View
+              style={[
+                styles.dayNumberContainer,
+                selectedDate === date.id && styles.selectedDayNumberContainer,
+                  isDisabled && styles.disabledDayNumberContainer,
+              ]}
             >
               <Text
                 style={[
-                  styles.dayNameText,
+                  styles.dayNumberText,
                   selectedDate === date.id && styles.selectedDateText,
-                  isDisabled && styles.disabledText,
-                ]}
-              >
-                {date.dayName}
-              </Text>
-              <View
-                style={[
-                  styles.dayNumberContainer,
-                  selectedDate === date.id && styles.selectedDayNumberContainer,
-                  isDisabled && styles.disabledDayNumberContainer,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.dayNumberText,
-                    selectedDate === date.id && styles.selectedDateText,
                     isDisabled && styles.disabledText,
-                  ]}
-                >
-                  {date.dayNumber}
-                </Text>
-              </View>
-            </TouchableOpacity>
+                ]}
+              >
+                {date.dayNumber}
+              </Text>
+            </View>
+          </TouchableOpacity>
           );
         })}
       </ScrollView>
