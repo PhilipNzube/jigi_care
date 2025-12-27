@@ -54,17 +54,76 @@ const refreshAccessToken = async () => {
         throw new Error("No refresh token available");
       }
 
+      // Trim any whitespace that might have been accidentally stored
+      let trimmedToken = refreshToken.trim();
+
+      // Remove quotes if token was accidentally stored with quotes
+      if (
+        (trimmedToken.startsWith('"') && trimmedToken.endsWith('"')) ||
+        (trimmedToken.startsWith("'") && trimmedToken.endsWith("'"))
+      ) {
+        console.warn("⚠️ [REFRESH TOKEN] Token has quotes, removing them...");
+        trimmedToken = trimmedToken.slice(1, -1).trim();
+      }
+
+      // Validate token format (should be a JWT with 3 parts)
+      if (!trimmedToken || trimmedToken.length < 10) {
+        console.error("❌ [REFRESH TOKEN] Invalid token format - too short");
+        console.error("❌ [REFRESH TOKEN] Token length:", trimmedToken.length);
+        throw new Error("Invalid refresh token format");
+      }
+
+      // Check if it looks like a JWT (has 3 parts separated by dots)
+      const tokenParts = trimmedToken.split(".");
+      if (tokenParts.length !== 3) {
+        console.error(
+          "❌ [REFRESH TOKEN] Invalid JWT format - should have 3 parts"
+        );
+        console.error(
+          "❌ [REFRESH TOKEN] Token parts count:",
+          tokenParts.length
+        );
+        console.error(
+          "❌ [REFRESH TOKEN] Token preview:",
+          trimmedToken.substring(0, 50) + "..."
+        );
+        throw new Error("Invalid refresh token format - not a valid JWT");
+      }
+
       const url = `${BASE_URL}/auth/refresh`;
       const requestHeaders = {
         "Content-Type": "application/json",
         "x-client-type": "mobile",
-        "x-refresh-token": refreshToken, // Pass stored refresh token in header
+        "x-refresh-token": trimmedToken, // Pass stored refresh token in header (trimmed and validated)
       };
 
       console.log("🔄 [REFRESH TOKEN] Making PATCH request to:", url);
+      console.log("🔄 [REFRESH TOKEN] Token length:", trimmedToken.length);
+      console.log("🔄 [REFRESH TOKEN] FULL REFRESH TOKEN:", trimmedToken);
       console.log(
-        "🔄 [REFRESH TOKEN] Sending x-refresh-token in header (last 10 chars):",
-        "***" + refreshToken.slice(-10)
+        "🔄 [REFRESH TOKEN] Token first 30 chars:",
+        trimmedToken.substring(0, 30) + "..."
+      );
+      console.log(
+        "🔄 [REFRESH TOKEN] Token last 30 chars:",
+        "..." + trimmedToken.slice(-30)
+      );
+      console.log(
+        "🔄 [REFRESH TOKEN] Header 'x-refresh-token' exists:",
+        !!requestHeaders["x-refresh-token"]
+      );
+      console.log(
+        "🔄 [REFRESH TOKEN] Header 'x-refresh-token' length:",
+        requestHeaders["x-refresh-token"].length
+      );
+      console.log(
+        "🔄 [REFRESH TOKEN] Header 'x-refresh-token' FULL VALUE:",
+        requestHeaders["x-refresh-token"]
+      );
+      // Log headers with full token for debugging
+      console.log(
+        "🔄 [REFRESH TOKEN] Full headers being sent:",
+        JSON.stringify(requestHeaders, null, 2)
       );
 
       const response = await fetch(url, {

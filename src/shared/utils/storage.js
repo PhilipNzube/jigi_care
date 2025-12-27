@@ -21,9 +21,25 @@ const STORAGE_KEYS = {
  */
 export const storeToken = async (token) => {
   try {
-    await AsyncStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, token);
+    // Trim token to remove any accidental whitespace
+    const trimmedToken = token ? token.trim() : token;
+    
+    // Remove quotes if accidentally included
+    let cleanToken = trimmedToken;
+    if (trimmedToken && 
+        ((trimmedToken.startsWith('"') && trimmedToken.endsWith('"')) ||
+         (trimmedToken.startsWith("'") && trimmedToken.endsWith("'")))) {
+      cleanToken = trimmedToken.slice(1, -1).trim();
+      console.log("⚠️ [STORAGE] Removed quotes from access token before storing");
+    }
+    
+    if (!cleanToken) {
+      throw new Error("Cannot store empty access token");
+    }
+    
+    await AsyncStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, cleanToken);
   } catch (error) {
-    console.error("Error storing token:", error);
+    console.error("❌ [STORAGE] Error storing token:", error);
     throw error;
   }
 };
@@ -151,9 +167,26 @@ export const clearStorage = async () => {
  */
 export const storeRefreshToken = async (token) => {
   try {
-    await AsyncStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, token);
+    // Trim token to remove any accidental whitespace
+    const trimmedToken = token ? token.trim() : token;
+    
+    // Remove quotes if accidentally included
+    let cleanToken = trimmedToken;
+    if (trimmedToken && 
+        ((trimmedToken.startsWith('"') && trimmedToken.endsWith('"')) ||
+         (trimmedToken.startsWith("'") && trimmedToken.endsWith("'")))) {
+      cleanToken = trimmedToken.slice(1, -1).trim();
+      console.log("⚠️ [STORAGE] Removed quotes from refresh token before storing");
+    }
+    
+    if (!cleanToken) {
+      throw new Error("Cannot store empty refresh token");
+    }
+    
+    await AsyncStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, cleanToken);
+    console.log("✅ [STORAGE] Refresh token stored successfully (length:", cleanToken.length + ")");
   } catch (error) {
-    console.error("Error storing refresh token:", error);
+    console.error("❌ [STORAGE] Error storing refresh token:", error);
     throw error;
   }
 };
