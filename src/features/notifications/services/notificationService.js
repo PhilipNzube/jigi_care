@@ -4,11 +4,44 @@
  */
 
 import { getToken } from "../../../shared/utils/storage";
+import { post } from "../../../shared/services/api";
 
 const BASE_URL = "https://jiggy-care.onrender.com/api/v1";
 
 /**
+ * Get all notifications
+ * @returns {Promise<Array>} - Array of notifications
+ */
+export const getAllNotifications = async () => {
+  try {
+    console.log("🔔 [NOTIFICATION SERVICE] Fetching all notifications...");
+    const response = await post("/notification/all", {});
+
+    if (response && response.data && Array.isArray(response.data)) {
+      console.log(
+        "✅ [NOTIFICATION SERVICE] Fetched notifications:",
+        response.data.length
+      );
+      return response.data;
+    }
+
+    console.warn(
+      "⚠️ [NOTIFICATION SERVICE] Unexpected response format:",
+      response
+    );
+    return [];
+  } catch (error) {
+    console.error(
+      "❌ [NOTIFICATION SERVICE] Error fetching notifications:",
+      error
+    );
+    throw error;
+  }
+};
+
+/**
  * Connect to notification stream using Server-Sent Events
+ * COMMENTED OUT - May be useful later for real-time updates
  * @param {function} onNotification - Callback when notification is received
  * @param {function} onError - Callback when error occurs
  * @returns {function} - Function to close the connection
@@ -182,4 +215,5 @@ export const connectNotificationStream = (onNotification, onError) => {
 
 export default {
   connectNotificationStream,
+  getAllNotifications,
 };

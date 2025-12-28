@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   StyleSheet,
@@ -9,7 +9,8 @@ import {
 } from "react-native";
 import { Sizes, Colors } from "../../../shared/constants";
 import { Images } from "../../../shared/utils/imageUtils";
-import { connectNotificationStream } from "../services/notificationService";
+// import { connectNotificationStream } from "../services/notificationService"; // Commented out - may be useful later
+import { getAllNotifications } from "../services/notificationService";
 import ShimmerLoader from "../../../shared/components/ShimmerLoader";
 
 // Import components
@@ -52,76 +53,115 @@ export default function NotificationsScreen({ navigation }) {
   const [notifications, setNotifications] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const cleanupRef = useRef(null);
+
+  // COMMENTED OUT - Stream API may be useful later for real-time updates
+  // const cleanupRef = useRef(null);
+
+  const fetchNotifications = React.useCallback(async (silent = false) => {
+    if (!silent) {
+      setIsLoading(true);
+    }
+
+    try {
+      console.log("🔔 [NOTIFICATIONS SCREEN] Fetching notifications...");
+      const notificationsData = await getAllNotifications();
+
+      // Map API notifications to UI format
+      const mappedNotifications = notificationsData.map(mapNotificationToUI);
+
+      // Sort by createdAt (newest first)
+      mappedNotifications.sort((a, b) => {
+        const dateA = new Date(a.createdAt || 0);
+        const dateB = new Date(b.createdAt || 0);
+        return dateB - dateA;
+      });
+
+      setNotifications(mappedNotifications);
+      console.log(
+        "✅ [NOTIFICATIONS SCREEN] Notifications loaded:",
+        mappedNotifications.length
+      );
+    } catch (error) {
+      console.error(
+        "❌ [NOTIFICATIONS SCREEN] Error fetching notifications:",
+        error
+      );
+      setNotifications([]);
+    } finally {
+      setIsLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
 
   useEffect(() => {
-    let hasReceivedData = false;
+    fetchNotifications();
+  }, [fetchNotifications]);
 
-    // Connect to notification stream
-    const cleanup = connectNotificationStream(
-      (data) => {
-        console.log(
-          "🔔 [NOTIFICATIONS SCREEN] Received notification data:",
-          data
-        );
+  // COMMENTED OUT - Stream API implementation
+  // useEffect(() => {
+  //   let hasReceivedData = false;
 
-        if (data && data.notifications && Array.isArray(data.notifications)) {
-          // Map API notifications to UI format
-          const mappedNotifications =
-            data.notifications.map(mapNotificationToUI);
+  //   // Connect to notification stream
+  //   const cleanup = connectNotificationStream(
+  //     (data) => {
+  //       console.log(
+  //         "🔔 [NOTIFICATIONS SCREEN] Received notification data:",
+  //         data
+  //       );
 
-          // Sort by createdAt (newest first)
-          mappedNotifications.sort((a, b) => {
-            const dateA = new Date(a.createdAt || 0);
-            const dateB = new Date(b.createdAt || 0);
-            return dateB - dateA;
-          });
+  //       if (data && data.notifications && Array.isArray(data.notifications)) {
+  //         // Map API notifications to UI format
+  //         const mappedNotifications =
+  //           data.notifications.map(mapNotificationToUI);
 
-          setNotifications(mappedNotifications);
+  //         // Sort by createdAt (newest first)
+  //         mappedNotifications.sort((a, b) => {
+  //           const dateA = new Date(a.createdAt || 0);
+  //           const dateB = new Date(b.createdAt || 0);
+  //           return dateB - dateA;
+  //         });
 
-          // Only set loading to false once we've received data
-          if (!hasReceivedData) {
-            hasReceivedData = true;
-            setIsLoading(false);
-          }
-          setRefreshing(false);
-        }
-      },
-      (error) => {
-        console.error(
-          "❌ [NOTIFICATIONS SCREEN] Notification stream error:",
-          error
-        );
-        setIsLoading(false);
-        setRefreshing(false);
-      }
-    );
+  //         setNotifications(mappedNotifications);
 
-    cleanupRef.current = cleanup;
+  //         // Only set loading to false once we've received data
+  //         if (!hasReceivedData) {
+  //           hasReceivedData = true;
+  //           setIsLoading(false);
+  //         }
+  //         setRefreshing(false);
+  //       }
+  //     },
+  //     (error) => {
+  //       console.error(
+  //         "❌ [NOTIFICATIONS SCREEN] Notification stream error:",
+  //         error
+  //       );
+  //       setIsLoading(false);
+  //       setRefreshing(false);
+  //     }
+  //   );
 
-    return () => {
-      if (cleanupRef.current && typeof cleanupRef.current === "function") {
-        try {
-          cleanupRef.current();
-        } catch (error) {
-          console.error(
-            "❌ [NOTIFICATIONS SCREEN] Error during cleanup:",
-            error
-          );
-        }
-      }
-      cleanupRef.current = null;
-    };
-  }, []);
+  //   cleanupRef.current = cleanup;
+
+  //   return () => {
+  //     if (cleanupRef.current && typeof cleanupRef.current === "function") {
+  //       try {
+  //         cleanupRef.current();
+  //       } catch (error) {
+  //         console.error(
+  //           "❌ [NOTIFICATIONS SCREEN] Error during cleanup:",
+  //           error
+  //         );
+  //       }
+  //     }
+  //     cleanupRef.current = null;
+  //   };
+  // }, []);
 
   const onRefresh = React.useCallback(async () => {
     setRefreshing(true);
-    // The stream will automatically send updated data
-    // We just need to wait for it
-    setTimeout(() => {
-      setRefreshing(false);
-    }, 2000);
-  }, []);
+    await fetchNotifications(true);
+  }, [fetchNotifications]);
 
   const handleNotificationAction = (notification) => {
     console.log("Notification action pressed:", notification.action);

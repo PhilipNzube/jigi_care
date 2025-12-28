@@ -26,12 +26,13 @@ export default function NotificationCard({
             {notification.description}
           </Text>
         </View>
-        <TouchableOpacity
+        {/* Commented out - buttons may be useful later */}
+        {/* <TouchableOpacity
           style={styles.actionButton}
           onPress={() => onActionPress(notification)}
         >
           <Text style={styles.actionButtonText}>{notification.action}</Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
       </View>
       {!isLast && <View style={styles.divider} />}
     </View>
@@ -61,7 +62,8 @@ const styles = StyleSheet.create({
   },
   notificationTitleContainer: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
+    flex: 1,
   },
   notificationText: {
     flex: 1,
@@ -72,6 +74,8 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins-Bold",
     color: Colors.white,
     marginBottom: Sizes.xs,
+    flex: 1,
+    flexWrap: "wrap",
   },
   notificationDescription: {
     fontSize: 14,
