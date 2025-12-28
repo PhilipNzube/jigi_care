@@ -26,7 +26,7 @@ export default function OrderDetailsModal({ visible, onClose, order }) {
         return "#FF9800"; // Orange
       case "processing":
       case "pending":
-        return "#2196F3"; // Blue
+        return "#0098B3"; // Blue
       case "cancelled":
         return "#F44336"; // Red
       default:

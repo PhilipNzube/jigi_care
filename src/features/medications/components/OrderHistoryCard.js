@@ -5,13 +5,15 @@ import { Colors, Sizes } from "../../../shared/constants";
 
 export default function OrderHistoryCard({ order, navigation, onViewDetails }) {
   const getStatusTextColor = (status) => {
-    switch (status.toLowerCase()) {
+    switch (status?.toLowerCase()) {
       case "delivered":
         return "#4CAF50"; // Green
       case "in transit":
+      case "shipped":
         return "#FF9800"; // Orange
       case "processing":
-        return "#2196F3"; // Blue
+      case "pending":
+        return "#0098B3"; // Blue
       case "cancelled":
         return "#F44336"; // Red
       default:
