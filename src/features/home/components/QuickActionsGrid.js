@@ -69,7 +69,13 @@ export default function QuickActionsGrid({ navigation }) {
 
   return (
     <View style={styles.quickActionsSection}>
-      <Text style={styles.sectionTitle}>Quick actions</Text>
+      <Text 
+        style={styles.sectionTitle}
+        includeFontPadding={false}
+        textAlignVertical="center"
+      >
+        Quick actions
+      </Text>
       <View style={styles.quickActionsGrid}>
         {quickActions.map((action) => (
           <TouchableOpacity
@@ -80,8 +86,24 @@ export default function QuickActionsGrid({ navigation }) {
             <View style={styles.actionImageContainer}>
               <Image source={action.image} style={styles.actionImage} />
             </View>
-            <Text style={styles.actionTitle}>{action.title}</Text>
-            <Text style={styles.actionDescription}>{action.description}</Text>
+            <Text 
+              style={styles.actionTitle}
+              includeFontPadding={false}
+              textAlignVertical="center"
+              numberOfLines={2}
+              adjustsFontSizeToFit={true}
+              minimumFontScale={0.85}
+            >
+              {action.title}
+            </Text>
+            <Text 
+              style={styles.actionDescription}
+              includeFontPadding={false}
+              textAlignVertical="center"
+              numberOfLines={2}
+            >
+              {action.description}
+            </Text>
           </TouchableOpacity>
         ))}
       </View>

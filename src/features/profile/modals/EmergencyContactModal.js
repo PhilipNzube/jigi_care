@@ -57,27 +57,71 @@ export default function EmergencyContactModal({ visible, onClose }) {
   }, [visible, user]);
 
   const handlePhoneChange = (data) => {
+    console.log("📞 [EMERGENCY CONTACT] Phone data received:", data);
     setPhoneData(data);
-    // data contains: { phoneNumber, e164, isValid, countryCode, country }
-    setPhoneNumber(data?.phoneNumber || "");
+    // data contains: { phoneNumber, e164, input, isValid, countryCode, dialCode }
+    // Use phoneNumber from data, or e164, or input as fallback
+    const phoneValue = data?.phoneNumber || data?.e164 || data?.input || "";
+    setPhoneNumber(phoneValue);
+    console.log("📞 [EMERGENCY CONTACT] Phone number set to:", phoneValue);
   };
 
   const handleSave = async () => {
-    if (!fullName.trim() || !phoneNumber.trim() || !relationship.trim()) {
-      showError("All fields are required");
+    // Validate all fields - check both phoneNumber state and phoneData
+    const trimmedFullName = fullName.trim();
+    const trimmedPhone = phoneNumber.trim();
+    const trimmedRelationship = relationship.trim();
+
+    // Get phone number from phoneData - check input, e164, phoneNumber in that order
+    // The phone input library may store the value in 'input' field
+    const actualPhoneNumber =
+      phoneData?.input?.trim() ||
+      phoneData?.e164?.trim() ||
+      phoneData?.phoneNumber?.trim() ||
+      trimmedPhone;
+
+    console.log("🔍 [EMERGENCY CONTACT] Validation check:", {
+      fullName: trimmedFullName,
+      phoneNumber: trimmedPhone,
+      phoneData: phoneData,
+      actualPhoneNumber: actualPhoneNumber,
+      relationship: trimmedRelationship,
+    });
+
+    if (!trimmedFullName) {
+      showError("Full name is required");
+      return;
+    }
+
+    if (!actualPhoneNumber) {
+      showError("Phone number is required");
+      return;
+    }
+
+    if (!trimmedRelationship) {
+      showError("Relationship is required");
       return;
     }
 
     setIsLoading(true);
 
     try {
-      // Use E.164 format if available, otherwise use phoneNumber
-      const fullPhoneNumber = phoneData?.e164 || phoneNumber.trim();
+      // Use E.164 format if available, otherwise use input, otherwise use phoneNumber state
+      // Remove the dial code from input if it's there and use e164 format
+      const fullPhoneNumber =
+        phoneData?.e164 || phoneData?.input || actualPhoneNumber;
+
+      console.log("💾 [EMERGENCY CONTACT] Saving:", {
+        name: trimmedFullName,
+        phone: fullPhoneNumber,
+        relationship: trimmedRelationship,
+      });
+
       const updatedUser = await updateProfile({
         emergencyContact: {
-          name: fullName.trim(),
+          name: trimmedFullName,
           phone: fullPhoneNumber,
-          relationship: relationship.trim(),
+          relationship: trimmedRelationship,
         },
       });
       await updateUser(updatedUser);

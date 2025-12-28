@@ -25,7 +25,7 @@ export default function Header({ insets }) {
             <Ionicons name="person" size={30} color={Colors.white} />
           </View>
           <View style={styles.greetingSection}>
-            <Text style={styles.greetingText}>Hello {firstName},</Text>
+            <Text style={styles.greetingText} numberOfLines={2}>Hello {firstName},</Text>
             <Text style={styles.subGreetingText}>
               How are you feeling today?
             </Text>

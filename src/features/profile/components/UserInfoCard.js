@@ -20,9 +20,9 @@ export default function UserInfoCard({ onEdit }) {
       </View>
 
       <View style={styles.userInfo}>
-        <Text style={styles.userName}>{userName}</Text>
-        {userEmail ? <Text style={styles.userEmail}>{userEmail}</Text> : null}
-        {userPhone ? <Text style={styles.userPhone}>{userPhone}</Text> : null}
+        <Text style={styles.userName} numberOfLines={2}>{userName}</Text>
+        {userEmail ? <Text style={styles.userEmail} numberOfLines={2}>{userEmail}</Text> : null}
+        {userPhone ? <Text style={styles.userPhone} numberOfLines={2}>{userPhone}</Text> : null}
       </View>
 
       <TouchableOpacity style={styles.editButton} onPress={onEdit}>

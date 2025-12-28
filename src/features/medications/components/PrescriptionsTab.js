@@ -62,11 +62,57 @@ const mapPrescriptionToUI = (apiPrescription) => {
     statusColor = "#F2C94C1F"; // Light yellow
   }
 
-  // Format dosage
-  const dosage =
-    apiPrescription.dosage ||
-    `${apiPrescription.dose || ""}${apiPrescription.doseUnit || ""} • ${apiPrescription.frequency || "As prescribed"}` ||
-    "As prescribed";
+  // Format dosage: "[mg]. [Dosage text]"
+  // Convert dosage number to text: 1 = "once daily", 2 = "twice daily", etc.
+  const getDosageText = (dosageNumber) => {
+    if (!dosageNumber) return "As prescribed";
+    const num = parseInt(dosageNumber, 10);
+    let text = "";
+    switch (num) {
+      case 1:
+        text = "once daily";
+        break;
+      case 2:
+        text = "twice daily";
+        break;
+      case 3:
+        text = "thrice daily";
+        break;
+      case 4:
+        text = "four times daily";
+        break;
+      case 5:
+        text = "five times daily";
+        break;
+      case 6:
+        text = "six times daily";
+        break;
+      default:
+        text = `${num} times daily`;
+    }
+    // Capitalize first letter
+    return text.charAt(0).toUpperCase() + text.slice(1);
+  };
+
+  const mg = apiPrescription.mg || apiPrescription.mgValue || "";
+  const dosageNumber =
+    apiPrescription.dosage || apiPrescription.dosageFrequency || null;
+  const dosageText = getDosageText(dosageNumber);
+
+  let dosage = "As prescribed";
+  if (mg && dosageNumber) {
+    dosage = `${mg}mg · ${dosageText}`;
+  } else if (mg) {
+    dosage = `${mg}mg`;
+  } else if (dosageNumber) {
+    dosage = dosageText;
+  } else {
+    // Fallback to old format if new fields don't exist
+    dosage =
+      apiPrescription.dosage ||
+      `${apiPrescription.dose || ""}${apiPrescription.doseUnit || ""} • ${apiPrescription.frequency || "As prescribed"}` ||
+      "As prescribed";
+  }
 
   // Format doctor name
   const doctor =
@@ -75,22 +121,47 @@ const mapPrescriptionToUI = (apiPrescription) => {
     apiPrescription.prescribedBy ||
     "Dr. Unknown";
 
-  // Format refill date
+  // Format refill date - check for finish date first, then refill dates
   let refillDate = "No refills available";
-  if (apiPrescription.refillDate) {
+
+  // Check for finish date (various possible field names)
+  const finishDate =
+    apiPrescription.finishDate ||
+    apiPrescription.finish_date ||
+    apiPrescription.endDate ||
+    apiPrescription.end_date ||
+    apiPrescription.expiryDate ||
+    apiPrescription.expiry_date ||
+    apiPrescription.expiresAt ||
+    null;
+
+  if (finishDate) {
     try {
-      refillDate = format(parseISO(apiPrescription.refillDate), "MMM d, yyyy");
+      const formattedFinishDate = format(parseISO(finishDate), "MMM d, yyyy");
+      refillDate = `Refill by ${formattedFinishDate}`;
     } catch (error) {
-      refillDate = apiPrescription.refillDate;
+      // If parsing fails, try using the date as-is
+      refillDate = `Refill by ${finishDate}`;
+    }
+  } else if (apiPrescription.refillDate) {
+    try {
+      const formattedDate = format(
+        parseISO(apiPrescription.refillDate),
+        "MMM d, yyyy"
+      );
+      refillDate = `Refill by ${formattedDate}`;
+    } catch (error) {
+      refillDate = `Refill by ${apiPrescription.refillDate}`;
     }
   } else if (apiPrescription.nextRefillDate) {
     try {
-      refillDate = format(
+      const formattedDate = format(
         parseISO(apiPrescription.nextRefillDate),
         "MMM d, yyyy"
       );
+      refillDate = `Refill by ${formattedDate}`;
     } catch (error) {
-      refillDate = apiPrescription.nextRefillDate;
+      refillDate = `Refill by ${apiPrescription.nextRefillDate}`;
     }
   }
 

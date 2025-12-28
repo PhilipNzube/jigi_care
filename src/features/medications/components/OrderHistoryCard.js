@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
 
-export default function OrderHistoryCard({ order, navigation }) {
+export default function OrderHistoryCard({ order, navigation, onViewDetails }) {
   const getStatusTextColor = (status) => {
     switch (status.toLowerCase()) {
       case "delivered":
@@ -20,9 +20,9 @@ export default function OrderHistoryCard({ order, navigation }) {
   };
 
   const handleViewDetails = () => {
-    // For now, we'll just show an alert since OrderDetailsModal is a modal
-    // In a real app, you might want to pass the order data differently
-    console.log("View details for order:", order.id);
+    if (onViewDetails) {
+      onViewDetails(order);
+    }
   };
 
   const handleReorder = () => {

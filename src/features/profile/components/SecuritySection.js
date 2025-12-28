@@ -9,7 +9,8 @@ export default function SecuritySection() {
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Security</Text>
         <View style={styles.content}>
-          <View style={styles.securityItem}>
+          {/* Biometric UI commented out */}
+          {/* <View style={styles.securityItem}>
             <View style={styles.iconContainer}>
               <Ionicons name="finger-print" size={20} color="#0098B3" />
             </View>
@@ -24,7 +25,7 @@ export default function SecuritySection() {
             </View>
           </View>
 
-          <View style={styles.divider} />
+          <View style={styles.divider} /> */}
 
           <View style={styles.securityItem}>
             <View style={styles.iconContainer}>

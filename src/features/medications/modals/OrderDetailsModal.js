@@ -6,13 +6,33 @@ import {
   Modal,
   TouchableOpacity,
   ScrollView,
+  Dimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, Sizes } from "../../../shared/constants";
 
+const { height: SCREEN_HEIGHT } = Dimensions.get("window");
+
 export default function OrderDetailsModal({ visible, onClose, order }) {
   const insets = useSafeAreaInsets();
+
+  const getStatusTextColor = (status) => {
+    switch (status?.toLowerCase()) {
+      case "delivered":
+        return "#4CAF50"; // Green
+      case "in transit":
+      case "shipped":
+        return "#FF9800"; // Orange
+      case "processing":
+      case "pending":
+        return "#2196F3"; // Blue
+      case "cancelled":
+        return "#F44336"; // Red
+      default:
+        return Colors.white;
+    }
+  };
 
   const handleReorder = () => {
     // Handle reorder logic
@@ -42,80 +62,113 @@ export default function OrderDetailsModal({ visible, onClose, order }) {
             </TouchableOpacity>
           </View>
 
-          <ScrollView
-            style={styles.content}
-            showsVerticalScrollIndicator={false}
-          >
-            <View style={styles.orderInfo}>
-              <View style={styles.orderHeader}>
-                <Text style={styles.orderId}>Order #{order.id}</Text>
-                <View
-                  style={[
-                    styles.statusTag,
-                    { backgroundColor: order.statusColor },
-                  ]}
-                >
-                  <Text style={styles.statusText}>{order.status}</Text>
+          <View style={styles.scrollContainer}>
+            <ScrollView
+              style={styles.content}
+              contentContainerStyle={styles.contentContainer}
+              showsVerticalScrollIndicator={false}
+            >
+              <View style={styles.orderInfo}>
+                <View style={styles.orderHeader}>
+                  <Text style={styles.orderId}>Order #{order.id}</Text>
+                  <View
+                    style={[
+                      styles.statusTag,
+                      { backgroundColor: order.statusColor },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.statusText,
+                        { color: getStatusTextColor(order.status) },
+                      ]}
+                    >
+                      {order.status}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>Order Date:</Text>
+                  <Text style={styles.infoValue}>{order.date}</Text>
+                </View>
+
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>Delivery Date:</Text>
+                  <Text style={styles.infoValue}>
+                    {order.deliveryDate || order.deliveredDate || "N/A"}
+                  </Text>
+                </View>
+
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>Tracking ID:</Text>
+                  <Text style={[styles.infoValue, styles.trackingLink]}>
+                    {order.trackingId || order.reference || order.id}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.itemsSection}>
+                <Text style={styles.sectionTitle}>Items:</Text>
+                {order.items && order.items.length > 0 ? (
+                  order.items.map((item, index) => (
+                    <View key={index} style={styles.itemRow}>
+                      <Text style={styles.itemName}>
+                        {item.name} {item.gram ? `(${item.gram})` : ""} (x
+                        {item.quantity || 1})
+                      </Text>
+                      <Text style={styles.itemPrice}>
+                        ₦{(item.price || 0).toLocaleString()}
+                      </Text>
+                    </View>
+                  ))
+                ) : (
+                  <Text style={styles.noItemsText}>No items found</Text>
+                )}
+              </View>
+
+              <View style={styles.addressSection}>
+                <Text style={styles.sectionTitle}>Shipping Address:</Text>
+                <View style={styles.addressRow}>
+                  <Ionicons name="location" size={16} color={Colors.grey} />
+                  <Text style={styles.addressText}>
+                    {order.shippingAddress ||
+                      order.address ||
+                      order.orderData?.shippingAddress ||
+                      order.orderData?.address ||
+                      "Address not available"}
+                  </Text>
                 </View>
               </View>
 
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Order Date:</Text>
-                <Text style={styles.infoValue}>{order.date}</Text>
-              </View>
-
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Delivery Date:</Text>
-                <Text style={styles.infoValue}>Sep 27th, 2025 • 12:43 AM</Text>
-              </View>
-
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Tracking ID:</Text>
-                <Text style={[styles.infoValue, styles.trackingLink]}>
-                  {order.trackingId}
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.itemsSection}>
-              <Text style={styles.sectionTitle}>Items:</Text>
-              {order.items.map((item, index) => (
-                <View key={index} style={styles.itemRow}>
-                  <Text style={styles.itemName}>
-                    {item.name} (x{item.quantity})
-                  </Text>
-                  <Text style={styles.itemPrice}>
-                    ₦{item.price.toLocaleString()}
+              <View style={styles.paymentSection}>
+                <Text style={styles.sectionTitle}>Payment Summary</Text>
+                <View style={styles.paymentRow}>
+                  <Text style={styles.paymentLabel}>Sub Total</Text>
+                  <Text style={styles.paymentValue}>
+                    ₦
+                    {(
+                      (order.total || order.totalAmount || 0) -
+                      (order.deliveryFee || 0)
+                    ).toLocaleString()}
                   </Text>
                 </View>
-              ))}
-            </View>
-
-            <View style={styles.addressSection}>
-              <Text style={styles.sectionTitle}>Shipping Address:</Text>
-              <View style={styles.addressRow}>
-                <Ionicons name="location" size={16} color={Colors.grey} />
-                <Text style={styles.addressText}>432 Jakande Estate</Text>
+                <View style={styles.paymentRow}>
+                  <Text style={styles.paymentLabel}>Delivery Fee</Text>
+                  <Text style={styles.paymentValue}>
+                    ₦{(order.deliveryFee || 0).toLocaleString()}
+                  </Text>
+                </View>
+                <View style={styles.divider} />
+                <View style={styles.paymentRow}>
+                  <Text style={styles.totalLabel}>Total</Text>
+                  <Text style={styles.totalValue}>
+                    ₦{(order.total || order.totalAmount || 0).toLocaleString()}
+                  </Text>
+                </View>
               </View>
-            </View>
-
-            <View style={styles.paymentSection}>
-              <Text style={styles.sectionTitle}>Payment Summary</Text>
-              <View style={styles.paymentRow}>
-                <Text style={styles.paymentLabel}>Sub Total</Text>
-                <Text style={styles.paymentValue}>₦10,000</Text>
-              </View>
-              <View style={styles.paymentRow}>
-                <Text style={styles.paymentLabel}>Delivery Fee</Text>
-                <Text style={styles.paymentValue}>₦0</Text>
-              </View>
-              <View style={styles.divider} />
-              <View style={styles.paymentRow}>
-                <Text style={styles.totalLabel}>Total</Text>
-                <Text style={styles.totalValue}>₦10,000</Text>
-              </View>
-            </View>
-          </ScrollView>
+            </ScrollView>
+          </View>
 
           <View style={styles.actionButtons}>
             <TouchableOpacity
@@ -153,24 +206,37 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 20,
     paddingTop: Sizes.lg,
     paddingHorizontal: Sizes.lg,
-    maxHeight: "80%",
+    height: SCREEN_HEIGHT * 0.85,
+    flexDirection: "column",
   },
   header: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "center",
     alignItems: "center",
     marginBottom: Sizes.lg,
+    position: "relative",
+    minHeight: 30,
   },
   title: {
     fontSize: 18,
-    fontFamily: "Poppins-Bold",
+    fontFamily: "Poppins-Medium",
     color: Colors.grey,
   },
   closeButton: {
     padding: Sizes.xs,
+    position: "absolute",
+    right: 0,
+  },
+  scrollContainer: {
+    flex: 1,
+    minHeight: 0,
   },
   content: {
     flex: 1,
+  },
+  contentContainer: {
+    flexGrow: 1,
+    paddingBottom: Sizes.lg,
   },
   orderInfo: {
     marginBottom: Sizes.lg,
@@ -183,7 +249,7 @@ const styles = StyleSheet.create({
   },
   orderId: {
     fontSize: 18,
-    fontFamily: "Poppins-Bold",
+    fontFamily: "Poppins-Medium",
     color: Colors.black,
   },
   statusTag: {
@@ -194,7 +260,6 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 12,
     fontFamily: "Poppins-Medium",
-    color: Colors.white,
   },
   infoRow: {
     flexDirection: "row",
@@ -204,7 +269,7 @@ const styles = StyleSheet.create({
   infoLabel: {
     fontSize: 14,
     fontFamily: "Poppins-Regular",
-    color: Colors.black,
+    color: "#666666",
   },
   infoValue: {
     fontSize: 14,
@@ -213,14 +278,13 @@ const styles = StyleSheet.create({
   },
   trackingLink: {
     color: "#0098B3",
-    textDecorationLine: "underline",
   },
   itemsSection: {
     marginBottom: Sizes.lg,
   },
   sectionTitle: {
     fontSize: 16,
-    fontFamily: "Poppins-Bold",
+    fontFamily: "Poppins-Medium",
     color: Colors.black,
     marginBottom: Sizes.sm,
   },
@@ -232,13 +296,19 @@ const styles = StyleSheet.create({
   itemName: {
     fontSize: 14,
     fontFamily: "Poppins-Regular",
-    color: Colors.black,
+    color: "#666666",
     flex: 1,
   },
   itemPrice: {
     fontSize: 14,
     fontFamily: "Poppins-Medium",
     color: Colors.black,
+  },
+  noItemsText: {
+    fontSize: 14,
+    fontFamily: "Poppins-Regular",
+    color: Colors.grey,
+    fontStyle: "italic",
   },
   addressSection: {
     marginBottom: Sizes.lg,
@@ -250,7 +320,7 @@ const styles = StyleSheet.create({
   addressText: {
     fontSize: 14,
     fontFamily: "Poppins-Regular",
-    color: Colors.black,
+    color: "#666666",
     marginLeft: Sizes.xs,
   },
   paymentSection: {
@@ -264,7 +334,7 @@ const styles = StyleSheet.create({
   paymentLabel: {
     fontSize: 14,
     fontFamily: "Poppins-Regular",
-    color: Colors.black,
+    color: "#666666",
   },
   paymentValue: {
     fontSize: 14,
@@ -315,10 +385,3 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins-Bold",
   },
 });
-
-
-
-
-
-
-

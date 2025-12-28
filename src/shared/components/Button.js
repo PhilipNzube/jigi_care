@@ -47,7 +47,16 @@ const Button = ({
           size="small"
         />
       ) : (
-        <Text style={textStyleCombined}>{title}</Text>
+        <Text
+          style={textStyleCombined}
+          includeFontPadding={false}
+          textAlignVertical="center"
+          numberOfLines={1}
+          adjustsFontSizeToFit={true}
+          minimumFontScale={0.8}
+        >
+          {title}
+        </Text>
       )}
     </TouchableOpacity>
   );

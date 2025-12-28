@@ -4,8 +4,13 @@ import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
 
 export default function PrescriptionCard({ prescription }) {
+  // Calculate progress: remainingPills / totalPills
+  const pillsRemaining = prescription.pillsRemaining || 0;
+  const totalPills = prescription.totalPills || 1;
   const progressPercentage =
-    (prescription.pillsRemaining / prescription.totalPills) * 100;
+    totalPills > 0
+      ? Math.min(100, Math.max(0, (pillsRemaining / totalPills) * 100))
+      : 0;
 
   const getStatusTextColor = (status) => {
     switch (status.toLowerCase()) {
@@ -52,7 +57,23 @@ export default function PrescriptionCard({ prescription }) {
               </View>
             </View>
 
-            <Text style={styles.dosage}>{prescription.dosage}</Text>
+            {(() => {
+              const dosageText = prescription.dosage || "";
+              const parts = dosageText.split(" · ");
+
+              if (parts.length === 2) {
+                // Render with bold middle dot
+                return (
+                  <Text style={styles.dosage}>
+                    {parts[0]}
+                    <Text style={styles.dosageDot}> · </Text>
+                    {parts[1]}
+                  </Text>
+                );
+              }
+              // Fallback for text without middle dot
+              return <Text style={styles.dosage}>{dosageText}</Text>;
+            })()}
             <Text style={styles.doctor}>
               Prescribed by {prescription.doctor}
             </Text>
@@ -157,6 +178,10 @@ const styles = StyleSheet.create({
     color: "#5B6B62",
     marginBottom: 2,
   },
+  dosageDot: {
+    fontFamily: "Poppins-Bold",
+    fontWeight: "bold",
+  },
   doctor: {
     fontSize: 12,
     fontFamily: "Poppins-Regular",
@@ -173,7 +198,7 @@ const styles = StyleSheet.create({
   pillsLabel: {
     fontSize: 12,
     fontFamily: "Poppins-Regular",
-    color: Colors.grey,
+    color: Colors.black,
   },
   pillsCount: {
     fontSize: 12,

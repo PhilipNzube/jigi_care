@@ -33,6 +33,7 @@ import AddReadingScreen from "../../features/health/screens/AddReadingScreen";
 import LabTestScreen from "../../features/health/screens/LabTestScreen";
 import BookLabTestScreen from "../../features/health/screens/BookLabTestScreen";
 import LabResultsScreen from "../../features/health/screens/LabResultsScreen";
+import SearchMedicationScreen from "../../features/medications/screens/SearchMedicationScreen";
 
 const Stack = createStackNavigator();
 
@@ -54,7 +55,7 @@ function BottomTabNavigator({ navigation, route }) {
     if (activeTab !== tabId) {
       setActiveTab(tabId);
       // Trigger refresh by updating key
-      setRefreshKey(prev => prev + 1);
+      setRefreshKey((prev) => prev + 1);
     }
   };
 
@@ -110,6 +111,11 @@ function BottomTabNavigator({ navigation, route }) {
                   activeTab === tab.id ? Colors.primary : Colors.textSecondary,
               },
             ]}
+            includeFontPadding={false}
+            textAlignVertical="center"
+            numberOfLines={1}
+            adjustsFontSizeToFit={true}
+            minimumFontScale={0.85}
           >
             {tab.label}
           </Text>
@@ -150,7 +156,10 @@ export default function MainAppNavigator() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="BottomTabs" component={BottomTabNavigator} />
-      <Stack.Screen name="SearchConsultation" component={SearchConsultationScreen} />
+      <Stack.Screen
+        name="SearchConsultation"
+        component={SearchConsultationScreen}
+      />
       <Stack.Screen name="DoctorProfile" component={DoctorProfileScreen} />
       <Stack.Screen
         name="BookConsultation"
@@ -181,6 +190,10 @@ export default function MainAppNavigator() {
       <Stack.Screen name="LabTest" component={LabTestScreen} />
       <Stack.Screen name="BookLabTest" component={BookLabTestScreen} />
       <Stack.Screen name="LabResults" component={LabResultsScreen} />
+      <Stack.Screen
+        name="SearchMedication"
+        component={SearchMedicationScreen}
+      />
     </Stack.Navigator>
   );
 }
@@ -204,6 +217,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     paddingVertical: Sizes.sm,
+    paddingHorizontal: Sizes.xs,
   },
   navIcon: {
     width: 24,

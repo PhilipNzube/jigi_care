@@ -9,7 +9,10 @@ export default function DoctorProfileCard({ doctor }) {
   }
 
   const doctorName = doctor.name || "Dr. Unknown";
-  const specialty = doctor.specialty || doctor.consultantData?.speciality || "General Practitioner";
+  const specialty =
+    doctor.specialty ||
+    doctor.consultantData?.speciality ||
+    "General Practitioner";
   const languages = doctor.languages || "English";
   const rating = doctor.rating || 4.5;
   const experience = doctor.experience || "Experienced";
@@ -66,7 +69,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 1,
+    // elevation: 1,
   },
   doctorInfo: {
     flexDirection: "row",

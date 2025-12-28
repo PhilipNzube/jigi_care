@@ -126,12 +126,24 @@ export default function OnboardingScreen({ navigation }) {
       <View style={[styles.bottomContainer, { paddingBottom: insets.bottom }]}>
         {/* Continue Button */}
         <TouchableOpacity style={styles.continueButton} onPress={handleNext}>
-          <Text style={styles.continueButtonText}>Continue</Text>
+          <Text
+            style={styles.continueButtonText}
+            includeFontPadding={false}
+            textAlignVertical="center"
+          >
+            Continue
+          </Text>
         </TouchableOpacity>
 
         {/* Skip Button */}
         <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
-          <Text style={styles.skipText}>Skip</Text>
+          <Text
+            style={styles.skipText}
+            includeFontPadding={false}
+            textAlignVertical="center"
+          >
+            Skip
+          </Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -214,11 +226,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginBottom: Sizes.md,
+    paddingHorizontal: Sizes.lg,
   },
   continueButtonText: {
     fontSize: Sizes.fontSize.lg,
     fontFamily: "Poppins-SemiBold",
     color: Colors.white,
+    includeFontPadding: false,
+    textAlignVertical: "center",
   },
   skipButton: {
     alignItems: "center",
@@ -228,5 +243,7 @@ const styles = StyleSheet.create({
     fontSize: Sizes.fontSize.md,
     fontFamily: "Poppins-Medium",
     color: Colors.primary,
+    includeFontPadding: false,
+    textAlignVertical: "center",
   },
 });

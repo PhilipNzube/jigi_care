@@ -17,14 +17,39 @@ export const connectNotificationStream = (onNotification, onError) => {
   let reader = null;
   let isConnected = false;
   let abortController = null;
+  let isCleaningUp = false;
 
+  // Return cleanup function immediately (synchronously)
+  const cleanup = () => {
+    if (isCleaningUp) {
+      return; // Already cleaning up
+    }
+    isCleaningUp = true;
+    console.log("🔔 [NOTIFICATION SERVICE] Closing notification stream...");
+    isConnected = false;
+    if (abortController) {
+      abortController.abort();
+    }
+    if (reader) {
+      reader.cancel().catch(() => {
+        // Ignore cancel errors
+      });
+    }
+  };
+
+  // Start connection asynchronously
   const connect = async () => {
     try {
       const token = await getToken();
       if (!token) {
         console.error("❌ [NOTIFICATION SERVICE] No token available");
         if (onError) onError(new Error("No authentication token"));
-        return null;
+        return;
+      }
+
+      // Check if cleanup was called before connection completed
+      if (isCleaningUp) {
+        return;
       }
 
       const url = `${BASE_URL}/notification/stream`;
@@ -53,6 +78,11 @@ export const connectNotificationStream = (onNotification, onError) => {
         throw new Error("Response body is not available");
       }
 
+      // Check again if cleanup was called during fetch
+      if (isCleaningUp) {
+        return;
+      }
+
       reader = response.body.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
@@ -64,7 +94,7 @@ export const connectNotificationStream = (onNotification, onError) => {
             "✅ [NOTIFICATION SERVICE] Connected to notification stream"
           );
 
-          while (isConnected) {
+          while (isConnected && !isCleaningUp) {
             const { done, value } = await reader.read();
 
             if (done) {
@@ -109,7 +139,7 @@ export const connectNotificationStream = (onNotification, onError) => {
                     "🔔 [NOTIFICATION SERVICE] Received notification:",
                     currentId
                   );
-                  if (onNotification) {
+                  if (onNotification && !isCleaningUp) {
                     onNotification(currentData);
                   }
                   currentId = null;
@@ -121,7 +151,7 @@ export const connectNotificationStream = (onNotification, onError) => {
         } catch (error) {
           if (error.name === "AbortError") {
             console.log("🔔 [NOTIFICATION SERVICE] Stream aborted");
-          } else {
+          } else if (!isCleaningUp) {
             console.error(
               "❌ [NOTIFICATION SERVICE] Stream read error:",
               error
@@ -134,29 +164,19 @@ export const connectNotificationStream = (onNotification, onError) => {
 
       // Start reading the stream
       readStream();
-
-      // Return cleanup function
-      return () => {
-        console.log("🔔 [NOTIFICATION SERVICE] Closing notification stream...");
-        isConnected = false;
-        if (abortController) {
-          abortController.abort();
-        }
-        if (reader) {
-          reader.cancel().catch(() => {
-            // Ignore cancel errors
-          });
-        }
-      };
     } catch (error) {
-      console.error("❌ [NOTIFICATION SERVICE] Connection error:", error);
-      isConnected = false;
-      if (onError) onError(error);
-      return null;
+      if (!isCleaningUp) {
+        console.error("❌ [NOTIFICATION SERVICE] Connection error:", error);
+        isConnected = false;
+        if (onError) onError(error);
+      }
     }
   };
 
-  const cleanup = connect();
+  // Start connection (don't await, it runs in background)
+  connect();
+
+  // Return cleanup function immediately
   return cleanup;
 };
 

@@ -60,21 +60,25 @@ export default function NotificationsScreen({ navigation }) {
     // Connect to notification stream
     const cleanup = connectNotificationStream(
       (data) => {
-        console.log("🔔 [NOTIFICATIONS SCREEN] Received notification data:", data);
-        
+        console.log(
+          "🔔 [NOTIFICATIONS SCREEN] Received notification data:",
+          data
+        );
+
         if (data && data.notifications && Array.isArray(data.notifications)) {
           // Map API notifications to UI format
-          const mappedNotifications = data.notifications.map(mapNotificationToUI);
-          
+          const mappedNotifications =
+            data.notifications.map(mapNotificationToUI);
+
           // Sort by createdAt (newest first)
           mappedNotifications.sort((a, b) => {
             const dateA = new Date(a.createdAt || 0);
             const dateB = new Date(b.createdAt || 0);
             return dateB - dateA;
           });
-          
+
           setNotifications(mappedNotifications);
-          
+
           // Only set loading to false once we've received data
           if (!hasReceivedData) {
             hasReceivedData = true;
@@ -84,7 +88,10 @@ export default function NotificationsScreen({ navigation }) {
         }
       },
       (error) => {
-        console.error("❌ [NOTIFICATIONS SCREEN] Notification stream error:", error);
+        console.error(
+          "❌ [NOTIFICATIONS SCREEN] Notification stream error:",
+          error
+        );
         setIsLoading(false);
         setRefreshing(false);
       }
@@ -93,9 +100,17 @@ export default function NotificationsScreen({ navigation }) {
     cleanupRef.current = cleanup;
 
     return () => {
-      if (cleanupRef.current) {
-        cleanupRef.current();
+      if (cleanupRef.current && typeof cleanupRef.current === "function") {
+        try {
+          cleanupRef.current();
+        } catch (error) {
+          console.error(
+            "❌ [NOTIFICATIONS SCREEN] Error during cleanup:",
+            error
+          );
+        }
       }
+      cleanupRef.current = null;
     };
   }, []);
 

@@ -22,15 +22,14 @@ export default function HeroSection({ insets, navigation }) {
   const scrollViewRef = useRef(null);
   const autoScrollIntervalRef = useRef(null);
 
-  // Extract first name from fullName for greeting
-  const getFirstName = () => {
+  // Get full name for greeting
+  const getFullName = () => {
     if (!user) return "there";
     const fullName = user?.fullName || user?.name || "";
-    const firstName = fullName.split(" ")[0];
-    return firstName || "there";
+    return fullName || "there";
   };
 
-  const firstName = getFirstName();
+  const fullName = getFullName();
 
   const heroSlides = [
     {
@@ -112,15 +111,16 @@ export default function HeroSection({ insets, navigation }) {
               <View style={styles.greetingSection}>
                 <Text
                   style={styles.greetingText}
-                  numberOfLines={1}
-                  ellipsizeMode="tail"
+                  includeFontPadding={false}
+                  textAlignVertical="center"
+                  numberOfLines={2}
                 >
-                  Hello {firstName},
+                  Hello {fullName},
                 </Text>
                 <Text
                   style={styles.subGreetingText}
-                  numberOfLines={1}
-                  ellipsizeMode="tail"
+                  includeFontPadding={false}
+                  textAlignVertical="center"
                 >
                   How are you feeling today?
                 </Text>
@@ -154,13 +154,34 @@ export default function HeroSection({ insets, navigation }) {
           {heroSlides.map((slide) => (
             <View key={slide.id} style={styles.slide}>
               <View style={styles.slideContent}>
-                <Text style={styles.slideTitle}>{slide.title}</Text>
-                <Text style={styles.slideSubtitle}>{slide.subtitle}</Text>
+                <Text 
+                  style={styles.slideTitle}
+                  includeFontPadding={false}
+                  textAlignVertical="center"
+                >
+                  {slide.title}
+                </Text>
+                <Text 
+                  style={styles.slideSubtitle}
+                  includeFontPadding={false}
+                  textAlignVertical="center"
+                >
+                  {slide.subtitle}
+                </Text>
                 <TouchableOpacity
                   style={styles.bookButton}
                   onPress={() => handleButtonPress(slide.buttonText)}
                 >
-                  <Text style={styles.bookButtonText}>{slide.buttonText}</Text>
+                  <Text 
+                    style={styles.bookButtonText}
+                    includeFontPadding={false}
+                    textAlignVertical="center"
+                    numberOfLines={1}
+                    adjustsFontSizeToFit={true}
+                    minimumFontScale={0.85}
+                  >
+                    {slide.buttonText}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -230,6 +251,8 @@ const styles = StyleSheet.create({
   profileSection: {
     flexDirection: "row",
     alignItems: "center",
+    flex: 1,
+    marginRight: Sizes.sm,
   },
   profileImageContainer: {
     width: 50,
@@ -239,8 +262,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginRight: Sizes.md,
+    flexShrink: 0,
   },
-  greetingSection: {},
+  greetingSection: {
+    flex: 1,
+    minWidth: 0,
+  },
   notificationContainer: {
     backgroundColor: "rgba(255, 255, 255, 0.14)",
     borderWidth: 1,
@@ -248,17 +275,22 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: Sizes.sm,
     paddingVertical: Sizes.sm,
+    flexShrink: 0,
+    marginLeft: Sizes.sm,
   },
   greetingText: {
     fontSize: 16,
     fontFamily: "Poppins-Bold",
     color: Colors.white,
+    includeFontPadding: false,
   },
   subGreetingText: {
     fontSize: 13,
     fontFamily: "Poppins-Regular",
     color: Colors.white,
     opacity: 0.8,
+    includeFontPadding: false,
+    flexWrap: "wrap",
   },
   notificationButton: {
     alignItems: "center",
@@ -319,11 +351,14 @@ const styles = StyleSheet.create({
     paddingVertical: Sizes.md,
     paddingHorizontal: Sizes.xl,
     borderRadius: 25,
+    minWidth: 120,
   },
   bookButtonText: {
     fontSize: 16,
     fontFamily: "Poppins-SemiBold",
     color: Colors.primary,
+    includeFontPadding: false,
+    textAlignVertical: "center",
   },
   paginationContainer: {
     flexDirection: "row",

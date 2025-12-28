@@ -86,42 +86,42 @@ export default function TimeSelectionSection({
           <Text style={styles.emptyText}>No available time slots for this date</Text>
         </View>
       ) : (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.timesContainer}
-        >
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.timesContainer}
+      >
           {availableTimeSlots.map((time) => {
             const isDisabled = time.isPast;
             
             return (
-              <TouchableOpacity
-                key={time.id}
-                style={[
-                  styles.timeButton,
-                  selectedTime === time.id && styles.selectedTimeButton,
+          <TouchableOpacity
+            key={time.id}
+            style={[
+              styles.timeButton,
+              selectedTime === time.id && styles.selectedTimeButton,
                   isDisabled && styles.disabledTimeButton,
-                ]}
+            ]}
                 onPress={() => {
                   if (!isDisabled) {
                     onTimeSelect(time.id);
                   }
                 }}
                 disabled={isDisabled}
-              >
-                <Text
-                  style={[
-                    styles.timeText,
-                    selectedTime === time.id && styles.selectedTimeText,
+          >
+            <Text
+              style={[
+                styles.timeText,
+                selectedTime === time.id && styles.selectedTimeText,
                     isDisabled && styles.disabledTimeText,
-                  ]}
-                >
-                  {time.label}
-                </Text>
-              </TouchableOpacity>
+              ]}
+            >
+              {time.label}
+            </Text>
+          </TouchableOpacity>
             );
           })}
-        </ScrollView>
+      </ScrollView>
       )}
     </View>
   );
