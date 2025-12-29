@@ -57,12 +57,12 @@ const MedicationCard = ({ medication }) => {
         <Text style={styles.medicationDate}>
           {formattedDate} • {formattedTime}
         </Text>
-        <View style={styles.statusRow}>
+        {/* <View style={styles.statusRow}>
           <View style={styles.checkbox}>
             <Ionicons name="checkmark" size={16} color={Colors.white} />
           </View>
           <Text style={styles.statusText}>Taken</Text>
-        </View>
+        </View> */}
       </View>
       <View style={styles.medicationContent}>
         <View style={styles.medicationItem}>
