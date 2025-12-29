@@ -9,6 +9,7 @@ import {
   storeRefreshToken,
   getRefreshToken,
 } from "../utils/storage";
+import { forceLogout } from "../utils/forcedLogout";
 
 const BASE_URL = "https://jiggy-care.onrender.com/api/v1";
 
@@ -141,6 +142,19 @@ const refreshAccessToken = async () => {
         "🔄 [REFRESH TOKEN] Refresh response data:",
         JSON.stringify(data, null, 2)
       );
+
+      // Check for 400 error with "Could not issue new tokens" message
+      if (
+        response.status === 400 &&
+        data.message === "Could not issue new tokens"
+      ) {
+        console.error(
+          "❌ [REFRESH TOKEN] Could not issue new tokens - forcing logout"
+        );
+        // Force logout without calling logout API
+        await forceLogout();
+        throw new Error("Could not issue new tokens");
+      }
 
       if (!response.ok) {
         throw new Error(data.message || "Failed to refresh token");

@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
+import { getHealthMonitoring } from "../services/healthMonitoringService";
 import BloodPressureBottomSheet from "../components/BloodPressureBottomSheet";
 import TemperatureBottomSheet from "../components/TemperatureBottomSheet";
 import WeightBottomSheet from "../components/WeightBottomSheet";
@@ -13,6 +14,24 @@ export default function AddReadingScreen({ navigation }) {
   const [showTemperatureModal, setShowTemperatureModal] = useState(false);
   const [showWeightModal, setShowWeightModal] = useState(false);
   const [showHeartRateModal, setShowHeartRateModal] = useState(false);
+  const [healthData, setHealthData] = useState(null);
+  const [healthRecordId, setHealthRecordId] = useState(null);
+
+  useEffect(() => {
+    // Fetch health data on mount to prefill fields
+    const fetchHealthData = async () => {
+      try {
+        const data = await getHealthMonitoring();
+        if (data && data.length > 0) {
+          setHealthData(data[0]);
+          setHealthRecordId(data[0].id);
+        }
+      } catch (error) {
+        console.error("❌ [ADD READING] Error fetching health data:", error);
+      }
+    };
+    fetchHealthData();
+  }, []);
 
   const readingTypes = [
     {
@@ -54,9 +73,18 @@ export default function AddReadingScreen({ navigation }) {
     }
   };
 
-  const handleSaveReading = (reading) => {
+  const handleSaveReading = async (reading) => {
     console.log("Reading saved:", reading);
-    // Here you would typically save the reading to your state management or API
+    // Refresh health data after saving
+    try {
+      const data = await getHealthMonitoring();
+      if (data && data.length > 0) {
+        setHealthData(data[0]);
+        setHealthRecordId(data[0].id);
+      }
+    } catch (error) {
+      console.error("❌ [ADD READING] Error refreshing health data:", error);
+    }
   };
 
   const renderReadingTypeCard = (readingType) => (
@@ -95,21 +123,29 @@ export default function AddReadingScreen({ navigation }) {
         visible={showBloodPressureModal}
         onClose={() => setShowBloodPressureModal(false)}
         onSave={handleSaveReading}
+        editingData={healthData}
+        healthRecordId={healthRecordId}
       />
       <TemperatureBottomSheet
         visible={showTemperatureModal}
         onClose={() => setShowTemperatureModal(false)}
         onSave={handleSaveReading}
+        editingData={healthData}
+        healthRecordId={healthRecordId}
       />
       <WeightBottomSheet
         visible={showWeightModal}
         onClose={() => setShowWeightModal(false)}
         onSave={handleSaveReading}
+        editingData={healthData}
+        healthRecordId={healthRecordId}
       />
       <HeartRateBottomSheet
         visible={showHeartRateModal}
         onClose={() => setShowHeartRateModal(false)}
         onSave={handleSaveReading}
+        editingData={healthData}
+        healthRecordId={healthRecordId}
       />
     </SafeAreaView>
   );

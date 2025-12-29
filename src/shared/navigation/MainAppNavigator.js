@@ -28,8 +28,12 @@ import ShippingAddressScreen from "../../features/medications/screens/ShippingAd
 import OrderDetailsModal from "../../features/medications/modals/OrderDetailsModal";
 import EditProfileScreen from "../../features/profile/screens/EditProfileScreen";
 import ProfileSettingsScreen from "../../features/profile/screens/ProfileSettingsScreen";
+import HelpSupportScreen from "../../features/profile/screens/HelpSupportScreen";
+import PrivacyPreferencesScreen from "../../features/profile/screens/PrivacyPreferencesScreen";
+import MedicalHistoryScreen from "../../features/profile/screens/MedicalHistoryScreen";
 import HealthMonitoringScreen from "../../features/health/screens/HealthMonitoringScreen";
 import AddReadingScreen from "../../features/health/screens/AddReadingScreen";
+import ViewAllMedicationsScreen from "../../features/health/screens/ViewAllMedicationsScreen";
 import LabTestScreen from "../../features/health/screens/LabTestScreen";
 import BookLabTestScreen from "../../features/health/screens/BookLabTestScreen";
 import LabResultsScreen from "../../features/health/screens/LabResultsScreen";
@@ -182,11 +186,21 @@ export default function MainAppNavigator() {
       <Stack.Screen name="OrderDetails" component={OrderDetailsModal} />
       <Stack.Screen name="EditProfile" component={EditProfileScreen} />
       <Stack.Screen name="ProfileSettings" component={ProfileSettingsScreen} />
+      <Stack.Screen name="HelpSupport" component={HelpSupportScreen} />
+      <Stack.Screen
+        name="PrivacyPreferences"
+        component={PrivacyPreferencesScreen}
+      />
+      <Stack.Screen name="MedicalHistory" component={MedicalHistoryScreen} />
       <Stack.Screen
         name="HealthMonitoring"
         component={HealthMonitoringScreen}
       />
       <Stack.Screen name="AddReading" component={AddReadingScreen} />
+      <Stack.Screen
+        name="ViewAllMedications"
+        component={ViewAllMedicationsScreen}
+      />
       <Stack.Screen name="LabTest" component={LabTestScreen} />
       <Stack.Screen name="BookLabTest" component={BookLabTestScreen} />
       <Stack.Screen name="LabResults" component={LabResultsScreen} />

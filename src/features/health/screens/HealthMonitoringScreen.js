@@ -1,12 +1,14 @@
-import React from "react";
+import React, { useState, useRef, useCallback } from "react";
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
+  RefreshControl,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
 import VitalSignsGrid from "../components/VitalSignsGrid";
@@ -15,9 +17,36 @@ import MedicationsSection from "../components/MedicationsSection";
 import ExportHealthDataSection from "../components/ExportHealthDataSection";
 
 export default function HealthMonitoringScreen({ navigation }) {
+  const [refreshing, setRefreshing] = useState(false);
+  const vitalSignsGridRef = useRef(null);
+
   const handleAddReading = () => {
     navigation.navigate("AddReading");
   };
+
+  const refreshVitalSigns = useCallback(async () => {
+    try {
+      // Trigger refresh in VitalSignsGrid
+      if (vitalSignsGridRef.current?.refresh) {
+        await vitalSignsGridRef.current.refresh();
+      }
+    } catch (error) {
+      console.error("❌ [HEALTH MONITORING] Error refreshing:", error);
+    }
+  }, []);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await refreshVitalSigns();
+    setRefreshing(false);
+  };
+
+  // Refresh vital signs when screen comes into focus (e.g., returning from AddReading)
+  useFocusEffect(
+    useCallback(() => {
+      refreshVitalSigns();
+    }, [refreshVitalSigns])
+  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -31,10 +60,16 @@ export default function HealthMonitoringScreen({ navigation }) {
         <Text style={styles.headerTitle}>Health Monitoring</Text>
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <VitalSignsGrid onAddReading={handleAddReading} />
+      <ScrollView
+        style={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
+        <VitalSignsGrid ref={vitalSignsGridRef} onAddReading={handleAddReading} />
         <BloodPressureChart />
-        <MedicationsSection />
+        <MedicationsSection navigation={navigation} />
         <ExportHealthDataSection />
       </ScrollView>
     </SafeAreaView>

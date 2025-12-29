@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -7,34 +7,78 @@ import {
   TextInput,
   Modal,
   Alert,
+  Platform,
+  KeyboardAvoidingView,
+  ScrollView,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
+import { updateHealthReading } from "../services/healthMonitoringService";
+import { showSuccess, showError } from "../../../shared/utils/toast";
+import LoadingOverlay from "../../../shared/components/LoadingOverlay";
 
-export default function WeightBottomSheet({ visible, onClose, onSave }) {
+export default function WeightBottomSheet({ visible, onClose, onSave, editingData, healthRecordId }) {
+  const insets = useSafeAreaInsets();
   const [weight, setWeight] = useState("64.00");
   const [unit, setUnit] = useState("Kg");
   const [note, setNote] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSave = () => {
+  useEffect(() => {
+    if (visible) {
+      // Prefill with existing data if available
+      const weightData = editingData?.weight;
+      if (weightData) {
+        setWeight(weightData.value?.toString() || "64.00");
+        setNote(weightData.note || "");
+      } else {
+        // Default values if no existing data
+        setWeight("64.00");
+        setNote("");
+      }
+    }
+  }, [visible, editingData]);
+
+  const handleSave = async () => {
     if (!weight) {
       Alert.alert("Error", "Please enter a weight value");
       return;
     }
 
-    const reading = {
-      weight: parseFloat(weight),
-      unit: unit,
+    const readingData = {
+      value: parseFloat(weight),
+      status: "normal", // You can add logic to determine status based on value
       note: note.trim(),
-      timestamp: new Date(),
     };
 
-    if (onSave && typeof onSave === "function") {
-      onSave(reading);
-    }
-    if (onClose && typeof onClose === "function") {
-      onClose();
+    // If editing, use PATCH API
+    if (healthRecordId && editingData) {
+      try {
+        setIsLoading(true);
+        await updateHealthReading(healthRecordId, {
+          weight: readingData,
+        });
+        showSuccess("Weight updated successfully");
+        if (onSave && typeof onSave === "function") {
+          onSave(readingData);
+        }
+        if (onClose && typeof onClose === "function") {
+          onClose();
+        }
+      } catch (error) {
+        showError(error.message || "Failed to update weight");
+      } finally {
+        setIsLoading(false);
+      }
+    } else {
+      // For new readings, call onSave callback
+      if (onSave && typeof onSave === "function") {
+        onSave(readingData);
+      }
+      if (onClose && typeof onClose === "function") {
+        onClose();
+      }
     }
   };
 
@@ -51,11 +95,26 @@ export default function WeightBottomSheet({ visible, onClose, onSave }) {
       animationType="slide"
       onRequestClose={onClose}
     >
-      <View style={styles.overlay}>
-        <SafeAreaView style={styles.safeArea}>
-          <View style={styles.container}>
+      <KeyboardAvoidingView
+        style={styles.overlay}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={0}
+      >
+        <TouchableOpacity style={styles.overlayTouchable} activeOpacity={1} onPress={onClose} />
+        <View
+          style={[
+            styles.container,
+            { paddingBottom: Math.max(insets.bottom, Sizes.xl) },
+          ]}
+        >
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
             <View style={styles.header}>
-              <Text style={styles.title}>ADD WEIGHT</Text>
+              <Text style={styles.title}>
+                {editingData ? "EDIT WEIGHT" : "ADD WEIGHT"}
+              </Text>
               <TouchableOpacity
                 onPress={handleClose}
                 style={styles.closeButton}
@@ -69,7 +128,13 @@ export default function WeightBottomSheet({ visible, onClose, onSave }) {
                 <Text style={styles.label}>Weight</Text>
                 <View style={styles.inputRow}>
                   <Ionicons name="scale" size={20} color="#9E9E9E" />
-                  <Text style={styles.value}>{weight}</Text>
+                  <TextInput
+                    style={styles.valueInput}
+                    value={weight}
+                    onChangeText={setWeight}
+                    keyboardType="decimal-pad"
+                    placeholder="64.00"
+                  />
                   <View style={styles.unitSelector}>
                     <Text style={styles.unitText}>{unit}</Text>
                     <Ionicons
@@ -103,16 +168,24 @@ export default function WeightBottomSheet({ visible, onClose, onSave }) {
               <TouchableOpacity
                 style={styles.cancelButton}
                 onPress={handleClose}
+                disabled={isLoading}
               >
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-                <Text style={styles.saveButtonText}>Save Reading</Text>
+              <TouchableOpacity
+                style={[styles.saveButton, isLoading && styles.saveButtonDisabled]}
+                onPress={handleSave}
+                disabled={isLoading}
+              >
+                <Text style={styles.saveButtonText}>
+                  {isLoading ? "Saving..." : "Save Reading"}
+                </Text>
               </TouchableOpacity>
             </View>
-          </View>
-        </SafeAreaView>
-      </View>
+          </ScrollView>
+        </View>
+      </KeyboardAvoidingView>
+      <LoadingOverlay visible={isLoading} />
     </Modal>
   );
 }
@@ -123,8 +196,8 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "flex-end",
   },
-  safeArea: {
-    flex: 0,
+  overlayTouchable: {
+    flex: 1,
   },
   container: {
     backgroundColor: Colors.white,
@@ -132,7 +205,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 20,
     paddingHorizontal: Sizes.lg,
     paddingTop: Sizes.lg,
-    paddingBottom: Sizes.xl,
+    maxHeight: "85%",
   },
   header: {
     flexDirection: "row",
@@ -177,6 +250,17 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
     marginLeft: Sizes.sm,
     flex: 1,
+  },
+  valueInput: {
+    fontSize: 24,
+    fontFamily: "Poppins-Bold",
+    color: Colors.textPrimary,
+    marginLeft: Sizes.sm,
+    flex: 1,
+    paddingVertical: 0,
+  },
+  saveButtonDisabled: {
+    opacity: 0.6,
   },
   unitSelector: {
     flexDirection: "row",

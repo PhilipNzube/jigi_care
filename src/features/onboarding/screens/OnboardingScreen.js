@@ -94,14 +94,28 @@ export default function OnboardingScreen({ navigation }) {
 
         {/* Content Section */}
         <View style={styles.contentContainer}>
-          <Text style={styles.slideTitle}>
+          <Text
+            style={styles.slideTitle}
+            includeFontPadding={false}
+            textAlignVertical="center"
+          >
             {titleParts[0]}
-            <Text style={styles.slideTitleHighlight}>
+            <Text
+              style={styles.slideTitleHighlight}
+              includeFontPadding={false}
+              textAlignVertical="center"
+            >
               {item.titleHighlight}
             </Text>
             {titleParts[1]}
           </Text>
-          <Text style={styles.slideDescription}>{item.description}</Text>
+          <Text
+            style={styles.slideDescription}
+            includeFontPadding={false}
+            textAlignVertical="center"
+          >
+            {item.description}
+          </Text>
         </View>
       </View>
     );

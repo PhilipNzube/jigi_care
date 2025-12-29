@@ -1,21 +1,100 @@
-import React from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
+import { searchMedications } from "../../medications/services/medicationService";
+import ShimmerLoader from "../../../shared/components/ShimmerLoader";
+import { format } from "date-fns";
 
-const MedicationsSection = () => {
-  return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Today's Medications</Text>
-        <TouchableOpacity>
-          <Text style={styles.viewAllText}>View all</Text>
-        </TouchableOpacity>
-      </View>
+const MedicationsSection = ({ navigation }) => {
+  const [medications, setMedications] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
+  const fetchMedications = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const response = await searchMedications({
+        page: 1,
+        limit: 3,
+      });
+      
+      const items = response.items || [];
+      setMedications(items);
+    } catch (error) {
+      console.error("❌ [MEDICATIONS SECTION] Error fetching medications:", error);
+      setMedications([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchMedications();
+  }, [fetchMedications]);
+
+  const formatDosage = (medication) => {
+    const gram = medication.gram || "";
+    if (gram) {
+      return `${gram}mg`;
+    }
+    return "As prescribed";
+  };
+
+  const getStatusInfo = (medication) => {
+    const stockStatus = medication.stockStatus || "in_stock";
+    
+    switch (stockStatus) {
+      case "out_of_stock":
+        return { text: "Out of Stock", bgColor: "#EA4D4D1F", textColor: "#EA4D4D" };
+      case "low_stock":
+        return { text: "Running Low", bgColor: "#F2C94C1F", textColor: "#856404" };
+      case "in_stock":
+      default:
+        return { text: "In Stock", bgColor: "#0098B314", textColor: "#0098B3" };
+    }
+  };
+
+  const renderSkeleton = () => (
+    <ShimmerLoader>
       <View style={styles.medicationCard}>
         <View style={styles.medicationHeader}>
-          <Text style={styles.medicationDate}>Sep 25th, 2025 • 12:00 PM</Text>
+          <View style={{ width: 150, height: 12, borderRadius: 4, marginBottom: Sizes.sm }} />
+          <View style={{ width: 60, height: 20, borderRadius: 4 }} />
+        </View>
+        <View style={styles.medicationContent}>
+          <View style={styles.medicationItem}>
+            <View style={styles.medicationImageContainer}>
+              <View style={styles.medicationImage} />
+            </View>
+            <View style={styles.medicationInfo}>
+              <View style={{ width: 120, height: 14, borderRadius: 4, marginBottom: Sizes.xs }} />
+              <View style={{ width: 100, height: 12, borderRadius: 4, marginBottom: Sizes.xs }} />
+              <View style={{ width: 150, height: 12, borderRadius: 4 }} />
+            </View>
+            <View style={{ width: 80, height: 24, borderRadius: 12 }} />
+          </View>
+        </View>
+      </View>
+    </ShimmerLoader>
+  );
+
+  const renderMedicationCard = (medication, index) => {
+    const statusInfo = getStatusInfo(medication);
+    const medicationName = medication.name || "Unknown Medication";
+    const dosage = formatDosage(medication);
+    const description = medication.description || "";
+    
+    // Format date - use current date/time for today's medications
+    const now = new Date();
+    const formattedDate = format(now, "MMM dd, yyyy");
+    const formattedTime = format(now, "h:mm a");
+
+    return (
+      <View key={medication.id || index} style={styles.medicationCard}>
+        <View style={styles.medicationHeader}>
+          <Text style={styles.medicationDate}>
+            {formattedDate} • {formattedTime}
+          </Text>
           <View style={styles.statusRow}>
             <View style={styles.checkbox}>
               <Ionicons name="checkmark" size={16} color={Colors.white} />
@@ -29,24 +108,45 @@ const MedicationsSection = () => {
               <View style={styles.medicationImage} />
             </View>
             <View style={styles.medicationInfo}>
-              <Text style={styles.medicationName}>Acetaminophen</Text>
-              <Text style={styles.medicationDosage}>500mg • Twice daily</Text>
-              <Text style={styles.medicationDescription}>
-                Pain reliever and fever reducer
-              </Text>
+              <Text style={styles.medicationName}>{medicationName}</Text>
+              <Text style={styles.medicationDosage}>{dosage}</Text>
+              {description ? (
+                <Text style={styles.medicationDescription} numberOfLines={2}>
+                  {description}
+                </Text>
+              ) : null}
             </View>
             <View style={styles.medicationStatus}>
-              <View
-                style={[styles.statusTag, { backgroundColor: "#F2C94C1F" }]}
-              >
-                <Text style={[styles.statusTagText, { color: "#856404" }]}>
-                  Running Low
+              <View style={[styles.statusTag, { backgroundColor: statusInfo.bgColor }]}>
+                <Text style={[styles.statusTagText, { color: statusInfo.textColor }]}>
+                  {statusInfo.text}
                 </Text>
               </View>
             </View>
           </View>
         </View>
       </View>
+    );
+  };
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.title}>Today's Medications</Text>
+        <TouchableOpacity onPress={() => navigation?.navigate("ViewAllMedications")}>
+          <Text style={styles.viewAllText}>View all</Text>
+        </TouchableOpacity>
+      </View>
+
+      {isLoading ? (
+        renderSkeleton()
+      ) : medications.length > 0 ? (
+        medications.map(renderMedicationCard)
+      ) : (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>No medications available</Text>
+        </View>
+      )}
     </View>
   );
 };
@@ -168,6 +268,18 @@ const styles = StyleSheet.create({
     padding: Sizes.md,
     borderRadius: 8,
     backgroundColor: "#F2F2F2",
+  },
+  emptyContainer: {
+    backgroundColor: Colors.white,
+    borderRadius: 12,
+    padding: Sizes.xl,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  emptyText: {
+    fontSize: 14,
+    fontFamily: "Poppins-Regular",
+    color: Colors.textSecondary,
   },
 });
 

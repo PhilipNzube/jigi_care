@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -7,32 +7,77 @@ import {
   TextInput,
   Modal,
   Alert,
+  Platform,
+  KeyboardAvoidingView,
+  ScrollView,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
+import { updateHealthReading } from "../services/healthMonitoringService";
+import { showSuccess, showError } from "../../../shared/utils/toast";
+import LoadingOverlay from "../../../shared/components/LoadingOverlay";
 
-export default function TemperatureBottomSheet({ visible, onClose, onSave }) {
+export default function TemperatureBottomSheet({ visible, onClose, onSave, editingData, healthRecordId }) {
+  const insets = useSafeAreaInsets();
   const [temperature, setTemperature] = useState("98.6");
   const [note, setNote] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSave = () => {
+  useEffect(() => {
+    if (visible) {
+      // Prefill with existing data if available
+      const temperatureData = editingData?.temperature;
+      if (temperatureData) {
+        setTemperature(temperatureData.value?.toString() || "98.6");
+        setNote(temperatureData.note || "");
+      } else {
+        // Default values if no existing data
+        setTemperature("98.6");
+        setNote("");
+      }
+    }
+  }, [visible, editingData]);
+
+  const handleSave = async () => {
     if (!temperature) {
       Alert.alert("Error", "Please enter a temperature value");
       return;
     }
 
-    const reading = {
-      temperature: parseFloat(temperature),
+    const readingData = {
+      value: parseFloat(temperature),
+      status: "normal", // You can add logic to determine status based on value
       note: note.trim(),
-      timestamp: new Date(),
     };
 
-    if (onSave && typeof onSave === "function") {
-      onSave(reading);
-    }
-    if (onClose && typeof onClose === "function") {
-      onClose();
+    // If editing, use PATCH API
+    if (healthRecordId && editingData) {
+      try {
+        setIsLoading(true);
+        await updateHealthReading(healthRecordId, {
+          temperature: readingData,
+        });
+        showSuccess("Temperature updated successfully");
+        if (onSave && typeof onSave === "function") {
+          onSave(readingData);
+        }
+        if (onClose && typeof onClose === "function") {
+          onClose();
+        }
+      } catch (error) {
+        showError(error.message || "Failed to update temperature");
+      } finally {
+        setIsLoading(false);
+      }
+    } else {
+      // For new readings, call onSave callback
+      if (onSave && typeof onSave === "function") {
+        onSave(readingData);
+      }
+      if (onClose && typeof onClose === "function") {
+        onClose();
+      }
     }
   };
 
@@ -49,11 +94,26 @@ export default function TemperatureBottomSheet({ visible, onClose, onSave }) {
       animationType="slide"
       onRequestClose={onClose}
     >
-      <View style={styles.overlay}>
-        <SafeAreaView style={styles.safeArea}>
-          <View style={styles.container}>
+      <KeyboardAvoidingView
+        style={styles.overlay}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={0}
+      >
+        <TouchableOpacity style={styles.overlayTouchable} activeOpacity={1} onPress={onClose} />
+        <View
+          style={[
+            styles.container,
+            { paddingBottom: Math.max(insets.bottom, Sizes.xl) },
+          ]}
+        >
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
             <View style={styles.header}>
-              <Text style={styles.title}>ADD TEMPERATURE</Text>
+              <Text style={styles.title}>
+                {editingData ? "EDIT TEMPERATURE" : "ADD TEMPERATURE"}
+              </Text>
               <TouchableOpacity
                 onPress={handleClose}
                 style={styles.closeButton}
@@ -67,7 +127,13 @@ export default function TemperatureBottomSheet({ visible, onClose, onSave }) {
                 <Text style={styles.label}>Temperature (°F)</Text>
                 <View style={styles.inputRow}>
                   <Ionicons name="thermometer" size={20} color="#9E9E9E" />
-                  <Text style={styles.value}>{temperature}</Text>
+                  <TextInput
+                    style={styles.valueInput}
+                    value={temperature}
+                    onChangeText={setTemperature}
+                    keyboardType="decimal-pad"
+                    placeholder="98.6"
+                  />
                 </View>
                 <View style={styles.divider} />
               </View>
@@ -93,16 +159,24 @@ export default function TemperatureBottomSheet({ visible, onClose, onSave }) {
               <TouchableOpacity
                 style={styles.cancelButton}
                 onPress={handleClose}
+                disabled={isLoading}
               >
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-                <Text style={styles.saveButtonText}>Save Reading</Text>
+              <TouchableOpacity
+                style={[styles.saveButton, isLoading && styles.saveButtonDisabled]}
+                onPress={handleSave}
+                disabled={isLoading}
+              >
+                <Text style={styles.saveButtonText}>
+                  {isLoading ? "Saving..." : "Save Reading"}
+                </Text>
               </TouchableOpacity>
             </View>
-          </View>
-        </SafeAreaView>
-      </View>
+          </ScrollView>
+        </View>
+      </KeyboardAvoidingView>
+      <LoadingOverlay visible={isLoading} />
     </Modal>
   );
 }
@@ -113,8 +187,8 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "flex-end",
   },
-  safeArea: {
-    flex: 0,
+  overlayTouchable: {
+    flex: 1,
   },
   container: {
     backgroundColor: Colors.white,
@@ -122,7 +196,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 20,
     paddingHorizontal: Sizes.lg,
     paddingTop: Sizes.lg,
-    paddingBottom: Sizes.xl,
+    maxHeight: "85%",
   },
   header: {
     flexDirection: "row",
@@ -165,6 +239,17 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins-Bold",
     color: Colors.textPrimary,
     marginLeft: Sizes.sm,
+  },
+  valueInput: {
+    fontSize: 24,
+    fontFamily: "Poppins-Bold",
+    color: Colors.textPrimary,
+    marginLeft: Sizes.sm,
+    flex: 1,
+    paddingVertical: 0,
+  },
+  saveButtonDisabled: {
+    opacity: 0.6,
   },
   divider: {
     height: 1,

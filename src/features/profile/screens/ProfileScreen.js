@@ -116,18 +116,15 @@ export default function ProfileScreen({ navigation, route }) {
   };
 
   const handleMedicalHistory = () => {
-    // Navigate to medical history
-    console.log("Navigate to Medical History");
+    navigation.navigate("MedicalHistory");
   };
 
   const handlePrivacyPreferences = () => {
-    // Navigate to privacy preferences
-    console.log("Navigate to Privacy Preferences");
+    navigation.navigate("PrivacyPreferences");
   };
 
   const handleHelpSupport = () => {
-    // Navigate to help & support
-    console.log("Navigate to Help & Support");
+    navigation.navigate("HelpSupport");
   };
 
   const onRefresh = React.useCallback(async () => {
