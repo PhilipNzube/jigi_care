@@ -14,12 +14,12 @@ export default function CollectionTypeSelector({
         <TouchableOpacity
           style={[
             styles.option,
-            collectionType === "home" && styles.selectedOption,
+            (collectionType === "home" || collectionType === "home_collection") && styles.selectedOption,
           ]}
-          onPress={() => onCollectionTypeChange("home")}
+          onPress={() => onCollectionTypeChange("home_collection")}
         >
           <View style={styles.radioButton}>
-            {collectionType === "home" && <View style={styles.radioSelected} />}
+            {(collectionType === "home" || collectionType === "home_collection") && <View style={styles.radioSelected} />}
           </View>
           <Text style={styles.optionText}>
             Home Collection (+₦{homeCollectionFee.toLocaleString()})
@@ -29,12 +29,12 @@ export default function CollectionTypeSelector({
         <TouchableOpacity
           style={[
             styles.option,
-            collectionType === "lab" && styles.selectedOption,
+            (collectionType === "lab" || collectionType === "lab_collection") && styles.selectedOption,
           ]}
-          onPress={() => onCollectionTypeChange("lab")}
+          onPress={() => onCollectionTypeChange("lab_collection")}
         >
           <View style={styles.radioButton}>
-            {collectionType === "lab" && <View style={styles.radioSelected} />}
+            {(collectionType === "lab" || collectionType === "lab_collection") && <View style={styles.radioSelected} />}
           </View>
           <Text style={styles.optionText}>Visit Lab Centre</Text>
         </TouchableOpacity>

@@ -106,7 +106,9 @@ function BookConsultationSkeleton({ insets }) {
       </ScrollView>
 
       {/* Button Skeleton */}
-      <View style={[styles.bookButtonContainer, { paddingBottom: insets.bottom }]}>
+      <View
+        style={[styles.bookButtonContainer, { paddingBottom: insets.bottom }]}
+      >
         <ShimmerLoader>
           <View style={styles.skeletonButton} />
         </ShimmerLoader>
@@ -178,16 +180,23 @@ export default function BookConsultationScreen({ navigation, route }) {
         const month = String(dateObj.getMonth() + 1).padStart(2, "0");
         const day = String(dateObj.getDate()).padStart(2, "0");
         const dateForApi = `${year}-${month}-${day}T10:00:00`;
-        console.log("📅 [BOOK CONSULTATION] Fetching slots for date:", dateForApi);
-        
+        console.log(
+          "📅 [BOOK CONSULTATION] Fetching slots for date:",
+          dateForApi
+        );
+
         const response = await getAvailableSlots(consultantId, dateForApi);
-        
+
         // Handle response - availableSlots can be directly on response or in response.data
-        const availableSlots = response.availableSlots || response.data?.availableSlots || [];
-        
+        const availableSlots =
+          response.availableSlots || response.data?.availableSlots || [];
+
         if (availableSlots.length > 0) {
           setAvailableSlots(availableSlots);
-          console.log("✅ [BOOK CONSULTATION] Available slots:", availableSlots.length);
+          console.log(
+            "✅ [BOOK CONSULTATION] Available slots:",
+            availableSlots.length
+          );
         } else {
           setAvailableSlots([]);
           console.log("⚠️ [BOOK CONSULTATION] No available slots found");
@@ -222,7 +231,7 @@ export default function BookConsultationScreen({ navigation, route }) {
       // Combine date and time into ISO format
       // Use selectedDateObj if available, otherwise parse from selectedDate string
       let bookingDate;
-      
+
       if (selectedDateObj) {
         // Use the date object directly
         bookingDate = new Date(selectedDateObj);
@@ -232,19 +241,31 @@ export default function BookConsultationScreen({ navigation, route }) {
         today.setHours(0, 0, 0, 0);
         const dateMatch = selectedDate.match(/\d+/);
         const dayNumber = dateMatch ? parseInt(dateMatch[0]) : today.getDate();
-        bookingDate = new Date(today.getFullYear(), today.getMonth(), dayNumber);
-        
+        bookingDate = new Date(
+          today.getFullYear(),
+          today.getMonth(),
+          dayNumber
+        );
+
         // If the day number is less than today's day, assume it's next month
         if (dayNumber < today.getDate()) {
-          bookingDate = new Date(today.getFullYear(), today.getMonth() + 1, dayNumber);
+          bookingDate = new Date(
+            today.getFullYear(),
+            today.getMonth() + 1,
+            dayNumber
+          );
         }
       }
-      
+
       // Parse time - use value from API slot if available, otherwise parse display format
-      const selectedSlot = availableSlots.find(slot => slot.display === selectedTime);
+      const selectedSlot = availableSlots.find(
+        (slot) => slot.display === selectedTime
+      );
       if (selectedSlot && selectedSlot.value) {
         // Use the value from API (format: "HH:mm:ss")
-        const [hours, minutes, seconds] = selectedSlot.value.split(":").map(Number);
+        const [hours, minutes, seconds] = selectedSlot.value
+          .split(":")
+          .map(Number);
         bookingDate.setHours(hours, minutes || 0, seconds || 0);
       } else {
         // Fallback: parse display format (e.g., "10:00 AM")
@@ -255,7 +276,7 @@ export default function BookConsultationScreen({ navigation, route }) {
         if (period === "AM" && hours === 12) hour24 = 0;
         bookingDate.setHours(hour24, minutes || 0, 0);
       }
-      
+
       // Ensure it's not in the past
       if (bookingDate < new Date()) {
         showError("Please select a future date and time");
@@ -266,17 +287,11 @@ export default function BookConsultationScreen({ navigation, route }) {
       // Convert to ISO string
       const dateISO = bookingDate.toISOString();
 
-      // Split symptoms by comma or newline
-      const symptomsArray = symptoms
-        .split(/[,\n]/)
-        .map(s => s.trim())
-        .filter(s => s.length > 0);
-
-      // Create booking
+      // Create booking - symptoms should be a string, not an array
       const bookingData = {
         date: dateISO,
         duration: 1, // Changed to 1 hour
-        symptoms: symptomsArray,
+        symptoms: symptoms.trim(), // Send as string
         consultantId: consultantId,
       };
 
@@ -299,7 +314,9 @@ export default function BookConsultationScreen({ navigation, route }) {
       }
 
       const { authorization_url, reference } = paymentResponse.data;
-      console.log("✅ [BOOK CONSULTATION] Payment initialized, opening WebView...");
+      console.log(
+        "✅ [BOOK CONSULTATION] Payment initialized, opening WebView..."
+      );
 
       // Navigate to payment WebView
       navigation.navigate("PaymentWebView", {
@@ -309,12 +326,18 @@ export default function BookConsultationScreen({ navigation, route }) {
       });
     } catch (error) {
       console.error("❌ [BOOK CONSULTATION] Error:", error);
-      
+
       // Check for specific error messages
-      if (error.data?.message && error.data.message.includes("already booked")) {
+      if (
+        error.data?.message &&
+        error.data.message.includes("already booked")
+      ) {
         showError(error.data.message);
       } else {
-        const errorMessage = error.data?.message || error.message || "Failed to create booking. Please try again.";
+        const errorMessage =
+          error.data?.message ||
+          error.message ||
+          "Failed to create booking. Please try again.";
         showError(errorMessage);
       }
     } finally {

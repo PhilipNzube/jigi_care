@@ -27,17 +27,9 @@ export default function SearchMedicationScreen({ navigation, route }) {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
+  const [categories, setCategories] = useState([]);
   const searchTimeoutRef = useRef(null);
   const searchInputRef = useRef(null);
-
-  const categories = [
-    "Pain Relief",
-    "Antibiotics",
-    "Cough",
-    "Fever",
-    "Allergy",
-    "Vitamins",
-  ];
 
   const stockStatusOptions = [
     { label: "In Stock", value: "in_stock" },
@@ -93,6 +85,18 @@ export default function SearchMedicationScreen({ navigation, route }) {
 
       if (page === 1) {
         setMedications(items);
+        
+        // Extract unique categories from fetched medications
+        const uniqueCategories = new Set();
+        items.forEach((medication) => {
+          if (medication.category) {
+            uniqueCategories.add(medication.category);
+          }
+        });
+        
+        // Convert Set to Array and sort
+        const categoriesList = Array.from(uniqueCategories).sort();
+        setCategories(categoriesList);
       } else {
         setMedications((prev) => [...prev, ...items]);
       }
@@ -387,26 +391,30 @@ export default function SearchMedicationScreen({ navigation, route }) {
                       All
                     </Text>
                   </TouchableOpacity>
-                  {categories.map((category) => (
-                    <TouchableOpacity
-                      key={category}
-                      style={[
-                        styles.filterChip,
-                        selectedCategory === category && styles.filterChipActive,
-                      ]}
-                      onPress={() => setSelectedCategory(category)}
-                    >
-                      <Text
+                  {categories.length > 0 ? (
+                    categories.map((category) => (
+                      <TouchableOpacity
+                        key={category}
                         style={[
-                          styles.filterChipText,
-                          selectedCategory === category &&
-                            styles.filterChipTextActive,
+                          styles.filterChip,
+                          selectedCategory === category && styles.filterChipActive,
                         ]}
+                        onPress={() => setSelectedCategory(category)}
                       >
-                        {category}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
+                        <Text
+                          style={[
+                            styles.filterChipText,
+                            selectedCategory === category &&
+                              styles.filterChipTextActive,
+                          ]}
+                        >
+                          {category}
+                        </Text>
+                      </TouchableOpacity>
+                    ))
+                  ) : (
+                    <Text style={styles.emptyFiltersText}>No categories available</Text>
+                  )}
                 </View>
               </View>
 
@@ -713,6 +721,12 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins-Medium",
     color: Colors.white,
     includeFontPadding: false,
+  },
+  emptyFiltersText: {
+    fontSize: 14,
+    fontFamily: "Poppins-Regular",
+    color: Colors.textSecondary,
+    fontStyle: "italic",
   },
 });
 

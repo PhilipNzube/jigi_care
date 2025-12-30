@@ -37,6 +37,9 @@ import ViewAllMedicationsScreen from "../../features/health/screens/ViewAllMedic
 import LabTestScreen from "../../features/health/screens/LabTestScreen";
 import BookLabTestScreen from "../../features/health/screens/BookLabTestScreen";
 import LabResultsScreen from "../../features/health/screens/LabResultsScreen";
+import LabCentersScreen from "../../features/health/screens/LabCentersScreen";
+import ViewAllTestsScreen from "../../features/health/screens/ViewAllTestsScreen";
+import SearchLabTestScreen from "../../features/health/screens/SearchLabTestScreen";
 import SearchMedicationScreen from "../../features/medications/screens/SearchMedicationScreen";
 
 const Stack = createStackNavigator();
@@ -204,6 +207,9 @@ export default function MainAppNavigator() {
       <Stack.Screen name="LabTest" component={LabTestScreen} />
       <Stack.Screen name="BookLabTest" component={BookLabTestScreen} />
       <Stack.Screen name="LabResults" component={LabResultsScreen} />
+      <Stack.Screen name="LabCenters" component={LabCentersScreen} />
+      <Stack.Screen name="ViewAllTests" component={ViewAllTestsScreen} />
+      <Stack.Screen name="SearchLabTest" component={SearchLabTestScreen} />
       <Stack.Screen
         name="SearchMedication"
         component={SearchMedicationScreen}

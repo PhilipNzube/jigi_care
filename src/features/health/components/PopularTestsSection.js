@@ -1,9 +1,45 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
+import { Images } from "../../../shared/utils/imageUtils";
+import { getPopularTests } from "../services/labTestService";
+import ShimmerLoader from "../../../shared/components/ShimmerLoader";
 
-export default function PopularTestsSection({ tests, onBookTest, onViewAll }) {
+export default function PopularTestsSection({ onBookTest, onViewAll }) {
+  const [tests, setTests] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    fetchPopularTests();
+  }, []);
+
+  const fetchPopularTests = async () => {
+    try {
+      setIsLoading(true);
+      const response = await getPopularTests();
+      const testsData = response.data || [];
+      
+      // Map API data to component format
+      const mappedTests = testsData.slice(0, 3).map((test) => ({
+        id: test.id,
+        name: test.title,
+        description: test.description,
+        price: `₦${test.amount?.toLocaleString() || "0"}`,
+        duration: `${test.durationInHrs || 24} hours`,
+        preparation: test.preparation || "No preparation required",
+        image: Images.placeholder,
+        testData: test, // Keep original data for booking
+      }));
+      
+      setTests(mappedTests);
+    } catch (error) {
+      console.error("❌ [POPULAR TESTS] Error fetching tests:", error);
+      setTests([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
   const renderTestCard = (test) => (
     <TouchableOpacity
       key={test.id}
@@ -48,6 +84,26 @@ export default function PopularTestsSection({ tests, onBookTest, onViewAll }) {
     </TouchableOpacity>
   );
 
+  const renderSkeleton = () => (
+    <View style={styles.container}>
+      <View style={styles.sectionHeader}>
+        <ShimmerLoader>
+          <View style={{ width: 120, height: 20, borderRadius: 4 }} />
+        </ShimmerLoader>
+        <ShimmerLoader>
+          <View style={{ width: 60, height: 16, borderRadius: 4 }} />
+        </ShimmerLoader>
+      </View>
+      {[1, 2, 3].map((i) => (
+        <ShimmerLoader key={i}>
+          <View style={styles.testCard}>
+            <View style={{ width: "100%", height: 150, borderRadius: 12, marginBottom: Sizes.md }} />
+          </View>
+        </ShimmerLoader>
+      ))}
+    </View>
+  );
+
   return (
     <View style={styles.container}>
       <View style={styles.sectionHeader}>
@@ -57,7 +113,11 @@ export default function PopularTestsSection({ tests, onBookTest, onViewAll }) {
         </TouchableOpacity>
       </View>
 
-      <View style={styles.testsContainer}>{tests.map(renderTestCard)}</View>
+      {isLoading ? (
+        renderSkeleton()
+      ) : (
+        <View style={styles.testsContainer}>{tests.map(renderTestCard)}</View>
+      )}
     </View>
   );
 }

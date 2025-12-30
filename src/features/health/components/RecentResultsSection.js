@@ -1,12 +1,55 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Colors, Sizes } from "../../../shared/constants";
+import { getTestResults } from "../services/labTestService";
+import { format, parseISO } from "date-fns";
+import ShimmerLoader from "../../../shared/components/ShimmerLoader";
 
 export default function RecentResultsSection({
-  results,
   onViewAll,
   onViewResult,
 }) {
+  const [results, setResults] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    fetchResults();
+  }, []);
+
+  const fetchResults = async () => {
+    try {
+      setIsLoading(true);
+      const response = await getTestResults();
+      const resultsData = response.data || [];
+      
+      // Map API data to component format
+      const mappedResults = resultsData.slice(0, 2).map((result) => {
+        const date = result.date ? parseISO(result.date) : new Date();
+        const formattedDate = format(date, "MMM dd, yyyy • h:mm a");
+        
+        // Determine status color based on status
+        const statusColor = result.status === "normal" ? "#27AE60" : "#E74C3C";
+        const statusText = result.status === "normal" ? "Normal" : "Attention Required";
+        
+        return {
+          id: result.id || Math.random().toString(),
+          testName: result.title,
+          doctor: result.doctor || "Dr. Unknown",
+          date: formattedDate,
+          status: statusText,
+          statusColor: statusColor,
+          resultData: result, // Keep original data
+        };
+      });
+      
+      setResults(mappedResults);
+    } catch (error) {
+      console.error("❌ [RECENT RESULTS] Error fetching results:", error);
+      setResults([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
   const renderResultCard = (result) => (
     <View key={result.id} style={styles.resultCard}>
       <View style={styles.resultHeader}>
@@ -48,6 +91,26 @@ export default function RecentResultsSection({
     </View>
   );
 
+  const renderSkeleton = () => (
+    <View style={styles.container}>
+      <View style={styles.sectionHeader}>
+        <ShimmerLoader>
+          <View style={{ width: 120, height: 20, borderRadius: 4 }} />
+        </ShimmerLoader>
+        <ShimmerLoader>
+          <View style={{ width: 60, height: 16, borderRadius: 4 }} />
+        </ShimmerLoader>
+      </View>
+      {[1, 2].map((i) => (
+        <ShimmerLoader key={i}>
+          <View style={styles.resultCard}>
+            <View style={{ width: "100%", height: 100, borderRadius: 12 }} />
+          </View>
+        </ShimmerLoader>
+      ))}
+    </View>
+  );
+
   return (
     <View style={styles.container}>
       <View style={styles.sectionHeader}>
@@ -57,9 +120,13 @@ export default function RecentResultsSection({
         </TouchableOpacity>
       </View>
 
-      <View style={styles.resultsContainer}>
-        {results.map(renderResultCard)}
-      </View>
+      {isLoading ? (
+        renderSkeleton()
+      ) : (
+        <View style={styles.resultsContainer}>
+          {results.map(renderResultCard)}
+        </View>
+      )}
     </View>
   );
 }

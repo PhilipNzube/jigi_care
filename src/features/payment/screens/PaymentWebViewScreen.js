@@ -14,7 +14,8 @@ import { showError, showSuccess } from "../../../shared/utils/toast";
 
 export default function PaymentWebViewScreen({ navigation, route }) {
   const insets = useSafeAreaInsets();
-  const { authorizationUrl, reference, callbackUrl } = route.params || {};
+  const { authorizationUrl, reference, callbackUrl, source } =
+    route.params || {};
   const webViewRef = useRef(null);
   const [isLoading, setIsLoading] = useState(true);
   const hasVerifiedRef = useRef(false); // Use ref to prevent multiple verifications
@@ -107,23 +108,40 @@ export default function PaymentWebViewScreen({ navigation, route }) {
             console.log("✅ [PAYMENT WEBVIEW] Payment verified successfully!");
             showSuccess("Payment successful!");
 
-            // Close WebView and navigate to Consult screen
+            // Close WebView and navigate based on source
             setTimeout(() => {
-              // Reset navigation stack and navigate to Consult tab
-              navigation.dispatch(
-                CommonActions.reset({
-                  index: 0,
-                  routes: [
-                    {
-                      name: "BottomTabs",
-                      params: {
-                        screen: "consult", // Match the tab ID from BottomTabNavigator
+              if (source === "BookLabTest") {
+                // Navigate to ViewAllTests if came from BookLabTest
+                navigation.dispatch(
+                  CommonActions.reset({
+                    index: 0,
+                    routes: [
+                      {
+                        name: "ViewAllTests",
                       },
-                    },
-                  ],
-                })
-              );
-              console.log("✅ [PAYMENT WEBVIEW] Navigated to Consult screen");
+                    ],
+                  })
+                );
+                console.log(
+                  "✅ [PAYMENT WEBVIEW] Navigated to ViewAllTests screen"
+                );
+              } else {
+                // Default: Reset navigation stack and navigate to Consult tab
+                navigation.dispatch(
+                  CommonActions.reset({
+                    index: 0,
+                    routes: [
+                      {
+                        name: "BottomTabs",
+                        params: {
+                          screen: "consult", // Match the tab ID from BottomTabNavigator
+                        },
+                      },
+                    ],
+                  })
+                );
+                console.log("✅ [PAYMENT WEBVIEW] Navigated to Consult screen");
+              }
             }, 1500);
           } else {
             console.warn(

@@ -95,8 +95,7 @@ export default function LabTestScreen({ navigation }) {
   };
 
   const handleLabCenters = () => {
-    // Navigate to lab centers screen
-    console.log("Navigate to lab centers");
+    navigation.navigate("LabCenters");
   };
 
   return (
@@ -112,17 +111,23 @@ export default function LabTestScreen({ navigation }) {
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <CategoryFilters
+        {/* <CategoryFilters
           categories={categories}
           selectedCategory={selectedCategory}
           onCategorySelect={setSelectedCategory}
-        />
+        /> */}
 
-        <SearchBar
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          placeholder="Search for doctors or specialties"
-        />
+        {/* <TouchableOpacity
+          onPress={() => navigation.navigate("SearchLabTest")}
+          style={styles.searchBarWrapper}
+        >
+          <SearchBar
+            searchQuery={searchQuery}
+            onSearchChange={() => {}}
+            placeholder="Search for tests"
+            editable={false}
+          />
+        </TouchableOpacity> */}
 
         <FeatureCards
           onMyResults={handleMyResults}
@@ -130,13 +135,11 @@ export default function LabTestScreen({ navigation }) {
         />
 
         <PopularTestsSection
-          tests={popularTests}
           onBookTest={handleBookTest}
-          onViewAll={handleViewResults}
+          onViewAll={() => navigation.navigate("ViewAllTests")}
         />
 
         <RecentResultsSection
-          results={recentResults}
           onViewAll={handleViewResults}
           onViewResult={handleViewResult}
         />
@@ -200,6 +203,9 @@ const styles = StyleSheet.create({
   },
   selectedCategoryButtonText: {
     color: Colors.white,
+  },
+  searchBarWrapper: {
+    marginBottom: Sizes.lg,
   },
   searchContainer: {
     flexDirection: "row",

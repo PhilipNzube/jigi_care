@@ -94,28 +94,32 @@ export default function OnboardingScreen({ navigation }) {
 
         {/* Content Section */}
         <View style={styles.contentContainer}>
-          <Text
-            style={styles.slideTitle}
-            includeFontPadding={false}
-            textAlignVertical="center"
-          >
-            {titleParts[0]}
+          <View style={styles.textWrapper}>
             <Text
-              style={styles.slideTitleHighlight}
+              style={styles.slideTitle}
               includeFontPadding={false}
               textAlignVertical="center"
             >
-              {item.titleHighlight}
+              {titleParts[0]}
+              <Text
+                style={styles.slideTitleHighlight}
+                includeFontPadding={false}
+                textAlignVertical="center"
+              >
+                {item.titleHighlight}
+              </Text>
+              {titleParts[1]}
             </Text>
-            {titleParts[1]}
-          </Text>
-          <Text
-            style={styles.slideDescription}
-            includeFontPadding={false}
-            textAlignVertical="center"
-          >
-            {item.description}
-          </Text>
+          </View>
+          <View style={styles.textWrapper}>
+            <Text
+              style={styles.slideDescription}
+              includeFontPadding={false}
+              textAlignVertical="center"
+            >
+              {item.description}
+            </Text>
+          </View>
         </View>
       </View>
     );
@@ -191,6 +195,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: Sizes.xl,
     paddingTop: Sizes.sm,
+    width: "100%",
+  },
+  textWrapper: {
+    width: "100%",
+    alignItems: "center",
   },
   slideTitle: {
     fontSize: 28,
@@ -199,6 +208,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: Sizes.lg,
     lineHeight: 36,
+    width: "100%",
   },
   slideTitleHighlight: {
     color: Colors.primary,
@@ -209,6 +219,7 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     textAlign: "center",
     lineHeight: 24,
+    width: "100%",
   },
   bottomContainer: {
     paddingHorizontal: Sizes.xl,

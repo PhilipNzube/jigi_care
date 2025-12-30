@@ -7,6 +7,7 @@ export default function SearchBar({
   searchQuery,
   onSearchChange,
   placeholder = "Search for doctors or specialties",
+  editable = true,
 }) {
   const [isSearchFocused, setIsSearchFocused] = useState(false);
 
@@ -24,6 +25,7 @@ export default function SearchBar({
           placeholderTextColor={Colors.grey}
           onFocus={() => setIsSearchFocused(true)}
           onBlur={() => setIsSearchFocused(false)}
+          editable={editable}
         />
       </View>
     </View>

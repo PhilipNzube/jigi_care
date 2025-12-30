@@ -13,49 +13,30 @@ import { Colors, Sizes } from "../../../shared/constants";
 
 export default function TestResultBottomSheet({ visible, onClose, result }) {
   const insets = useSafeAreaInsets();
-  const defaultResult = {
-    id: 1,
-    testName: "Complete Blood Count",
-    doctor: "Dr. Sarah Olukoya",
-    date: "Sep 25th, 2025 • 10:05 AM",
-    status: "Normal",
-    statusColor: "#27AE60",
-    lab: "MedLab Diagnosis",
+  const { format, parseISO } = require("date-fns");
+  
+  // Use result data from API if available
+  const resultData = result?.resultData || result;
+  const currentResult = {
+    id: resultData?.id || result?.id,
+    testName: resultData?.title || result?.testName || "Test Result",
+    doctor: resultData?.doctor || result?.doctor || "Dr. Unknown",
+    date: result?.date || (resultData?.date ? format(parseISO(resultData.date), "MMM dd, yyyy • h:mm a") : "Unknown date"),
+    status: resultData?.status === "normal" ? "Normal" : result?.status || "Normal",
+    statusColor: resultData?.status === "normal" ? "#27AE60" : result?.statusColor || "#27AE60",
+    lab: resultData?.lab || result?.lab || "Unknown Lab",
   };
 
-  const currentResult = result || defaultResult;
-
-  // Sample test parameters and results
-  const testParameters = [
-    {
-      name: "Hemoglobin",
-      value: "14.2",
-      unit: "g/dL",
-      normal: "12.0-15.5",
-      status: "normal",
-    },
-    {
-      name: "Hematocrit",
-      value: "42.0",
-      unit: "%",
-      normal: "37.0-47.0",
-      status: "normal",
-    },
-    {
-      name: "White Blood Cells",
-      value: "6.5",
-      unit: "K/uL",
-      normal: "4.0-11.0",
-      status: "normal",
-    },
-    {
-      name: "Platelets",
-      value: "250",
-      unit: "K/uL",
-      normal: "150-450",
-      status: "normal",
-    },
-  ];
+  // Extract test values from API response
+  const testParameters = resultData?.testValues 
+    ? Object.entries(resultData.testValues).map(([key, value]) => ({
+        name: key.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase()),
+        value: value.value?.toString() || "N/A",
+        unit: value.range?.split(" ").slice(-1)[0] || "",
+        normal: value.range || "N/A",
+        status: value.status || "normal",
+      }))
+    : [];
 
   const handleClose = () => {
     if (typeof onClose === "function") {

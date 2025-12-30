@@ -311,12 +311,19 @@ export const apiRequest = async (endpoint, options = {}) => {
 
     // Check for unauthorized error (401 or 400 with "Unauthorized" message) and attempt token refresh
     // Only for endpoints that are NOT excluded (login/signup)
+    let messageStr = "";
+    if (data.message) {
+      if (Array.isArray(data.message)) {
+        messageStr = data.message.join(" ").toLowerCase();
+      } else if (typeof data.message === "string") {
+        messageStr = data.message.toLowerCase();
+      }
+    }
     const isUnauthorized =
       response.status === 401 ||
       (response.status === 400 &&
         ((data.error && data.error.toLowerCase().includes("unauthorized")) ||
-          (data.message &&
-            data.message.toLowerCase().includes("unauthorized"))));
+          messageStr.includes("unauthorized")));
 
     if (isUnauthorized && !isExcludedEndpoint(endpoint)) {
       console.log(
@@ -391,7 +398,16 @@ export const apiRequest = async (endpoint, options = {}) => {
         "❌ [API RESPONSE] Error response:",
         JSON.stringify(data, null, 2)
       );
-      const error = new Error(data.message || "An error occurred");
+      // Handle message as string or array
+      let errorMessage = "An error occurred";
+      if (data.message) {
+        if (Array.isArray(data.message)) {
+          errorMessage = data.message.join(", ");
+        } else if (typeof data.message === "string") {
+          errorMessage = data.message;
+        }
+      }
+      const error = new Error(errorMessage);
       error.statusCode = data.statusCode || response.status;
       error.data = data;
       throw error;

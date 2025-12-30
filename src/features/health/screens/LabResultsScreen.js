@@ -1,58 +1,89 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  RefreshControl,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
+import { format, parseISO } from "date-fns";
+import { getTestResults } from "../services/labTestService";
 import SummaryCards from "../components/SummaryCards";
 import LabResultCard from "../components/LabResultCard";
+import ShimmerLoader from "../../../shared/components/ShimmerLoader";
 
 export default function LabResultsScreen({ navigation }) {
-  const summaryData = {
-    totalTests: 4,
-    normalResults: 3,
-    attentionRequired: 1,
+  const [labResults, setLabResults] = useState([]);
+  const [summaryData, setSummaryData] = useState({
+    totalTests: 0,
+    normalResults: 0,
+    attentionRequired: 0,
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  useEffect(() => {
+    fetchResults();
+  }, []);
+
+  const fetchResults = async (silent = false) => {
+    try {
+      if (!silent) {
+        setIsLoading(true);
+      }
+      const response = await getTestResults();
+      const resultsData = response.data || [];
+      
+      // Map API data to component format
+      const mappedResults = resultsData.map((result) => {
+        const date = result.date ? parseISO(result.date) : new Date();
+        const formattedDate = format(date, "MMM dd, yyyy • h:mm a");
+        
+        // Determine status color based on status
+        const statusColor = result.status === "normal" ? "#27AE60" : "#E74C3C";
+        const statusText = result.status === "normal" ? "Normal" : "Attention Required";
+        
+        return {
+          id: result.id || Math.random().toString(),
+          testName: result.title,
+          doctor: result.doctor || "Dr. Unknown",
+          lab: result.lab || "Unknown Lab",
+          date: formattedDate,
+          status: statusText,
+          statusColor: statusColor,
+          resultData: result, // Keep original data for bottom sheet
+        };
+      });
+      
+      setLabResults(mappedResults);
+      
+      // Calculate summary
+      const totalTests = mappedResults.length;
+      const normalResults = mappedResults.filter(r => r.status === "Normal").length;
+      const attentionRequired = totalTests - normalResults;
+      
+      setSummaryData({
+        totalTests,
+        normalResults,
+        attentionRequired,
+      });
+    } catch (error) {
+      console.error("❌ [LAB RESULTS] Error fetching results:", error);
+      setLabResults([]);
+    } finally {
+      setIsLoading(false);
+      setRefreshing(false);
+    }
   };
 
-  const labResults = [
-    {
-      id: 1,
-      testName: "Complete Blood Count",
-      doctor: "Dr. Sarah Olukoya",
-      date: "Sep 25th, 2025 • 12:00 PM",
-      status: "Normal",
-      statusColor: "#27AE60",
-    },
-    {
-      id: 2,
-      testName: "Lipid Profile",
-      doctor: "Dr. Femi Johnson",
-      date: "Sep 25th, 2025 • 12:00 PM",
-      status: "Attention Required",
-      statusColor: "#E74C3C",
-    },
-    {
-      id: 3,
-      testName: "Liver Function Test",
-      doctor: "Dr. Ada Okonkwo",
-      date: "Sep 24th, 2025 • 10:30 AM",
-      status: "Normal",
-      statusColor: "#27AE60",
-    },
-    {
-      id: 4,
-      testName: "Thyroid Function Test",
-      doctor: "Dr. Michael Adebayo",
-      date: "Sep 23rd, 2025 • 2:15 PM",
-      status: "Normal",
-      statusColor: "#27AE60",
-    },
-  ];
+  const onRefresh = React.useCallback(() => {
+    setRefreshing(true);
+    fetchResults(true);
+  }, []);
 
   const handleDownload = (result) => {
     console.log("Downloading result:", result.testName);
@@ -71,18 +102,41 @@ export default function LabResultsScreen({ navigation }) {
         <Text style={styles.headerTitle}>Lab Results</Text>
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <SummaryCards summaryData={summaryData} />
+      <ScrollView
+        style={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      >
+        {isLoading ? (
+          <>
+            <ShimmerLoader>
+              <View style={{ flexDirection: "row", gap: Sizes.sm, marginBottom: Sizes.lg }}>
+                <View style={{ flex: 1, height: 100, borderRadius: 12 }} />
+                <View style={{ flex: 1, height: 100, borderRadius: 12 }} />
+                <View style={{ flex: 1, height: 100, borderRadius: 12 }} />
+              </View>
+            </ShimmerLoader>
+            {[1, 2, 3].map((i) => (
+              <ShimmerLoader key={i}>
+                <View style={{ height: 150, borderRadius: 12, marginBottom: Sizes.md }} />
+              </ShimmerLoader>
+            ))}
+          </>
+        ) : (
+          <>
+            <SummaryCards summaryData={summaryData} />
 
-        <View style={styles.resultsContainer}>
-          {labResults.map((result) => (
-            <LabResultCard
-              key={result.id}
-              result={result}
-              onDownload={() => handleDownload(result)}
-            />
-          ))}
-        </View>
+            <View style={styles.resultsContainer}>
+              {labResults.map((result) => (
+                <LabResultCard
+                  key={result.id}
+                  result={result}
+                  onDownload={() => handleDownload(result)}
+                />
+              ))}
+            </View>
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
