@@ -11,7 +11,14 @@ export default function FloatingActionButton({ onPress, isChatMode = false }) {
       ) : (
         <>
           <Ionicons name="chatbubble-outline" size={24} color={Colors.white} />
-          <Text style={styles.fabText}>Chat with us</Text>
+          <Text
+            style={styles.fabText}
+            numberOfLines={1}
+            adjustsFontSizeToFit={true}
+            minimumFontScale={0.85}
+          >
+            Chat with us
+          </Text>
         </>
       )}
     </TouchableOpacity>
