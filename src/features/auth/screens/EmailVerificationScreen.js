@@ -20,7 +20,9 @@ import {
   sendEmailVerificationOTP,
   verifyEmailVerificationOTP,
   sendPasswordResetOTP,
+  signUp as signUpAPI,
 } from "../services/authService";
+import { useAuth } from "../../../shared/context/AuthContext";
 import { showError, showSuccess } from "../../../shared/utils/toast";
 import LoadingOverlay from "../../../shared/components/LoadingOverlay";
 
@@ -28,7 +30,12 @@ const { width, height } = Dimensions.get("window");
 
 export default function EmailVerificationScreen({ navigation, route }) {
   const insets = useSafeAreaInsets();
-  const { email = "youremail@gmail.com", from = "signup" } = route.params || {};
+  const { signUp } = useAuth();
+  const {
+    email = "youremail@gmail.com",
+    from = "signup",
+    signupData,
+  } = route.params || {};
   const [code, setCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [resendTimer, setResendTimer] = useState(50);
@@ -54,13 +61,22 @@ export default function EmailVerificationScreen({ navigation, route }) {
   // Send OTP on mount if from signup (not for changePassword as it's already sent)
   useEffect(() => {
     if (from === "signup") {
-      handleSendOTP();
+      // OTP is already sent from SignUpScreen, so we don't need to send it again
+      // But we can still set up the resend timer
+      setResendTimer(50);
+      setCanResend(false);
     }
   }, []);
 
   const handleSendOTP = async () => {
     try {
-      await sendEmailVerificationOTP();
+      if (from === "signup" && signupData) {
+        // For signup flow, send both email and fullName
+        await sendEmailVerificationOTP(signupData.email, signupData.fullName);
+      } else {
+        // For other flows, just send email (or nothing if authenticated)
+        await sendEmailVerificationOTP(email);
+      }
       showSuccess("A one time password has been sent to your registered email");
       setResendTimer(50);
       setCanResend(false);
@@ -129,22 +145,58 @@ export default function EmailVerificationScreen({ navigation, route }) {
           params: { passwordResetOTP: code },
         });
       } else {
-        // For email verification (signup), verify OTP
-        await verifyEmailVerificationOTP(parseInt(code));
-        showSuccess("Email verified successfully!");
-        // Navigate to personalization
-        // navigation.navigate("Personalization");
-        // Navigate to home screen instead
+        // For email verification (signup), call signup API with OTP
+        if (!signupData) {
+          showError("Signup data is missing. Please try again.");
+          return;
+        }
+
+        const response = await signUpAPI({
+          ...signupData,
+          otp: code, // Keep as string, API expects string
+        });
+
+        // Store authentication data
+        await signUp(response);
+
+        showSuccess("Account created successfully! Welcome to Jiji Care.");
+        // Navigate to home screen
         navigation.replace("MainApp");
       }
     } catch (error) {
-      console.error("❌ [EMAIL VERIFICATION] Error verifying OTP:", error);
-      if (error.statusCode === 400 && error.message?.includes("Invalid OTP")) {
-        showError("Invalid OTP, please try again");
-      } else if (error.isNetworkError) {
-        showError("Network error. Please check your connection.");
+      console.error("❌ [EMAIL VERIFICATION] Error:", error);
+
+      if (from === "signup") {
+        // Handle signup-specific errors
+        if (
+          error.statusCode === 400 &&
+          error.message?.includes("Invalid OTP")
+        ) {
+          showError("Invalid OTP, please try again");
+        } else if (
+          error.statusCode === 500 &&
+          error.message?.includes("Email already used")
+        ) {
+          showError("Email already used. Please use another email or log in.");
+        } else if (error.isNetworkError) {
+          showError("Network error. Please check your connection.");
+        } else {
+          showError(
+            error.message || "Failed to create account. Please try again."
+          );
+        }
       } else {
-        showError(error.message || "Failed to verify OTP. Please try again.");
+        // Handle other flows (forgotPassword, changePassword)
+        if (
+          error.statusCode === 400 &&
+          error.message?.includes("Invalid OTP")
+        ) {
+          showError("Invalid OTP, please try again");
+        } else if (error.isNetworkError) {
+          showError("Network error. Please check your connection.");
+        } else {
+          showError(error.message || "Failed to verify OTP. Please try again.");
+        }
       }
     } finally {
       setIsLoading(false);

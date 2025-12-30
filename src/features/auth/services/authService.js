@@ -21,22 +21,30 @@ import {
  * @returns {Promise<object>} - Response with user data and accessToken
  */
 export const signUp = async (userData) => {
-  const { email, fullName, password, role = "patient" } = userData;
+  const { email, fullName, password, role = "patient", otp } = userData;
 
   console.log("📝 [SIGN UP] Starting sign up process...");
   console.log("📝 [SIGN UP] Request data:", {
     email,
     fullName,
     role,
+    otp: otp ? "***" : undefined,
     password: "***", // Don't log password
   });
 
-  const response = await post("/users/signup", {
+  const requestBody = {
     email,
     fullName,
     password,
     role,
-  });
+  };
+
+  // Add OTP if provided
+  if (otp) {
+    requestBody.otp = otp;
+  }
+
+  const response = await post("/users/signup", requestBody);
 
   console.log("✅ [SIGN UP] Sign up successful!");
   console.log(
@@ -469,12 +477,24 @@ export const verifyPasswordResetOTP = async (data) => {
 
 /**
  * Send email verification OTP
+ * @param {string} email - User email
+ * @param {string} fullName - User full name (required for signup flow)
  * @returns {Promise<object>} - Response with success message
  */
-export const sendEmailVerificationOTP = async () => {
+export const sendEmailVerificationOTP = async (email, fullName) => {
   console.log("📧 [EMAIL VERIFICATION] Sending email verification OTP...");
+  console.log("📧 [EMAIL VERIFICATION] Email:", email);
+  console.log("📧 [EMAIL VERIFICATION] FullName:", fullName);
 
-  const response = await post("/email-verification/send-otp", {});
+  const requestBody = {};
+  if (email) {
+    requestBody.email = email;
+  }
+  if (fullName) {
+    requestBody.fullName = fullName;
+  }
+
+  const response = await post("/email-verification/send-otp", requestBody);
 
   console.log("✅ [EMAIL VERIFICATION] OTP sent successfully!");
   console.log(

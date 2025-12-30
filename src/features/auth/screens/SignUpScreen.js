@@ -17,7 +17,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
 import { Images } from "../../../shared/utils/imageUtils";
-import { signUp as signUpAPI, signUpWithGoogle } from "../services/authService";
+import {
+  signUp as signUpAPI,
+  signUpWithGoogle,
+  sendEmailVerificationOTP,
+} from "../services/authService";
 import { signInWithGoogle as googleSignIn } from "../services/googleSignInService";
 import { useAuth } from "../../../shared/context/AuthContext";
 import {
@@ -221,40 +225,33 @@ export default function SignUpScreen({ navigation }) {
     setIsLoading(true);
 
     try {
-      const response = await signUpAPI({
-        email,
-        fullName,
-        password,
-        role: "patient", // Default role
-      });
+      // Send email verification OTP with email and fullName
+      await sendEmailVerificationOTP(email, fullName);
+      showSuccess("A one time password has been sent to your registered email");
 
-      // Store authentication data
-      await signUp(response);
-
-      showSuccess("Account created successfully! Please verify your email.");
-
-      // Navigate to email verification screen
+      // Navigate to email verification screen with signup data
       navigation.navigate("EmailVerification", {
         email,
         from: "signup",
+        signupData: {
+          email,
+          fullName,
+          password,
+          role: "patient",
+        },
       });
     } catch (error) {
-      console.error("❌ [SIGN UP SCREEN] Sign up error:", error);
+      console.error("❌ [SIGN UP SCREEN] Error sending OTP:", error);
       console.error(
         "❌ [SIGN UP SCREEN] Error details:",
         JSON.stringify(error, null, 2)
       );
 
       // Handle API errors
-      if (
-        error.statusCode === 500 &&
-        error.message?.includes("Email already used")
-      ) {
-        showError("Email already used. Please use another email or log in.");
-      } else if (error.isNetworkError) {
+      if (error.isNetworkError) {
         showError("Network error. Please check your connection.");
       } else {
-        showError(error.message || "An error occurred. Please try again.");
+        showError(error.message || "Failed to send OTP. Please try again.");
       }
     } finally {
       setIsLoading(false);
