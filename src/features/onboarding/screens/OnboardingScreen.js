@@ -99,6 +99,9 @@ export default function OnboardingScreen({ navigation }) {
               style={styles.slideTitle}
               includeFontPadding={false}
               textAlignVertical="center"
+              numberOfLines={3}
+              adjustsFontSizeToFit={true}
+              minimumFontScale={0.85}
             >
               {titleParts[0]}
               <Text
@@ -116,6 +119,9 @@ export default function OnboardingScreen({ navigation }) {
               style={styles.slideDescription}
               includeFontPadding={false}
               textAlignVertical="center"
+              numberOfLines={3}
+              adjustsFontSizeToFit={true}
+              minimumFontScale={0.85}
             >
               {item.description}
             </Text>
@@ -148,6 +154,9 @@ export default function OnboardingScreen({ navigation }) {
             style={styles.continueButtonText}
             includeFontPadding={false}
             textAlignVertical="center"
+            numberOfLines={1}
+            adjustsFontSizeToFit={true}
+            minimumFontScale={0.85}
           >
             Continue
           </Text>
@@ -159,6 +168,9 @@ export default function OnboardingScreen({ navigation }) {
             style={styles.skipText}
             includeFontPadding={false}
             textAlignVertical="center"
+            numberOfLines={1}
+            adjustsFontSizeToFit={true}
+            minimumFontScale={0.85}
           >
             Skip
           </Text>
@@ -193,7 +205,8 @@ const styles = StyleSheet.create({
     flex: 0.4,
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: Sizes.xl,
+    whiteSpace: "wrap",
+    paddingHorizontal: Sizes.lg,
     paddingTop: Sizes.sm,
     width: "100%",
   },
@@ -251,7 +264,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginBottom: Sizes.md,
-    paddingHorizontal: Sizes.lg,
   },
   continueButtonText: {
     fontSize: Sizes.fontSize.lg,
@@ -263,8 +275,10 @@ const styles = StyleSheet.create({
   skipButton: {
     alignItems: "center",
     paddingVertical: Sizes.md,
+    height: 56,
   },
   skipText: {
+    flex: 1,
     fontSize: Sizes.fontSize.md,
     fontFamily: "Poppins-Medium",
     color: Colors.primary,

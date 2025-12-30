@@ -154,17 +154,23 @@ export default function HeroSection({ insets, navigation }) {
           {heroSlides.map((slide) => (
             <View key={slide.id} style={styles.slide}>
               <View style={styles.slideContent}>
-                <Text 
+                <Text
                   style={styles.slideTitle}
                   includeFontPadding={false}
                   textAlignVertical="center"
+                  numberOfLines={3}
+                  adjustsFontSizeToFit={true}
+                  minimumFontScale={0.85}
                 >
                   {slide.title}
                 </Text>
-                <Text 
+                <Text
                   style={styles.slideSubtitle}
                   includeFontPadding={false}
                   textAlignVertical="center"
+                  numberOfLines={3}
+                  adjustsFontSizeToFit={true}
+                  minimumFontScale={0.85}
                 >
                   {slide.subtitle}
                 </Text>
@@ -172,7 +178,7 @@ export default function HeroSection({ insets, navigation }) {
                   style={styles.bookButton}
                   onPress={() => handleButtonPress(slide.buttonText)}
                 >
-                  <Text 
+                  <Text
                     style={styles.bookButtonText}
                     includeFontPadding={false}
                     textAlignVertical="center"
