@@ -14,39 +14,24 @@ export default function HelpSupportScreen({ navigation }) {
   const helpItems = [
     {
       id: 1,
-      title: "FAQs",
-      icon: "help-circle-outline",
-      description: "Frequently asked questions",
-    },
-    {
-      id: 2,
-      title: "Contact Us",
-      icon: "mail-outline",
-      description: "Get in touch with our support team",
-    },
-    {
-      id: 3,
       title: "Report a Problem",
       icon: "bug-outline",
       description: "Report bugs or issues",
+      screen: "ReportProblem",
     },
     {
-      id: 4,
-      title: "Terms of Service",
-      icon: "document-text-outline",
-      description: "Read our terms and conditions",
-    },
-    {
-      id: 5,
+      id: 2,
       title: "Privacy Policy",
       icon: "shield-checkmark-outline",
       description: "Learn about our privacy practices",
+      screen: "PrivacyPolicy",
     },
   ];
 
   const handleItemPress = (item) => {
-    // Handle navigation or action for each item
-    console.log("Pressed:", item.title);
+    if (item.screen) {
+      navigation.navigate(item.screen);
+    }
   };
 
   return (
@@ -94,23 +79,6 @@ export default function HelpSupportScreen({ navigation }) {
           </View>
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Contact Information</Text>
-          <View style={styles.card}>
-            <View style={styles.contactItem}>
-              <Ionicons name="mail" size={20} color={Colors.primary} />
-              <Text style={styles.contactText}>support@jiggycare.com</Text>
-            </View>
-            <View style={styles.contactItem}>
-              <Ionicons name="call" size={20} color={Colors.primary} />
-              <Text style={styles.contactText}>+234 800 000 0000</Text>
-            </View>
-            <View style={styles.contactItem}>
-              <Ionicons name="time" size={20} color={Colors.primary} />
-              <Text style={styles.contactText}>Mon - Fri, 9:00 AM - 6:00 PM</Text>
-            </View>
-          </View>
-        </View>
       </ScrollView>
     </SafeAreaView>
   );

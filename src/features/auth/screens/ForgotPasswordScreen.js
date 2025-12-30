@@ -15,6 +15,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
 import { Images } from "../../../shared/utils/imageUtils";
+import { sendPasswordResetOTP } from "../services/authService";
+import { showError, showSuccess } from "../../../shared/utils/toast";
+import LoadingOverlay from "../../../shared/components/LoadingOverlay";
 
 const { width, height } = Dimensions.get("window");
 
@@ -22,6 +25,7 @@ export default function ForgotPasswordScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const [email, setEmail] = useState("");
   const [errors, setErrors] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
 
   // Validation functions
   const validateEmail = (email) => {
@@ -63,12 +67,27 @@ export default function ForgotPasswordScreen({ navigation }) {
     setErrors(newErrors);
   };
 
-  const handleSendCode = () => {
+  const handleSendCode = async () => {
     if (!validateForm()) {
       return;
     }
-    // Navigate to email verification screen with forgot password context
-    navigation.navigate("EmailVerification", { email, from: "forgotPassword" });
+
+    setIsLoading(true);
+    try {
+      await sendPasswordResetOTP(email);
+      showSuccess("A one time password has been sent to your registered email");
+      // Navigate to email verification screen with forgot password context
+      navigation.navigate("EmailVerification", { email, from: "forgotPassword" });
+    } catch (error) {
+      console.error("❌ [FORGOT PASSWORD] Error sending OTP:", error);
+      if (error.isNetworkError) {
+        showError("Network error. Please check your connection.");
+      } else {
+        showError(error.message || "Failed to send OTP. Please try again.");
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -167,6 +186,7 @@ export default function ForgotPasswordScreen({ navigation }) {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+      <LoadingOverlay visible={isLoading} />
     </View>
   );
 }

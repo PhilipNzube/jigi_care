@@ -1,7 +1,8 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Modal } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Modal, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
+import { Images } from "../../../shared/utils/imageUtils";
 
 export default function CartItem({ item }) {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -37,9 +38,7 @@ export default function CartItem({ item }) {
         <View style={styles.content}>
           <View style={styles.itemHeader}>
             <View style={styles.itemInfo}>
-              <View style={styles.itemImage}>
-                <Ionicons name="medical" size={24} color={Colors.white} />
-              </View>
+              <Image source={Images.placeholder} style={styles.itemImage} />
               <View style={styles.itemDetails}>
                 <View style={styles.nameRow}>
                   <Text style={styles.itemName}>{item.name}</Text>
@@ -152,10 +151,7 @@ const styles = StyleSheet.create({
   itemImage: {
     width: 50,
     height: 50,
-    borderRadius: 8,
-    backgroundColor: "#0098B3",
-    justifyContent: "center",
-    alignItems: "center",
+    borderRadius: 30,
     marginRight: Sizes.sm,
   },
   itemDetails: {

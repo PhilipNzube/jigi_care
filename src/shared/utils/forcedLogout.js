@@ -5,6 +5,7 @@
 
 import { clearStorage } from "./storage";
 import { resetToLogin } from "../navigation/navigationRef";
+import { showError } from "./toast";
 
 /**
  * Force logout user by clearing all cached data and navigating to login
@@ -15,6 +16,9 @@ export const forceLogout = async () => {
   try {
     console.log("🚪 [FORCED LOGOUT] Starting forced logout...");
     console.log("🚪 [FORCED LOGOUT] Refresh token failed - clearing all cached data");
+
+    // Show session expired message
+    showError("Your session has expired. Please sign in again.", "Session Expired");
 
     // Clear all storage (tokens, user data, and any other cached data)
     await clearStorage();
@@ -27,6 +31,7 @@ export const forceLogout = async () => {
     console.error("❌ [FORCED LOGOUT] Error during forced logout:", error);
     // Even if navigation fails, try to navigate anyway
     try {
+      showError("Your session has expired. Please sign in again.", "Session Expired");
       resetToLogin();
     } catch (navError) {
       console.error("❌ [FORCED LOGOUT] Error navigating to login:", navError);

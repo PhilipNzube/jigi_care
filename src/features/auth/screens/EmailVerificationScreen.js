@@ -16,6 +16,13 @@ import { Ionicons } from "@expo/vector-icons";
 import { OtpInput } from "react-native-otp-entry";
 import { Colors, Sizes } from "../../../shared/constants";
 import { Images } from "../../../shared/utils/imageUtils";
+import {
+  sendEmailVerificationOTP,
+  verifyEmailVerificationOTP,
+  sendPasswordResetOTP,
+} from "../services/authService";
+import { showError, showSuccess } from "../../../shared/utils/toast";
+import LoadingOverlay from "../../../shared/components/LoadingOverlay";
 
 const { width, height } = Dimensions.get("window");
 
@@ -44,6 +51,29 @@ export default function EmailVerificationScreen({ navigation, route }) {
     return () => clearInterval(timer);
   }, []);
 
+  // Send OTP on mount if from signup (not for changePassword as it's already sent)
+  useEffect(() => {
+    if (from === "signup") {
+      handleSendOTP();
+    }
+  }, []);
+
+  const handleSendOTP = async () => {
+    try {
+      await sendEmailVerificationOTP();
+      showSuccess("A one time password has been sent to your registered email");
+      setResendTimer(50);
+      setCanResend(false);
+    } catch (error) {
+      console.error("❌ [EMAIL VERIFICATION] Error sending OTP:", error);
+      if (error.isNetworkError) {
+        showError("Network error. Please check your connection.");
+      } else {
+        showError(error.message || "Failed to send OTP. Please try again.");
+      }
+    }
+  };
+
   useEffect(() => {
     if (isLoading) {
       startSpinning();
@@ -51,6 +81,13 @@ export default function EmailVerificationScreen({ navigation, route }) {
       stopSpinning();
     }
   }, [isLoading]);
+
+  // Ensure spinner starts when component mounts if already loading
+  useEffect(() => {
+    if (isLoading) {
+      startSpinning();
+    }
+  }, []);
 
   const startSpinning = () => {
     spinValue.setValue(0);
@@ -71,30 +108,78 @@ export default function EmailVerificationScreen({ navigation, route }) {
     setCode(text);
   };
 
-  const handleVerifyCode = () => {
-    setIsLoading(true);
-    // Simulate verification process
-    setTimeout(() => {
-      setIsLoading(false);
-      // Route based on where the verification was invoked from
-      if (from === "forgotPassword") {
-        navigation.navigate("CreateNewPassword", { email });
-      } else {
-        // Default to personalization for signup flow
-        navigation.navigate("Personalization");
-      }
-    }, 2000);
-  };
+  const handleVerifyCode = async () => {
+    if (!code || code.length !== 6) {
+      showError("Please enter a valid 6-digit code");
+      return;
+    }
 
-  const handleResendCode = () => {
-    if (canResend) {
-      setResendTimer(50);
-      setCanResend(false);
-      // Simulate resend process
+    setIsLoading(true);
+    startSpinning(); // Ensure spinner starts immediately
+    try {
+      if (from === "forgotPassword") {
+        // For password reset, replace with create new password screen with OTP
+        navigation.replace("CreateNewPassword", { email, otp: code });
+      } else if (from === "changePassword") {
+        // For change password, replace with EditProfile with OTP
+        // EditProfile is in MainApp navigator, so we need to replace with MainApp first
+        showSuccess("OTP verified successfully!");
+        navigation.replace("MainApp", {
+          screen: "EditProfile",
+          params: { passwordResetOTP: code },
+        });
+      } else {
+        // For email verification (signup), verify OTP
+        await verifyEmailVerificationOTP(parseInt(code));
+        showSuccess("Email verified successfully!");
+        // Navigate to personalization
+        // navigation.navigate("Personalization");
+        // Navigate to home screen instead
+        navigation.replace("MainApp");
+      }
+    } catch (error) {
+      console.error("❌ [EMAIL VERIFICATION] Error verifying OTP:", error);
+      if (error.statusCode === 400 && error.message?.includes("Invalid OTP")) {
+        showError("Invalid OTP, please try again");
+      } else if (error.isNetworkError) {
+        showError("Network error. Please check your connection.");
+      } else {
+        showError(error.message || "Failed to verify OTP. Please try again.");
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const isCodeComplete = code.length === 4;
+  const handleResendCode = async () => {
+    if (!canResend) {
+      return;
+    }
+
+    if (from === "forgotPassword" || from === "changePassword") {
+      // For password reset or change password, resend password reset OTP
+      try {
+        await sendPasswordResetOTP(email);
+        showSuccess(
+          "A one time password has been sent to your registered email"
+        );
+        setResendTimer(50);
+        setCanResend(false);
+      } catch (error) {
+        console.error("❌ [EMAIL VERIFICATION] Error resending OTP:", error);
+        if (error.isNetworkError) {
+          showError("Network error. Please check your connection.");
+        } else {
+          showError(error.message || "Failed to resend OTP. Please try again.");
+        }
+      }
+    } else {
+      // For email verification, resend OTP
+      await handleSendOTP();
+    }
+  };
+
+  const isCodeComplete = code.length === 6;
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -148,7 +233,7 @@ export default function EmailVerificationScreen({ navigation, route }) {
             {/* Code Input Fields */}
             <View style={styles.codeContainer}>
               <OtpInput
-                numberOfDigits={4}
+                numberOfDigits={6}
                 value={code}
                 onTextChange={handleCodeChange}
                 focusColor={Colors.primary}
@@ -199,11 +284,11 @@ export default function EmailVerificationScreen({ navigation, route }) {
 
             {/* Secondary Actions */}
             <View style={styles.secondaryActions}>
-              <TouchableOpacity style={styles.secondaryButton}>
+              {/* <TouchableOpacity style={styles.secondaryButton}>
                 <Text style={styles.secondaryButtonText}>
                   Use another email
                 </Text>
-              </TouchableOpacity>
+              </TouchableOpacity> */}
 
               <View style={styles.resendContainer}>
                 <Text style={styles.resendText}>
@@ -227,6 +312,7 @@ export default function EmailVerificationScreen({ navigation, route }) {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+      <LoadingOverlay visible={isLoading} />
     </View>
   );
 }

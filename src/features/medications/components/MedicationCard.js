@@ -1,7 +1,8 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
+import { Images } from "../../../shared/utils/imageUtils";
 
 export default function MedicationCard({ medication, onAddToCart }) {
   const isOutOfStock = medication.status === "Out of Stock";
@@ -29,9 +30,7 @@ export default function MedicationCard({ medication, onAddToCart }) {
 
       <View style={styles.content}>
         <View style={styles.medicationInfo}>
-          <View style={styles.medicationImage}>
-            <Ionicons name="medical" size={24} color={Colors.white} />
-          </View>
+          <Image source={Images.placeholder} style={styles.medicationImage} />
 
           <View style={styles.medicationDetails}>
             <View style={styles.nameAndStatus}>
@@ -115,10 +114,7 @@ const styles = StyleSheet.create({
   medicationImage: {
     width: 50,
     height: 50,
-    borderRadius: 8,
-    backgroundColor: "#0098B3",
-    justifyContent: "center",
-    alignItems: "center",
+    borderRadius: 30,
     marginRight: Sizes.sm,
   },
   medicationDetails: {

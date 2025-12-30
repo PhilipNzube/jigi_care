@@ -13,10 +13,6 @@ import { Colors, Sizes } from "../../../shared/constants";
 
 export default function PrivacyPreferencesScreen({ navigation }) {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [emailNotifications, setEmailNotifications] = useState(true);
-  const [smsNotifications, setSmsNotifications] = useState(false);
-  const [dataSharing, setDataSharing] = useState(false);
-  const [analytics, setAnalytics] = useState(true);
 
   const privacySettings = [
     {
@@ -25,34 +21,6 @@ export default function PrivacyPreferencesScreen({ navigation }) {
       description: "Receive push notifications on your device",
       value: notificationsEnabled,
       onValueChange: setNotificationsEnabled,
-    },
-    {
-      id: 2,
-      title: "Email Notifications",
-      description: "Receive updates via email",
-      value: emailNotifications,
-      onValueChange: setEmailNotifications,
-    },
-    {
-      id: 3,
-      title: "SMS Notifications",
-      description: "Receive updates via SMS",
-      value: smsNotifications,
-      onValueChange: setSmsNotifications,
-    },
-    {
-      id: 4,
-      title: "Data Sharing",
-      description: "Allow sharing of anonymized data for research",
-      value: dataSharing,
-      onValueChange: setDataSharing,
-    },
-    {
-      id: 5,
-      title: "Analytics",
-      description: "Help us improve by sharing usage analytics",
-      value: analytics,
-      onValueChange: setAnalytics,
     },
   ];
 

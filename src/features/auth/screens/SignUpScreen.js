@@ -73,7 +73,43 @@ export default function SignUpScreen({ navigation }) {
   };
 
   const validatePassword = (password) => {
-    return password.length >= 8;
+    // Password requirements:
+    // - At least 8 characters
+    // - At least one uppercase letter
+    // - At least one lowercase letter
+    // - At least one number
+    // - At least one special character
+    if (password.length < 8) {
+      return {
+        valid: false,
+        message: "Password must be at least 8 characters",
+      };
+    }
+    if (!/[A-Z]/.test(password)) {
+      return {
+        valid: false,
+        message: "Password must contain at least one uppercase letter",
+      };
+    }
+    if (!/[a-z]/.test(password)) {
+      return {
+        valid: false,
+        message: "Password must contain at least one lowercase letter",
+      };
+    }
+    if (!/[0-9]/.test(password)) {
+      return {
+        valid: false,
+        message: "Password must contain at least one number",
+      };
+    }
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+      return {
+        valid: false,
+        message: "Password must contain at least one special character",
+      };
+    }
+    return { valid: true, message: "" };
   };
 
   const validateFullName = (name) => {
@@ -91,8 +127,13 @@ export default function SignUpScreen({ navigation }) {
       newErrors.email = "Please enter a valid email address";
     }
 
-    if (!validatePassword(password)) {
-      newErrors.password = "Password must be at least 8 characters";
+    if (!password.trim()) {
+      newErrors.password = "Password is required";
+    } else {
+      const passwordValidation = validatePassword(password);
+      if (!passwordValidation.valid) {
+        newErrors.password = passwordValidation.message;
+      }
     }
 
     if (password !== confirmPassword) {
@@ -129,10 +170,13 @@ export default function SignUpScreen({ navigation }) {
       case "password":
         if (value.trim() === "") {
           newErrors.password = "Password is required";
-        } else if (!validatePassword(value)) {
-          newErrors.password = "Password must be at least 8 characters";
         } else {
-          delete newErrors.password;
+          const passwordValidation = validatePassword(value);
+          if (!passwordValidation.valid) {
+            newErrors.password = passwordValidation.message;
+          } else {
+            delete newErrors.password;
+          }
         }
         // Also validate confirm password if it has a value
         if (confirmPassword && confirmPassword !== value) {
@@ -156,10 +200,11 @@ export default function SignUpScreen({ navigation }) {
   };
 
   const isFormValid = () => {
+    const passwordValidation = validatePassword(password);
     return (
       validateFullName(fullName) &&
       validateEmail(email) &&
-      validatePassword(password) &&
+      passwordValidation.valid &&
       password === confirmPassword &&
       fullName.trim() !== "" &&
       email.trim() !== "" &&
@@ -186,11 +231,13 @@ export default function SignUpScreen({ navigation }) {
       // Store authentication data
       await signUp(response);
 
-      showSuccess("Account created successfully! Welcome to Jiji Care.");
+      showSuccess("Account created successfully! Please verify your email.");
 
-      // Navigate to main app (or email verification if needed)
-      // Based on the API response, user is already signed up and logged in
-      navigation.replace("MainApp");
+      // Navigate to email verification screen
+      navigation.navigate("EmailVerification", {
+        email,
+        from: "signup",
+      });
     } catch (error) {
       console.error("❌ [SIGN UP SCREEN] Sign up error:", error);
       console.error(
@@ -269,9 +316,7 @@ export default function SignUpScreen({ navigation }) {
       } else if (error.isNetworkError) {
         showError("Network error. Please check your connection.");
       } else {
-        showError(
-          error.message || "Google sign up failed. Please try again."
-        );
+        showError(error.message || "Google sign up failed. Please try again.");
       }
     } finally {
       setIsLoading(false);
@@ -413,6 +458,56 @@ export default function SignUpScreen({ navigation }) {
               <Text style={styles.errorText}>
                 {errors.password || "Password is required"}
               </Text>
+            )}
+
+            {/* Password Requirements */}
+            {password.length > 0 && (
+              <View style={styles.requirementsContainer}>
+                <Text style={styles.requirementsTitle}>
+                  Password must contain:
+                </Text>
+                <Text
+                  style={[
+                    styles.requirement,
+                    password.length >= 8 && styles.requirementMet,
+                  ]}
+                >
+                  • At least 8 characters
+                </Text>
+                <Text
+                  style={[
+                    styles.requirement,
+                    /[A-Z]/.test(password) && styles.requirementMet,
+                  ]}
+                >
+                  • At least one uppercase letter
+                </Text>
+                <Text
+                  style={[
+                    styles.requirement,
+                    /[a-z]/.test(password) && styles.requirementMet,
+                  ]}
+                >
+                  • At least one lowercase letter
+                </Text>
+                <Text
+                  style={[
+                    styles.requirement,
+                    /[0-9]/.test(password) && styles.requirementMet,
+                  ]}
+                >
+                  • At least one number
+                </Text>
+                <Text
+                  style={[
+                    styles.requirement,
+                    /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password) &&
+                      styles.requirementMet,
+                  ]}
+                >
+                  • At least one special character
+                </Text>
+              </View>
             )}
 
             {/* Confirm Password Input */}
@@ -610,6 +705,26 @@ const styles = StyleSheet.create({
     color: Colors.error,
     marginTop: Sizes.xs,
     marginBottom: Sizes.sm,
+  },
+  requirementsContainer: {
+    marginTop: Sizes.sm,
+    marginBottom: Sizes.md,
+    paddingLeft: Sizes.sm,
+  },
+  requirementsTitle: {
+    fontSize: Sizes.fontSize.sm,
+    fontFamily: "Poppins-Medium",
+    color: Colors.textSecondary,
+    marginBottom: Sizes.xs,
+  },
+  requirement: {
+    fontSize: Sizes.fontSize.xs,
+    fontFamily: "Poppins-Regular",
+    color: Colors.textSecondary,
+    marginTop: Sizes.xs / 2,
+  },
+  requirementMet: {
+    color: "#4CAF50",
   },
   helpText: {
     fontSize: Sizes.fontSize.sm,

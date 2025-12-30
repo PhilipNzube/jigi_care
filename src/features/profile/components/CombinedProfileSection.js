@@ -113,11 +113,11 @@ export default function CombinedProfileSection({ onFieldPress }) {
       label: "Full Name",
       value: userName,
     },
-    {
-      id: "email",
-      label: "Email",
-      value: userEmail,
-    },
+    // {
+    //   id: "email",
+    //   label: "Email",
+    //   value: userEmail,
+    // },
     {
       id: "phoneNumber",
       label: "Phone Number",

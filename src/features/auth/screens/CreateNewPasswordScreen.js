@@ -16,12 +16,14 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
 import { Images } from "../../../shared/utils/imageUtils";
+import { verifyPasswordResetOTP } from "../services/authService";
+import { showError, showSuccess } from "../../../shared/utils/toast";
 
 const { width, height } = Dimensions.get("window");
 
 export default function CreateNewPasswordScreen({ navigation, route }) {
   const insets = useSafeAreaInsets();
-  const { email = "youremail@gmail.com" } = route.params || {};
+  const { email = "youremail@gmail.com", otp } = route.params || {};
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -117,16 +119,40 @@ export default function CreateNewPasswordScreen({ navigation, route }) {
     setErrors(newErrors);
   };
 
-  const handleResetPassword = () => {
+  const handleResetPassword = async () => {
     if (!validateForm()) {
       return;
     }
-    setIsLoading(true);
-    // Simulate password reset process
-    setTimeout(() => {
-      setIsLoading(false);
-      navigation.navigate("Login");
-    }, 2000);
+
+    if (otp) {
+      // If OTP is provided, verify it with the new password
+      setIsLoading(true);
+      try {
+        await verifyPasswordResetOTP({
+          OTP: parseInt(otp),
+          password,
+          email,
+        });
+        showSuccess("Password reset successfully!");
+        navigation.navigate("Login");
+      } catch (error) {
+        console.error("❌ [PASSWORD RESET] Error resetting password:", error);
+        if (error.statusCode === 400 && error.message?.includes("Invalid OTP")) {
+          showError("Invalid OTP, please try again");
+          // Navigate back to email verification
+          navigation.goBack();
+        } else if (error.isNetworkError) {
+          showError("Network error. Please check your connection.");
+        } else {
+          showError(error.message || "Failed to reset password. Please try again.");
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    } else {
+      // Fallback if OTP is not provided (shouldn't happen in normal flow)
+      showError("OTP is required. Please go back and verify your email.");
+    }
   };
 
   return (

@@ -4,12 +4,18 @@ import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
 
 export default function EditProfileHeader({ navigation }) {
+  const handleBackPress = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      // Navigate to Profile if there's no previous screen
+      navigation.navigate("BottomTabs", { screen: "profile" });
+    }
+  };
+
   return (
     <View style={styles.container}>
-      <TouchableOpacity
-        style={styles.backButton}
-        onPress={() => navigation.goBack()}
-      >
+      <TouchableOpacity style={styles.backButton} onPress={handleBackPress}>
         <Ionicons name="chevron-back" size={24} color={Colors.grey} />
       </TouchableOpacity>
       <View style={styles.titleContainer}>

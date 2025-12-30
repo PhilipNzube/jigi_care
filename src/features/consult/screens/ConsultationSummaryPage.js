@@ -10,9 +10,11 @@ import {
   KeyboardAvoidingView,
   Platform,
   Keyboard,
+  Image,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, Sizes } from "../../../shared/constants";
+import { Images } from "../../../shared/utils/imageUtils";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import FeedbackSubmittedModal from "../components/FeedbackSubmittedModal";
 
@@ -171,9 +173,7 @@ export default function ConsultationSummaryPage({ navigation, route }) {
           <Text style={styles.sectionTitle}>Doctor's Prescription</Text>
           {prescriptions.map((medication) => (
             <View key={medication.id} style={styles.medicationCard}>
-              <View style={styles.medicationImage}>
-                <Ionicons name="medical" size={20} color={Colors.primary} />
-              </View>
+              <Image source={Images.placeholder} style={styles.medicationImage} />
               <View style={styles.medicationInfo}>
                 <View style={styles.medicationHeader}>
                   <Text style={styles.medicationName}>{medication.name}</Text>
@@ -437,10 +437,7 @@ const styles = StyleSheet.create({
   medicationImage: {
     width: 40,
     height: 40,
-    backgroundColor: "#E3F2FD",
-    borderRadius: 8,
-    justifyContent: "center",
-    alignItems: "center",
+    borderRadius: 20,
     marginRight: Sizes.sm,
   },
   medicationInfo: {

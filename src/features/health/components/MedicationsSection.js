@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
+import { Images } from "../../../shared/utils/imageUtils";
 import { searchMedications } from "../../medications/services/medicationService";
 import ShimmerLoader from "../../../shared/components/ShimmerLoader";
 import { format } from "date-fns";
@@ -63,9 +64,7 @@ const MedicationsSection = ({ navigation }) => {
         </View>
         <View style={styles.medicationContent}>
           <View style={styles.medicationItem}>
-            <View style={styles.medicationImageContainer}>
-              <View style={styles.medicationImage} />
-            </View>
+            <Image source={Images.placeholder} style={styles.medicationImage} />
             <View style={styles.medicationInfo}>
               <View style={{ width: 120, height: 14, borderRadius: 4, marginBottom: Sizes.xs }} />
               <View style={{ width: 100, height: 12, borderRadius: 4, marginBottom: Sizes.xs }} />
@@ -104,9 +103,7 @@ const MedicationsSection = ({ navigation }) => {
         </View>
         <View style={styles.medicationContent}>
           <View style={styles.medicationItem}>
-            <View style={styles.medicationImageContainer}>
-              <View style={styles.medicationImage} />
-            </View>
+            <Image source={Images.placeholder} style={styles.medicationImage} />
             <View style={styles.medicationInfo}>
               <Text style={styles.medicationName}>{medicationName}</Text>
               <Text style={styles.medicationDosage}>{dosage}</Text>
@@ -197,20 +194,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-start",
   },
-  medicationImageContainer: {
+  medicationImage: {
     width: 40,
     height: 40,
-    borderRadius: 8,
-    backgroundColor: "#FF6B6B",
+    borderRadius: 20,
     marginRight: Sizes.md,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  medicationImage: {
-    width: 24,
-    height: 24,
-    backgroundColor: Colors.white,
-    borderRadius: 4,
   },
   medicationInfo: {
     flex: 1,

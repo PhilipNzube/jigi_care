@@ -1,13 +1,16 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  BackHandler,
+  Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useFocusEffect } from "@react-navigation/native";
 import { Colors, Sizes } from "../../../shared/constants";
 import { Images } from "../../../shared/utils/imageUtils";
 import EditProfileHeader from "../components/EditProfileHeader";
@@ -15,27 +18,70 @@ import ProfilePictureSection from "../components/ProfilePictureSection";
 import CombinedProfileSection from "../components/CombinedProfileSection";
 import UpdateDataModal from "../modals/UpdateDataModal";
 import UpdateNameModal from "../modals/UpdateNameModal";
-import UpdateEmailModal from "../modals/UpdateEmailModal";
+// import UpdateEmailModal from "../modals/UpdateEmailModal";
 import UpdatePhoneModal from "../modals/UpdatePhoneModal";
 import UpdateAddressModal from "../modals/UpdateAddressModal";
 import EmergencyContactModal from "../modals/EmergencyContactModal";
 import ChangePasswordModal from "../modals/ChangePasswordModal";
+import ChangePasswordEmailModal from "../modals/ChangePasswordEmailModal";
 import DatePickerModal from "../modals/DatePickerModal";
 import GenderModal from "../modals/GenderModal";
+import { useAuth } from "../../../shared/context/AuthContext";
 
-export default function EditProfileScreen({ navigation }) {
+export default function EditProfileScreen({ navigation, route }) {
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
   const [showUpdateDataModal, setShowUpdateDataModal] = useState(false);
   const [showUpdateNameModal, setShowUpdateNameModal] = useState(false);
-  const [showUpdateEmailModal, setShowUpdateEmailModal] = useState(false);
+  // const [showUpdateEmailModal, setShowUpdateEmailModal] = useState(false);
   const [showUpdatePhoneModal, setShowUpdatePhoneModal] = useState(false);
   const [showUpdateAddressModal, setShowUpdateAddressModal] = useState(false);
   const [showEmergencyContactModal, setShowEmergencyContactModal] =
     useState(false);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+  const [showChangePasswordEmailModal, setShowChangePasswordEmailModal] =
+    useState(false);
   const [showDatePickerModal, setShowDatePickerModal] = useState(false);
   const [showGenderModal, setShowGenderModal] = useState(false);
   const [selectedField, setSelectedField] = useState(null);
+  const [passwordResetOTP, setPasswordResetOTP] = useState(null);
+
+  // Check if we're returning from OTP verification
+  useFocusEffect(
+    React.useCallback(() => {
+      if (route.params?.passwordResetOTP) {
+        setPasswordResetOTP(route.params.passwordResetOTP);
+        setShowChangePasswordModal(true);
+        // Clear the param to avoid showing it again
+        navigation.setParams({ passwordResetOTP: undefined });
+      }
+    }, [route.params, navigation])
+  );
+
+  // Handle Android back button
+  useFocusEffect(
+    React.useCallback(() => {
+      const onBackPress = () => {
+        if (Platform.OS === "android") {
+          if (navigation.canGoBack()) {
+            navigation.goBack();
+          } else {
+            // Navigate to Profile if there's no previous screen
+            navigation.navigate("BottomTabs", { screen: "profile" });
+          }
+          return true; // Prevent default back behavior
+        }
+        return false;
+      };
+
+      const subscription = BackHandler.addEventListener(
+        "hardwareBackPress",
+        onBackPress
+      );
+
+      return () => subscription.remove();
+    }, [navigation])
+  );
 
   const handleFieldPress = (field) => {
     switch (field) {
@@ -48,9 +94,9 @@ export default function EditProfileScreen({ navigation }) {
       case "fullName":
         setShowUpdateNameModal(true);
         break;
-      case "email":
-        setShowUpdateEmailModal(true);
-        break;
+      // case "email":
+      //   setShowUpdateEmailModal(true);
+      //   break;
       case "phoneNumber":
         setShowUpdatePhoneModal(true);
         break;
@@ -61,7 +107,7 @@ export default function EditProfileScreen({ navigation }) {
         setShowEmergencyContactModal(true);
         break;
       case "changePassword":
-        setShowChangePasswordModal(true);
+        setShowChangePasswordEmailModal(true);
         break;
       case "dateOfBirth":
         setShowDatePickerModal(true);
@@ -102,10 +148,10 @@ export default function EditProfileScreen({ navigation }) {
         onClose={() => setShowUpdateNameModal(false)}
       />
 
-      <UpdateEmailModal
+      {/* <UpdateEmailModal
         visible={showUpdateEmailModal}
         onClose={() => setShowUpdateEmailModal(false)}
-      />
+      /> */}
 
       <UpdatePhoneModal
         visible={showUpdatePhoneModal}
@@ -122,9 +168,28 @@ export default function EditProfileScreen({ navigation }) {
         onClose={() => setShowEmergencyContactModal(false)}
       />
 
+      <ChangePasswordEmailModal
+        visible={showChangePasswordEmailModal}
+        onClose={() => setShowChangePasswordEmailModal(false)}
+        onVerify={(email) => {
+          setShowChangePasswordEmailModal(false);
+          // Navigate to OTP verification screen
+          navigation.navigate("EmailVerification", {
+            email,
+            from: "changePassword",
+            returnScreen: "EditProfile",
+          });
+        }}
+      />
+
       <ChangePasswordModal
         visible={showChangePasswordModal}
-        onClose={() => setShowChangePasswordModal(false)}
+        onClose={() => {
+          setShowChangePasswordModal(false);
+          setPasswordResetOTP(null);
+        }}
+        otp={passwordResetOTP}
+        email={user?.email}
       />
 
       <DatePickerModal

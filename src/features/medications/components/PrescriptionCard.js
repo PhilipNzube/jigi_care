@@ -1,7 +1,8 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
+import { Images } from "../../../shared/utils/imageUtils";
 
 export default function PrescriptionCard({ prescription }) {
   // Calculate progress: remainingPills / totalPills
@@ -33,9 +34,7 @@ export default function PrescriptionCard({ prescription }) {
 
       <View style={styles.content}>
         <View style={styles.medicationInfo}>
-          <View style={styles.medicationImage}>
-            <Ionicons name="medical" size={24} color={Colors.white} />
-          </View>
+          <Image source={Images.placeholder} style={styles.medicationImage} />
 
           <View style={styles.medicationDetails}>
             <View style={styles.nameAndStatus}>
@@ -142,10 +141,7 @@ const styles = StyleSheet.create({
   medicationImage: {
     width: 40,
     height: 40,
-    borderRadius: 8,
-    backgroundColor: "#0098B3",
-    justifyContent: "center",
-    alignItems: "center",
+    borderRadius: 20,
     marginRight: Sizes.sm,
   },
   medicationDetails: {

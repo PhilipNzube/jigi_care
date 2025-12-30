@@ -415,6 +415,98 @@ export const updateProfile = async (profileData) => {
   return userDataFromResponse;
 };
 
+/**
+ * Send password reset OTP
+ * @param {string} email - User email
+ * @returns {Promise<object>} - Response with success message
+ */
+export const sendPasswordResetOTP = async (email) => {
+  console.log("🔐 [PASSWORD RESET] Sending password reset OTP...");
+  console.log("🔐 [PASSWORD RESET] Email:", email);
+
+  const response = await post("/password-reset/send-otp", {
+    email,
+  });
+
+  console.log("✅ [PASSWORD RESET] OTP sent successfully!");
+  console.log(
+    "✅ [PASSWORD RESET] Full response data:",
+    JSON.stringify(response, null, 2)
+  );
+
+  return response;
+};
+
+/**
+ * Verify password reset OTP and set new password
+ * @param {object} data - OTP verification data
+ * @param {number} data.OTP - OTP code
+ * @param {string} data.password - New password
+ * @param {string} data.email - User email
+ * @returns {Promise<object>} - Response with success message
+ */
+export const verifyPasswordResetOTP = async (data) => {
+  const { OTP, password, email } = data;
+
+  console.log("🔐 [PASSWORD RESET] Verifying OTP and resetting password...");
+  console.log("🔐 [PASSWORD RESET] Email:", email);
+  console.log("🔐 [PASSWORD RESET] OTP:", OTP);
+
+  const response = await post("/password-reset/verify-otp", {
+    OTP,
+    password,
+    email,
+  });
+
+  console.log("✅ [PASSWORD RESET] Password reset successful!");
+  console.log(
+    "✅ [PASSWORD RESET] Full response data:",
+    JSON.stringify(response, null, 2)
+  );
+
+  return response;
+};
+
+/**
+ * Send email verification OTP
+ * @returns {Promise<object>} - Response with success message
+ */
+export const sendEmailVerificationOTP = async () => {
+  console.log("📧 [EMAIL VERIFICATION] Sending email verification OTP...");
+
+  const response = await post("/email-verification/send-otp", {});
+
+  console.log("✅ [EMAIL VERIFICATION] OTP sent successfully!");
+  console.log(
+    "✅ [EMAIL VERIFICATION] Full response data:",
+    JSON.stringify(response, null, 2)
+  );
+
+  return response;
+};
+
+/**
+ * Verify email verification OTP
+ * @param {number} OTP - OTP code
+ * @returns {Promise<object>} - Response with success message
+ */
+export const verifyEmailVerificationOTP = async (OTP) => {
+  console.log("📧 [EMAIL VERIFICATION] Verifying OTP...");
+  console.log("📧 [EMAIL VERIFICATION] OTP:", OTP);
+
+  const response = await post("/email-verification/verify-otp", {
+    OTP,
+  });
+
+  console.log("✅ [EMAIL VERIFICATION] Email verified successfully!");
+  console.log(
+    "✅ [EMAIL VERIFICATION] Full response data:",
+    JSON.stringify(response, null, 2)
+  );
+
+  return response;
+};
+
 export default {
   signUp,
   signIn,
@@ -423,4 +515,8 @@ export default {
   getUserProfile,
   logout,
   updateProfile,
+  sendPasswordResetOTP,
+  verifyPasswordResetOTP,
+  sendEmailVerificationOTP,
+  verifyEmailVerificationOTP,
 };

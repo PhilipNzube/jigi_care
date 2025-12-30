@@ -30,6 +30,8 @@ import EditProfileScreen from "../../features/profile/screens/EditProfileScreen"
 import ProfileSettingsScreen from "../../features/profile/screens/ProfileSettingsScreen";
 import HelpSupportScreen from "../../features/profile/screens/HelpSupportScreen";
 import PrivacyPreferencesScreen from "../../features/profile/screens/PrivacyPreferencesScreen";
+import ReportProblemScreen from "../../features/profile/screens/ReportProblemScreen";
+import PrivacyPolicyScreen from "../../features/profile/screens/PrivacyPolicyScreen";
 import MedicalHistoryScreen from "../../features/profile/screens/MedicalHistoryScreen";
 import HealthMonitoringScreen from "../../features/health/screens/HealthMonitoringScreen";
 import AddReadingScreen from "../../features/health/screens/AddReadingScreen";
@@ -194,6 +196,8 @@ export default function MainAppNavigator() {
         name="PrivacyPreferences"
         component={PrivacyPreferencesScreen}
       />
+      <Stack.Screen name="ReportProblem" component={ReportProblemScreen} />
+      <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
       <Stack.Screen name="MedicalHistory" component={MedicalHistoryScreen} />
       <Stack.Screen
         name="HealthMonitoring"
