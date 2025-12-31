@@ -6,7 +6,7 @@
  * HOW IT WORKS (vs Flutter):
  * - Flutter: Uses google-services.json which contains the Android OAuth Client ID explicitly
  * - React Native: Google's SDK AUTOMATICALLY detects the Android OAuth Client ID by matching:
- *   * Package name (from build.gradle: com.jijicare.app)
+ *   * Package name (from build.gradle: com.jigicare.app)
  *   * SHA-1 fingerprint (from the keystore used to sign the app)
  * - You DON'T need google-services.json - Google's servers do the matching automatically!
  *
@@ -14,7 +14,7 @@
  *
  * 1. ANDROID OAuth Client ID (for native sign-in):
  *    - Go to Google Cloud Console > Credentials > Create OAuth client ID > Android
- *    - Package name: com.jijicare.app (MUST match exactly)
+ *    - Package name: com.jigicare.app (MUST match exactly)
  *    - SHA-1: 5E:8F:16:06:2E:A3:CD:2C:4A:0D:54:78:76:BA:A6:F3:8C:AB:F6:25 (MUST match exactly)
  *      ⚠️ This is from android/app/debug.keystore (the keystore your app actually uses)
  *    - You DON'T paste this anywhere in code - Google SDK finds it automatically via package+SHA-1

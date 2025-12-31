@@ -1,4 +1,4 @@
-// Font configuration for JijiCare app
+// Font configuration for JigiCare app
 export const Fonts = {
   // Poppins font family
   poppins: {

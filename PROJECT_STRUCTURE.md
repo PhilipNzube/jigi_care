@@ -1,9 +1,9 @@
-# JijiCare - Professional React Native Project Structure
+# JigiCare - Professional React Native Project Structure
 
 ## 📁 Project Structure (Feature-Based Architecture)
 
 ```
-jiji_care/
+jigi_care/
 ├── App.js                          # Main app entry point
 ├── app.json                        # Expo configuration
 ├── package.json                    # Dependencies (like pubspec.yaml)
@@ -11,7 +11,7 @@ jiji_care/
 │   ├── app/
 │   │   ├── src/main/
 │   │   │   ├── AndroidManifest.xml
-│   │   │   └── java/com/jijicare/app/
+│   │   │   └── java/com/jigicare/app/
 │   │   └── build.gradle
 │   └── local.properties            # Android SDK path
 ├── src/

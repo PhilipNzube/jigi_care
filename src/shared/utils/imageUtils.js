@@ -1,4 +1,4 @@
-// Image utility functions for JijiCare app
+// Image utility functions for JigiCare app
 import { Image } from "react-native";
 
 // Image sources - just like Flutter's AssetImage

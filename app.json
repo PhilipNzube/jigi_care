@@ -1,13 +1,13 @@
 {
   "expo": {
-    "name": "Jiji Care",
+    "name": "Jigi Care",
     "slug": "jigicare",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/app_icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
-    "scheme": "com.jijicare.app",
+    "scheme": "com.jigicare.app",
     "splash": {
       "image": "./assets/images/splash_img.png",
       "resizeMode": "cover",
@@ -31,7 +31,7 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.jijicare.app",
+      "package": "com.jigicare.app",
       "screenOrientation": "portrait"
     },
     "web": {

@@ -1,4 +1,4 @@
-// Color palette for JijiCare app
+// Color palette for JigiCare app
 export const Colors = {
   // Primary colors
   primary: "#0098B3",

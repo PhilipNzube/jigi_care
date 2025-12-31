@@ -28,7 +28,7 @@ export default function SplashScreen({ navigation }) {
       {/* Circular Logo */}
       <View style={styles.logoContainer}>
         <View style={styles.circularLogo}>
-          <Text style={styles.logoText}>JIJI CARE CONSULTING LTD</Text>
+          <Text style={styles.logoText}>JIGI CARE CONSULTING LTD</Text>
           <Text style={styles.logoSubtext}>
             HEALTH SOLUTIONS WITHOUT BORDERS
           </Text>

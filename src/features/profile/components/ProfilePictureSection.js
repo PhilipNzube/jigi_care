@@ -13,7 +13,7 @@ export default function ProfilePictureSection() {
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.joinedText}>Joined Jiji Care</Text>
+      <Text style={styles.joinedText}>Joined Jigi Care</Text>
       <Text style={styles.dateText}>Sep 24th, 2025</Text>
     </View>
   );

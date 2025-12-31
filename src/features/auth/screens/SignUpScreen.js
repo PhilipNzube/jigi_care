@@ -295,7 +295,7 @@ export default function SignUpScreen({ navigation }) {
       // Store authentication data
       await signUp(response);
 
-      showSuccess("Google sign up successful! Welcome to Jiji Care.");
+      showSuccess("Google sign up successful! Welcome to Jigi Care.");
 
       // Navigate to main app
       navigation.replace("MainApp");

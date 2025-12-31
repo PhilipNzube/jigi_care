@@ -31,7 +31,7 @@ export default function WelcomeScreen({ navigation }) {
       {/* Content Section */}
       <View style={styles.contentContainer}>
         <Text style={styles.welcomeTitle}>
-          Welcome to <Text style={styles.appNameHighlight}>Jiji Care</Text>
+          Welcome to <Text style={styles.appNameHighlight}>Jigi Care</Text>
         </Text>
         <Text style={styles.welcomeDescription}>
           Your health journey begins right here, where every step you take leads

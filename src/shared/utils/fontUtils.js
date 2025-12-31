@@ -1,6 +1,6 @@
 import * as Font from "expo-font";
 
-// Font loading utility for JijiCare app
+// Font loading utility for JigiCare app
 export const loadFonts = async () => {
   try {
     await Font.loadAsync({

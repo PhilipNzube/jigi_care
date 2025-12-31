@@ -159,7 +159,7 @@ export default function EmailVerificationScreen({ navigation, route }) {
         // Store authentication data
         await signUp(response);
 
-        showSuccess("Account created successfully! Welcome to Jiji Care.");
+        showSuccess("Account created successfully! Welcome to Jigi Care.");
         // Navigate to home screen
         navigation.replace("MainApp");
       }

@@ -1,6 +1,6 @@
 # Images Folder
 
-This folder contains all the images used in the JijiCare app.
+This folder contains all the images used in the JigiCare app.
 
 ## Structure:
 
