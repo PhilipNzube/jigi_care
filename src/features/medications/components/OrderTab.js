@@ -12,9 +12,10 @@ import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
 import MedicationCard from "./MedicationCard";
 import RequestMedicationModal from "../modals/RequestMedicationModal";
-import { searchMedications } from "../services/medicationService";
+import { searchMedications, getCart, updateCart } from "../services/medicationService";
 import ShimmerLoader from "../../../shared/components/ShimmerLoader";
 import EmptyState from "../../../shared/components/EmptyState";
+import { showError, showSuccess } from "../../../shared/utils/toast";
 
 // Medication Card Skeleton Component
 function MedicationCardSkeleton() {
@@ -48,6 +49,8 @@ export default function OrderTab({ navigation }) {
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [cartItemCount, setCartItemCount] = useState(0);
+  const [loadingMedications, setLoadingMedications] = useState(new Set());
 
   const loadPopularMedications = useCallback(
     async (page = 1, silent = false) => {
@@ -83,10 +86,21 @@ export default function OrderTab({ navigation }) {
     []
   );
 
+  const fetchCartCount = useCallback(async () => {
+    try {
+      const cartData = await getCart();
+      const count = cartData.items?.reduce((sum, item) => sum + item.quantity, 0) || 0;
+      setCartItemCount(count);
+    } catch (error) {
+      console.error("❌ [ORDER TAB] Error fetching cart count:", error);
+    }
+  }, []);
+
   // Load popular medications on mount
   useEffect(() => {
     loadPopularMedications(1);
-  }, [loadPopularMedications]);
+    fetchCartCount();
+  }, [loadPopularMedications, fetchCartCount]);
 
   // Refresh when tab comes into focus
   useFocusEffect(
@@ -96,7 +110,8 @@ export default function OrderTab({ navigation }) {
       } else {
         loadPopularMedications(1, false);
       }
-    }, [medications.length, loadPopularMedications])
+      fetchCartCount();
+    }, [medications.length, loadPopularMedications, fetchCartCount])
   );
 
   const onRefresh = useCallback(() => {
@@ -110,6 +125,59 @@ export default function OrderTab({ navigation }) {
 
   const handleRequestMedication = () => {
     setShowRequestModal(true);
+  };
+
+  const handleAddToCart = async (medication) => {
+    const medicationId = medication.id || medication.medicationData?.id;
+    if (!medicationId) return;
+
+    try {
+      // Set loading state for this medication
+      setLoadingMedications((prev) => new Set(prev).add(medicationId));
+
+      // Get current cart
+      const cartData = await getCart();
+      const existingItems = cartData.items || [];
+      
+      // Check if medication already in cart
+      const existingItem = existingItems.find(
+        (item) => item.medicationId === medicationId
+      );
+
+      let updatedItems;
+      if (existingItem) {
+        // Increase quantity if already in cart
+        updatedItems = existingItems.map((item) => {
+          if (item.medicationId === medicationId) {
+            return { ...item, quantity: item.quantity + 1 };
+          }
+          return item;
+        });
+      } else {
+        // Add new item to cart
+        updatedItems = [
+          ...existingItems,
+          {
+            medicationId: medicationId,
+            quantity: 1,
+          },
+        ];
+      }
+
+      await updateCart(updatedItems);
+      showSuccess("Added to cart");
+      fetchCartCount();
+    } catch (error) {
+      console.error("❌ [ORDER TAB] Error adding to cart:", error);
+      showError("Failed to add to cart");
+    } finally {
+      // Remove loading state
+      setLoadingMedications((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(medicationId);
+        return newSet;
+      });
+    }
   };
 
   const handlePageChange = (page) => {
@@ -272,9 +340,13 @@ export default function OrderTab({ navigation }) {
           onPress={() => navigation.navigate("Cart")}
         >
           <Ionicons name="cart" size={24} color={Colors.black} />
-          <View style={styles.cartBadge}>
-            <Text style={styles.cartBadgeText}>2</Text>
-          </View>
+          {cartItemCount > 0 && (
+            <View style={styles.cartBadge}>
+              <Text style={styles.cartBadgeText}>
+                {cartItemCount > 99 ? "99+" : cartItemCount.toString()}
+              </Text>
+            </View>
+          )}
         </TouchableOpacity>
       </View>
 
@@ -310,16 +382,17 @@ export default function OrderTab({ navigation }) {
           />
         ) : (
           <>
-            {medications.map((medication) => (
-              <MedicationCard
-                key={medication.id}
-                medication={mapMedicationToCard(medication)}
-                onAddToCart={() => {
-                  // Handle add to cart
-                  console.log("Add to cart:", medication.name);
-                }}
-              />
-            ))}
+            {medications.map((medication) => {
+              const medicationId = medication.id || medication.medicationData?.id;
+              return (
+                <MedicationCard
+                  key={medication.id}
+                  medication={mapMedicationToCard(medication)}
+                  onAddToCart={() => handleAddToCart(medication.medicationData || medication)}
+                  isLoading={loadingMedications.has(medicationId)}
+                />
+              );
+            })}
             {renderPagination()}
           </>
         )}

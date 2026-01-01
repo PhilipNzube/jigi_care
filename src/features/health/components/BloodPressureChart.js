@@ -1,32 +1,105 @@
-import React from "react";
+import React, {
+  useState,
+  useEffect,
+  useImperativeHandle,
+  forwardRef,
+} from "react";
 import { View, Text, StyleSheet, ScrollView, Dimensions } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import { LineChart } from "react-native-gifted-charts";
 import { Colors, Sizes } from "../../../shared/constants";
+import { getBloodPressureTrends } from "../services/healthMonitoringService";
+import ShimmerLoader from "../../../shared/components/ShimmerLoader";
 
-const BloodPressureChart = () => {
+const BloodPressureChart = forwardRef((props, ref) => {
   const screenWidth = Dimensions.get("window").width;
   const chartWidth = Math.max(400, screenWidth - 40); // Minimum 400px or screen width minus padding
+  const [trendsData, setTrendsData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Sample blood pressure data for the last 7 days
-  const bloodPressureData = [
-    { value: 120, dataPointText: "120" },
-    { value: 125, dataPointText: "125" },
-    { value: 118, dataPointText: "118" },
-    { value: 130, dataPointText: "130" },
-    { value: 122, dataPointText: "122" },
-    { value: 128, dataPointText: "128" },
-    { value: 120, dataPointText: "120" },
-  ];
+  const fetchBloodPressureTrends = async () => {
+    try {
+      setIsLoading(true);
+      const data = await getBloodPressureTrends();
+      setTrendsData(data);
+    } catch (error) {
+      console.error("❌ [BLOOD PRESSURE CHART] Error fetching trends:", error);
+      setTrendsData({ readings: [], period: "last_7_days" });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  const diastolicData = [
-    { value: 80, dataPointText: "80" },
-    { value: 82, dataPointText: "82" },
-    { value: 78, dataPointText: "78" },
-    { value: 85, dataPointText: "85" },
-    { value: 79, dataPointText: "79" },
-    { value: 83, dataPointText: "83" },
-    { value: 80, dataPointText: "80" },
+  // Expose refresh function to parent via ref
+  useImperativeHandle(ref, () => ({
+    refresh: fetchBloodPressureTrends,
+  }));
+
+  useEffect(() => {
+    fetchBloodPressureTrends();
+  }, []);
+
+  // Refresh when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchBloodPressureTrends();
+    }, [])
+  );
+
+  // Transform API data to chart format
+  const bloodPressureData =
+    trendsData?.readings?.map((reading) => ({
+      value: reading.systolic,
+      dataPointText: reading.systolic.toString(),
+    })) || [];
+
+  const diastolicData =
+    trendsData?.readings?.map((reading) => ({
+      value: reading.diastolic,
+      dataPointText: reading.diastolic.toString(),
+    })) || [];
+
+  // Calculate min/max for chart
+  const allValues = [
+    ...bloodPressureData.map((d) => d.value),
+    ...diastolicData.map((d) => d.value),
   ];
+  const maxValue = allValues.length > 0 ? Math.max(...allValues) + 20 : 140;
+  const minValue =
+    allValues.length > 0 ? Math.max(0, Math.min(...allValues) - 20) : 70;
+
+  if (isLoading) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.chartTitle}>Blood Pressure</Text>
+        <View style={styles.chartCard}>
+          <ShimmerLoader>
+            <View style={styles.shimmerChartContainer}>
+              <View style={styles.shimmerChartArea} />
+              <View style={styles.shimmerLegendContainer}>
+                <View style={styles.shimmerLegendItem} />
+                <View style={styles.shimmerLegendItem} />
+              </View>
+              <View style={styles.shimmerTimeframe} />
+            </View>
+          </ShimmerLoader>
+        </View>
+      </View>
+    );
+  }
+
+  if (bloodPressureData.length === 0) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.chartTitle}>Blood Pressure</Text>
+        <View style={styles.chartCard}>
+          <Text style={styles.emptyText}>
+            No blood pressure readings available
+          </Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -90,8 +163,8 @@ const BloodPressureChart = () => {
             horizontalLinesColor="#E0E0E0"
             horizontalLinesThickness={1}
             noOfSections={7}
-            maxValue={140}
-            minValue={70}
+            maxValue={maxValue}
+            minValue={minValue}
             stepValue={10}
             stepHeight={20}
             spacing={40}
@@ -128,11 +201,15 @@ const BloodPressureChart = () => {
             <Text style={styles.legendText}>Diastolic</Text>
           </View>
         </View>
-        <Text style={styles.chartTimeframe}>Last 7 days</Text>
+        <Text style={styles.chartTimeframe}>
+          {trendsData?.period === "last_7_days"
+            ? "Last 7 days"
+            : trendsData?.period || "Last 7 days"}
+        </Text>
       </View>
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {
@@ -187,6 +264,42 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins-Regular",
     color: Colors.textSecondary,
   },
+  emptyText: {
+    textAlign: "center",
+    fontSize: 14,
+    fontFamily: "Poppins-Regular",
+    color: Colors.textSecondary,
+    paddingVertical: Sizes.xl,
+  },
+  shimmerChartContainer: {
+    width: "100%",
+    alignItems: "center",
+  },
+  shimmerChartArea: {
+    width: "100%",
+    height: 200,
+    borderRadius: 8,
+    marginBottom: Sizes.md,
+  },
+  shimmerLegendContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    marginBottom: Sizes.sm,
+    gap: Sizes.md,
+  },
+  shimmerLegendItem: {
+    width: 80,
+    height: 16,
+    borderRadius: 4,
+  },
+  shimmerTimeframe: {
+    width: 100,
+    height: 14,
+    borderRadius: 4,
+    alignSelf: "center",
+  },
 });
+
+BloodPressureChart.displayName = "BloodPressureChart";
 
 export default BloodPressureChart;

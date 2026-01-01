@@ -51,33 +51,23 @@ export default function HeartRateBottomSheet({ visible, onClose, onSave, editing
       note: note.trim(),
     };
 
-    // If editing, use PATCH API
-    if (healthRecordId && editingData) {
-      try {
-        setIsLoading(true);
-        await updateHealthReading(healthRecordId, {
-          heartRate: readingData,
-        });
-        showSuccess("Heart rate updated successfully");
-        if (onSave && typeof onSave === "function") {
-          onSave(readingData);
-        }
-        if (onClose && typeof onClose === "function") {
-          onClose();
-        }
-      } catch (error) {
-        showError(error.message || "Failed to update heart rate");
-      } finally {
-        setIsLoading(false);
-      }
-    } else {
-      // For new readings, call onSave callback
+    // Always use PATCH API with the same structure - no ID needed
+    try {
+      setIsLoading(true);
+      await updateHealthReading({
+        heartRate: readingData,
+      });
+      showSuccess("Heart rate updated successfully");
       if (onSave && typeof onSave === "function") {
         onSave(readingData);
       }
       if (onClose && typeof onClose === "function") {
         onClose();
       }
+    } catch (error) {
+      showError(error.message || "Failed to update heart rate");
+    } finally {
+      setIsLoading(false);
     }
   };
 

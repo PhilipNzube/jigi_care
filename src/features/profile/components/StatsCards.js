@@ -1,26 +1,77 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
+import { getProfileCardStats } from "../services/profileService";
+import ShimmerLoader from "../../../shared/components/ShimmerLoader";
 
 export default function StatsCards() {
-  const stats = [
+  const [stats, setStats] = useState([
     {
       icon: "calendar",
-      count: "16",
+      count: "0",
       label: "Appointments",
     },
     {
       icon: "bar-chart",
-      count: "5",
+      count: "0",
       label: "Reports",
     },
     {
       icon: "medical",
-      count: "3",
+      count: "0",
       label: "Active Meds",
     },
-  ];
+  ]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    fetchProfileCardStats();
+  }, []);
+
+  const fetchProfileCardStats = async () => {
+    try {
+      setIsLoading(true);
+      const data = await getProfileCardStats();
+      setStats([
+        {
+          icon: "calendar",
+          count: data.appointments?.toString() || "0",
+          label: "Appointments",
+        },
+        {
+          icon: "bar-chart",
+          count: data.reports?.toString() || "0",
+          label: "Reports",
+        },
+        {
+          icon: "medical",
+          count: data.activeMeds?.toString() || "0",
+          label: "Active Meds",
+        },
+      ]);
+    } catch (error) {
+      console.error("❌ [STATS CARDS] Error fetching profile card stats:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <View style={styles.container}>
+        {[0, 1, 2].map((index) => (
+          <ShimmerLoader key={index}>
+            <View style={styles.card}>
+              <View style={styles.iconContainer} />
+              <View style={{ height: 20, width: 30, marginBottom: 4 }} />
+              <View style={{ height: 12, width: 60 }} />
+            </View>
+          </ShimmerLoader>
+        ))}
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>

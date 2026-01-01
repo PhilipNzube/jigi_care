@@ -1,10 +1,50 @@
-import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
+import React, { useEffect, useRef } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Image,
+  Animated,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
 import { Images } from "../../../shared/utils/imageUtils";
 
-export default function MedicationCard({ medication, onAddToCart }) {
+export default function MedicationCard({
+  medication,
+  onAddToCart,
+  isLoading = false,
+}) {
+  const spinValue = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (isLoading) {
+      startSpinning();
+    } else {
+      stopSpinning();
+    }
+  }, [isLoading]);
+
+  const startSpinning = () => {
+    spinValue.setValue(0);
+    Animated.loop(
+      Animated.timing(spinValue, {
+        toValue: 1,
+        duration: 1000,
+        useNativeDriver: true,
+      })
+    ).start();
+  };
+
+  const stopSpinning = () => {
+    spinValue.stopAnimation();
+  };
+
+  const spin = spinValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["0deg", "360deg"],
+  });
   const isOutOfStock = medication.status === "Out of Stock";
 
   const getStatusTextColor = (status) => {
@@ -69,15 +109,28 @@ export default function MedicationCard({ medication, onAddToCart }) {
           style={[
             styles.addToCartButton,
             isOutOfStock && styles.disabledButton,
+            isLoading && styles.loadingButton,
           ]}
           onPress={onAddToCart}
-          disabled={isOutOfStock}
+          disabled={isOutOfStock || isLoading}
         >
-          <Text
-            style={[styles.addToCartText, isOutOfStock && styles.disabledText]}
-          >
-            Add to cart
-          </Text>
+          {isLoading ? (
+            <View style={styles.loadingContainer}>
+              <Animated.Image
+                source={Images.loader}
+                style={[styles.loader, { transform: [{ rotate: spin }] }]}
+              />
+            </View>
+          ) : (
+            <Text
+              style={[
+                styles.addToCartText,
+                isOutOfStock && styles.disabledText,
+              ]}
+            >
+              Add to cart
+            </Text>
+          )}
         </TouchableOpacity>
       </View>
     </View>
@@ -186,5 +239,16 @@ const styles = StyleSheet.create({
   },
   disabledText: {
     color: "#808080",
+  },
+  loadingButton: {
+    opacity: 0.7,
+  },
+  loadingContainer: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loader: {
+    width: 20,
+    height: 20,
   },
 });

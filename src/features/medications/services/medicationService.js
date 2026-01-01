@@ -3,7 +3,7 @@
  * Handles all medication-related API calls
  */
 
-import { get } from "../../../shared/services/api";
+import { get, post } from "../../../shared/services/api";
 
 /**
  * Search medications with filters
@@ -56,6 +56,59 @@ export const getUserOrders = async () => {
     return response.data || [];
   } catch (error) {
     console.error("❌ [MEDICATION SERVICE] Error fetching orders:", error);
+    throw error;
+  }
+};
+
+/**
+ * Get medication by ID
+ * @param {string} id - Medication ID
+ * @returns {Promise<object>} - Medication details
+ */
+export const getMedicationById = async (id) => {
+  try {
+    const response = await get(`/medication/find-one/${id}`);
+    if (response && response.id) {
+      return response;
+    }
+    return null;
+  } catch (error) {
+    console.error("❌ [MEDICATION SERVICE] Error fetching medication:", error);
+    throw error;
+  }
+};
+
+/**
+ * Get cart
+ * @returns {Promise<object>} - Cart data with items
+ */
+export const getCart = async () => {
+  try {
+    const response = await get("/cart");
+    if (response && response.success && response.data) {
+      return response.data;
+    }
+    return { items: [], id: null, patientId: null };
+  } catch (error) {
+    console.error("❌ [MEDICATION SERVICE] Error fetching cart:", error);
+    throw error;
+  }
+};
+
+/**
+ * Update cart (add/update items)
+ * @param {Array} items - Array of { medicationId, quantity }
+ * @returns {Promise<object>} - Updated cart data
+ */
+export const updateCart = async (items) => {
+  try {
+    const response = await post("/cart", { items });
+    if (response && response.success && response.data) {
+      return response.data;
+    }
+    return null;
+  } catch (error) {
+    console.error("❌ [MEDICATION SERVICE] Error updating cart:", error);
     throw error;
   }
 };

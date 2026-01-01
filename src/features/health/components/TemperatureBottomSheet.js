@@ -51,33 +51,23 @@ export default function TemperatureBottomSheet({ visible, onClose, onSave, editi
       note: note.trim(),
     };
 
-    // If editing, use PATCH API
-    if (healthRecordId && editingData) {
-      try {
-        setIsLoading(true);
-        await updateHealthReading(healthRecordId, {
-          temperature: readingData,
-        });
-        showSuccess("Temperature updated successfully");
-        if (onSave && typeof onSave === "function") {
-          onSave(readingData);
-        }
-        if (onClose && typeof onClose === "function") {
-          onClose();
-        }
-      } catch (error) {
-        showError(error.message || "Failed to update temperature");
-      } finally {
-        setIsLoading(false);
-      }
-    } else {
-      // For new readings, call onSave callback
+    // Always use PATCH API with the same structure - no ID needed
+    try {
+      setIsLoading(true);
+      await updateHealthReading({
+        temperature: readingData,
+      });
+      showSuccess("Temperature updated successfully");
       if (onSave && typeof onSave === "function") {
         onSave(readingData);
       }
       if (onClose && typeof onClose === "function") {
         onClose();
       }
+    } catch (error) {
+      showError(error.message || "Failed to update temperature");
+    } finally {
+      setIsLoading(false);
     }
   };
 

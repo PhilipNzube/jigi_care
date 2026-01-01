@@ -19,6 +19,7 @@ import ExportHealthDataSection from "../components/ExportHealthDataSection";
 export default function HealthMonitoringScreen({ navigation }) {
   const [refreshing, setRefreshing] = useState(false);
   const vitalSignsGridRef = useRef(null);
+  const bloodPressureChartRef = useRef(null);
 
   const handleAddReading = () => {
     navigation.navigate("AddReading");
@@ -35,17 +36,32 @@ export default function HealthMonitoringScreen({ navigation }) {
     }
   }, []);
 
+  const refreshBloodPressureChart = useCallback(async () => {
+    try {
+      // Trigger refresh in BloodPressureChart
+      if (bloodPressureChartRef.current?.refresh) {
+        await bloodPressureChartRef.current.refresh();
+      }
+    } catch (error) {
+      console.error("❌ [HEALTH MONITORING] Error refreshing chart:", error);
+    }
+  }, []);
+
   const onRefresh = async () => {
     setRefreshing(true);
-    await refreshVitalSigns();
+    await Promise.all([
+      refreshVitalSigns(),
+      refreshBloodPressureChart(),
+    ]);
     setRefreshing(false);
   };
 
-  // Refresh vital signs when screen comes into focus (e.g., returning from AddReading)
+  // Refresh vital signs and chart when screen comes into focus (e.g., returning from AddReading)
   useFocusEffect(
     useCallback(() => {
       refreshVitalSigns();
-    }, [refreshVitalSigns])
+      refreshBloodPressureChart();
+    }, [refreshVitalSigns, refreshBloodPressureChart])
   );
 
   return (
@@ -68,7 +84,7 @@ export default function HealthMonitoringScreen({ navigation }) {
         }
       >
         <VitalSignsGrid ref={vitalSignsGridRef} onAddReading={handleAddReading} />
-        <BloodPressureChart />
+        <BloodPressureChart ref={bloodPressureChartRef} />
         <MedicationsSection navigation={navigation} />
         <ExportHealthDataSection />
       </ScrollView>

@@ -4,19 +4,10 @@ import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
 import { getHealthMonitoring } from "../services/healthMonitoringService";
 import ShimmerLoader from "../../../shared/components/ShimmerLoader";
-import BloodPressureBottomSheet from "./BloodPressureBottomSheet";
-import TemperatureBottomSheet from "./TemperatureBottomSheet";
-import WeightBottomSheet from "./WeightBottomSheet";
-import HeartRateBottomSheet from "./HeartRateBottomSheet";
 
 const VitalSignsGrid = forwardRef(({ onAddReading }, ref) => {
   const [healthData, setHealthData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [editingVital, setEditingVital] = useState(null);
-  const [showBloodPressureModal, setShowBloodPressureModal] = useState(false);
-  const [showTemperatureModal, setShowTemperatureModal] = useState(false);
-  const [showWeightModal, setShowWeightModal] = useState(false);
-  const [showHeartRateModal, setShowHeartRateModal] = useState(false);
 
   const fetchHealthData = useCallback(async () => {
     try {
@@ -187,39 +178,10 @@ const VitalSignsGrid = forwardRef(({ onAddReading }, ref) => {
 
   const vitalSigns = getVitalSigns();
 
-  const handleVitalCardPress = (vital) => {
-    if (!healthData) {
-      // If no data, navigate to add reading
-      if (onAddReading) {
-        onAddReading();
-      }
-      return;
-    }
-
-    // Open edit modal for the selected vital sign
-    setEditingVital(vital.id);
-    if (vital.id === "blood_pressure") {
-      setShowBloodPressureModal(true);
-    } else if (vital.id === "temperature") {
-      setShowTemperatureModal(true);
-    } else if (vital.id === "weight") {
-      setShowWeightModal(true);
-    } else if (vital.id === "heart_rate") {
-      setShowHeartRateModal(true);
-    }
-  };
-
-  const handleSaveReading = () => {
-    // Refresh data after saving
-    fetchHealthData();
-    setEditingVital(null);
-  };
-
   const renderVitalSignCard = (vital) => (
-    <TouchableOpacity
+    <View
       key={vital.id}
       style={styles.vitalCard}
-      onPress={() => handleVitalCardPress(vital)}
     >
       <View style={styles.vitalHeader}>
         <View style={styles.vitalIconContainer}>
@@ -241,7 +203,7 @@ const VitalSignsGrid = forwardRef(({ onAddReading }, ref) => {
           <Text style={styles.statusText}>{vital.status}</Text>
         </View>
       )}
-    </TouchableOpacity>
+    </View>
   );
 
   const renderSkeleton = () => (
@@ -280,48 +242,6 @@ const VitalSignsGrid = forwardRef(({ onAddReading }, ref) => {
           {vitalSigns.map(renderVitalSignCard)}
         </View>
       )}
-
-      {/* Bottom Sheet Modals for Editing */}
-      <BloodPressureBottomSheet
-        visible={showBloodPressureModal}
-        onClose={() => {
-          setShowBloodPressureModal(false);
-          setEditingVital(null);
-        }}
-        onSave={handleSaveReading}
-        editingData={healthData}
-        healthRecordId={healthData?.id}
-      />
-      <TemperatureBottomSheet
-        visible={showTemperatureModal}
-        onClose={() => {
-          setShowTemperatureModal(false);
-          setEditingVital(null);
-        }}
-        onSave={handleSaveReading}
-        editingData={healthData}
-        healthRecordId={healthData?.id}
-      />
-      <WeightBottomSheet
-        visible={showWeightModal}
-        onClose={() => {
-          setShowWeightModal(false);
-          setEditingVital(null);
-        }}
-        onSave={handleSaveReading}
-        editingData={healthData}
-        healthRecordId={healthData?.id}
-      />
-      <HeartRateBottomSheet
-        visible={showHeartRateModal}
-        onClose={() => {
-          setShowHeartRateModal(false);
-          setEditingVital(null);
-        }}
-        onSave={handleSaveReading}
-        editingData={healthData}
-        healthRecordId={healthData?.id}
-      />
     </View>
   );
 });

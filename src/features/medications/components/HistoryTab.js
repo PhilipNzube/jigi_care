@@ -1,5 +1,11 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { View, Text, StyleSheet, ScrollView, RefreshControl } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  RefreshControl,
+} from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
@@ -52,12 +58,12 @@ export default function HistoryTab({ navigation }) {
 
     try {
       const ordersData = await getUserOrders();
-      
+
       // Map API response to card format
       const mappedOrders = ordersData.map((order) => {
         const orderDate = new Date(order.orderDate || order.createdAt);
         const formattedDate = format(orderDate, "MMM dd, yyyy • h:mm a");
-        
+
         // Format delivery date if available
         let deliveryDate = null;
         if (order.deliveryDate || order.deliveredDate) {
@@ -68,7 +74,7 @@ export default function HistoryTab({ navigation }) {
             deliveryDate = order.deliveryDate || order.deliveredDate;
           }
         }
-        
+
         return {
           id: order.orderId || order.id,
           date: formattedDate,

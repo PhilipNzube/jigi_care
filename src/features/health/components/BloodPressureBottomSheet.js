@@ -18,7 +18,13 @@ import { updateHealthReading } from "../services/healthMonitoringService";
 import { showSuccess, showError } from "../../../shared/utils/toast";
 import LoadingOverlay from "../../../shared/components/LoadingOverlay";
 
-export default function BloodPressureBottomSheet({ visible, onClose, onSave, editingData, healthRecordId }) {
+export default function BloodPressureBottomSheet({
+  visible,
+  onClose,
+  onSave,
+  editingData,
+  healthRecordId,
+}) {
   const insets = useSafeAreaInsets();
   const [systolic, setSystolic] = useState("120");
   const [diastolic, setDiastolic] = useState("80");
@@ -55,33 +61,23 @@ export default function BloodPressureBottomSheet({ visible, onClose, onSave, edi
       note: note.trim(),
     };
 
-    // If editing, use PATCH API
-    if (healthRecordId && editingData) {
-      try {
-        setIsLoading(true);
-        await updateHealthReading(healthRecordId, {
-          bloodPressure: readingData,
-        });
-        showSuccess("Blood pressure updated successfully");
-        if (onSave && typeof onSave === "function") {
-          onSave(readingData);
-        }
-        if (onClose && typeof onClose === "function") {
-          onClose();
-        }
-      } catch (error) {
-        showError(error.message || "Failed to update blood pressure");
-      } finally {
-        setIsLoading(false);
-      }
-    } else {
-      // For new readings, call onSave callback
+    // Always use PATCH API with the same structure - no ID needed
+    try {
+      setIsLoading(true);
+      await updateHealthReading({
+        bloodPressure: readingData,
+      });
+      showSuccess("Blood pressure updated successfully");
       if (onSave && typeof onSave === "function") {
         onSave(readingData);
       }
       if (onClose && typeof onClose === "function") {
         onClose();
       }
+    } catch (error) {
+      showError(error.message || "Failed to update blood pressure");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -103,7 +99,11 @@ export default function BloodPressureBottomSheet({ visible, onClose, onSave, edi
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={0}
       >
-        <TouchableOpacity style={styles.overlayTouchable} activeOpacity={1} onPress={onClose} />
+        <TouchableOpacity
+          style={styles.overlayTouchable}
+          activeOpacity={1}
+          onPress={onClose}
+        />
         <View
           style={[
             styles.container,
@@ -177,7 +177,10 @@ export default function BloodPressureBottomSheet({ visible, onClose, onSave, edi
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.saveButton, isLoading && styles.saveButtonDisabled]}
+                style={[
+                  styles.saveButton,
+                  isLoading && styles.saveButtonDisabled,
+                ]}
                 onPress={handleSave}
                 disabled={isLoading}
               >

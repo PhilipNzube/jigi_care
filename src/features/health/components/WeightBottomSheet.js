@@ -52,33 +52,23 @@ export default function WeightBottomSheet({ visible, onClose, onSave, editingDat
       note: note.trim(),
     };
 
-    // If editing, use PATCH API
-    if (healthRecordId && editingData) {
-      try {
-        setIsLoading(true);
-        await updateHealthReading(healthRecordId, {
-          weight: readingData,
-        });
-        showSuccess("Weight updated successfully");
-        if (onSave && typeof onSave === "function") {
-          onSave(readingData);
-        }
-        if (onClose && typeof onClose === "function") {
-          onClose();
-        }
-      } catch (error) {
-        showError(error.message || "Failed to update weight");
-      } finally {
-        setIsLoading(false);
-      }
-    } else {
-      // For new readings, call onSave callback
+    // Always use PATCH API with the same structure - no ID needed
+    try {
+      setIsLoading(true);
+      await updateHealthReading({
+        weight: readingData,
+      });
+      showSuccess("Weight updated successfully");
       if (onSave && typeof onSave === "function") {
         onSave(readingData);
       }
       if (onClose && typeof onClose === "function") {
         onClose();
       }
+    } catch (error) {
+      showError(error.message || "Failed to update weight");
+    } finally {
+      setIsLoading(false);
     }
   };
 

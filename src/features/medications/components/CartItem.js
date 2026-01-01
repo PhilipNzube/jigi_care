@@ -1,31 +1,92 @@
-import React, { useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Modal, Image } from "react-native";
+import React, { useState, useEffect } from "react";
+import { View, Text, StyleSheet, TouchableOpacity, Modal, Image, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
 import { Images } from "../../../shared/utils/imageUtils";
+import { getCart, updateCart } from "../services/medicationService";
+import { showError, showSuccess } from "../../../shared/utils/toast";
 
-export default function CartItem({ item }) {
+export default function CartItem({ item, onQuantityChange }) {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [quantity, setQuantity] = useState(item.quantity || 1);
+
+  useEffect(() => {
+    setQuantity(item.quantity || 1);
+  }, [item.quantity]);
 
   const handleDelete = () => {
     setShowDeleteModal(true);
   };
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     setShowDeleteModal(false);
-    // Handle delete logic here
+    // TODO: Implement delete item from cart
+    if (onQuantityChange) {
+      onQuantityChange();
+    }
   };
 
   const handleCancelDelete = () => {
     setShowDeleteModal(false);
   };
 
-  const handleDecreaseQuantity = () => {
-    // Handle decrease quantity logic
+  const handleDecreaseQuantity = async () => {
+    if (quantity <= 1) return;
+    
+    try {
+      setIsUpdating(true);
+      const newQuantity = quantity - 1;
+      
+      // Get current cart
+      const cartData = await getCart();
+      const updatedItems = cartData.items.map((cartItem) => {
+        if (cartItem.medicationId === item.medicationId) {
+          return { ...cartItem, quantity: newQuantity };
+        }
+        return cartItem;
+      });
+
+      await updateCart(updatedItems);
+      setQuantity(newQuantity);
+      
+      if (onQuantityChange) {
+        onQuantityChange();
+      }
+    } catch (error) {
+      console.error("❌ [CART ITEM] Error decreasing quantity:", error);
+      showError("Failed to update quantity");
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
-  const handleIncreaseQuantity = () => {
-    // Handle increase quantity logic
+  const handleIncreaseQuantity = async () => {
+    try {
+      setIsUpdating(true);
+      const newQuantity = quantity + 1;
+      
+      // Get current cart
+      const cartData = await getCart();
+      const updatedItems = cartData.items.map((cartItem) => {
+        if (cartItem.medicationId === item.medicationId) {
+          return { ...cartItem, quantity: newQuantity };
+        }
+        return cartItem;
+      });
+
+      await updateCart(updatedItems);
+      setQuantity(newQuantity);
+      
+      if (onQuantityChange) {
+        onQuantityChange();
+      }
+    } catch (error) {
+      console.error("❌ [CART ITEM] Error increasing quantity:", error);
+      showError("Failed to update quantity");
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   return (
@@ -63,17 +124,34 @@ export default function CartItem({ item }) {
             <Text style={styles.price}>₦{item.price.toLocaleString()}</Text>
             <View style={styles.quantityControls}>
               <TouchableOpacity
-                style={styles.quantityButton}
+                style={[
+                  styles.quantityButton,
+                  quantity <= 1 && styles.quantityButtonDisabled,
+                ]}
                 onPress={handleDecreaseQuantity}
+                disabled={quantity <= 1 || isUpdating}
               >
-                <Ionicons name="remove" size={16} color={Colors.grey} />
+                {isUpdating ? (
+                  <ActivityIndicator size="small" color={Colors.grey} />
+                ) : (
+                  <Ionicons
+                    name="remove"
+                    size={16}
+                    color={quantity <= 1 ? Colors.lightGray : Colors.grey}
+                  />
+                )}
               </TouchableOpacity>
-              <Text style={styles.quantity}>{item.quantity}</Text>
+              <Text style={styles.quantity}>{quantity}</Text>
               <TouchableOpacity
                 style={styles.quantityButton}
                 onPress={handleIncreaseQuantity}
+                disabled={isUpdating}
               >
-                <Ionicons name="add" size={16} color={Colors.grey} />
+                {isUpdating ? (
+                  <ActivityIndicator size="small" color={Colors.grey} />
+                ) : (
+                  <Ionicons name="add" size={16} color={Colors.grey} />
+                )}
               </TouchableOpacity>
             </View>
           </View>
@@ -213,6 +291,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#E0E0E0",
     justifyContent: "center",
     alignItems: "center",
+  },
+  quantityButtonDisabled: {
+    backgroundColor: "#F5F5F5",
+    opacity: 0.5,
   },
   quantity: {
     fontSize: 16,

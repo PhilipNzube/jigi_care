@@ -12,9 +12,10 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
-import { searchMedications } from "../services/medicationService";
+import { searchMedications, getCart, updateCart } from "../services/medicationService";
 import MedicationCard from "../components/MedicationCard";
 import ShimmerLoader from "../../../shared/components/ShimmerLoader";
+import { showError, showSuccess } from "../../../shared/utils/toast";
 
 export default function SearchMedicationScreen({ navigation, route }) {
   const insets = useSafeAreaInsets();
@@ -28,6 +29,7 @@ export default function SearchMedicationScreen({ navigation, route }) {
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [categories, setCategories] = useState([]);
+  const [loadingMedications, setLoadingMedications] = useState(new Set());
   const searchTimeoutRef = useRef(null);
   const searchInputRef = useRef(null);
 
@@ -331,16 +333,64 @@ export default function SearchMedicationScreen({ navigation, route }) {
                 {total} {total === 1 ? "result" : "results"} found
               </Text>
             </View>
-            {medications.map((medication) => (
-              <MedicationCard
-                key={medication.id}
-                medication={mapMedicationToCard(medication)}
-                onAddToCart={() => {
-                  // Handle add to cart
-                  console.log("Add to cart:", medication.name);
-                }}
-              />
-            ))}
+            {medications.map((medication) => {
+              const medicationId = medication.id;
+              return (
+                <MedicationCard
+                  key={medication.id}
+                  medication={mapMedicationToCard(medication)}
+                  onAddToCart={async () => {
+                    try {
+                      // Set loading state for this medication
+                      setLoadingMedications((prev) => new Set(prev).add(medicationId));
+
+                      // Get current cart
+                      const cartData = await getCart();
+                      const existingItems = cartData.items || [];
+                      
+                      // Check if medication already in cart
+                      const existingItem = existingItems.find(
+                        (item) => item.medicationId === medicationId
+                      );
+
+                      let updatedItems;
+                      if (existingItem) {
+                        // Increase quantity if already in cart
+                        updatedItems = existingItems.map((item) => {
+                          if (item.medicationId === medicationId) {
+                            return { ...item, quantity: item.quantity + 1 };
+                          }
+                          return item;
+                        });
+                      } else {
+                        // Add new item to cart
+                        updatedItems = [
+                          ...existingItems,
+                          {
+                            medicationId: medicationId,
+                            quantity: 1,
+                          },
+                        ];
+                      }
+
+                      await updateCart(updatedItems);
+                      showSuccess("Added to cart");
+                    } catch (error) {
+                      console.error("❌ [SEARCH MEDICATION] Error adding to cart:", error);
+                      showError("Failed to add to cart");
+                    } finally {
+                      // Remove loading state
+                      setLoadingMedications((prev) => {
+                        const newSet = new Set(prev);
+                        newSet.delete(medicationId);
+                        return newSet;
+                      });
+                    }
+                  }}
+                  isLoading={loadingMedications.has(medicationId)}
+                />
+              );
+            })}
             {renderPagination()}
           </>
         ) : searchQuery ? (
