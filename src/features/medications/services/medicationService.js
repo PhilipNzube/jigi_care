@@ -3,7 +3,7 @@
  * Handles all medication-related API calls
  */
 
-import { get, post } from "../../../shared/services/api";
+import { get, post, del, patch } from "../../../shared/services/api";
 
 /**
  * Search medications with filters
@@ -109,6 +109,92 @@ export const updateCart = async (items) => {
     return null;
   } catch (error) {
     console.error("❌ [MEDICATION SERVICE] Error updating cart:", error);
+    throw error;
+  }
+};
+
+/**
+ * Add item to cart
+ * @param {string} medicationId - Medication ID
+ * @param {number} quantity - Quantity to add
+ * @returns {Promise<object>} - Updated cart data
+ */
+export const addItemToCart = async (medicationId, quantity = 1) => {
+  try {
+    const response = await post("/cart/items", {
+      medicationId,
+      quantity,
+    });
+    if (response && response.id) {
+      return response;
+    }
+    return null;
+  } catch (error) {
+    console.error("❌ [MEDICATION SERVICE] Error adding item to cart:", error);
+    throw error;
+  }
+};
+
+/**
+ * Update cart item quantity
+ * @param {string} medicationId - Medication ID
+ * @param {number} quantity - New quantity
+ * @returns {Promise<object>} - Updated cart data
+ */
+export const updateCartItemQuantity = async (medicationId, quantity) => {
+  try {
+    const response = await patch("/cart", {
+      items: [
+        {
+          medicationId,
+          quantity,
+        },
+      ],
+    });
+    if (response && (response.id || (response.success && response.data))) {
+      return response.id || response.data;
+    }
+    return null;
+  } catch (error) {
+    console.error(
+      "❌ [MEDICATION SERVICE] Error updating cart item quantity:",
+      error
+    );
+    throw error;
+  }
+};
+
+/**
+ * Delete item from cart
+ * @param {string} medicationId - Medication ID to delete
+ * @returns {Promise<object>} - Updated cart data
+ */
+export const deleteCartItem = async (medicationId) => {
+  try {
+    const response = await del(`/cart/items/${medicationId}`);
+    if (response && response.id) {
+      return response;
+    }
+    return null;
+  } catch (error) {
+    console.error("❌ [MEDICATION SERVICE] Error deleting cart item:", error);
+    throw error;
+  }
+};
+
+/**
+ * Clear entire cart
+ * @returns {Promise<object>} - Empty cart data
+ */
+export const clearCart = async () => {
+  try {
+    const response = await del("/cart");
+    if (response && response.success) {
+      return response.data || [];
+    }
+    return [];
+  } catch (error) {
+    console.error("❌ [MEDICATION SERVICE] Error clearing cart:", error);
     throw error;
   }
 };

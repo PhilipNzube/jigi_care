@@ -1,19 +1,70 @@
-import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Modal, Image, ActivityIndicator } from "react-native";
+import React, { useState, useEffect, useRef } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Modal,
+  Image,
+  Animated,
+  Dimensions,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
 import { Images } from "../../../shared/utils/imageUtils";
-import { getCart, updateCart } from "../services/medicationService";
+import {
+  updateCartItemQuantity,
+  deleteCartItem,
+} from "../services/medicationService";
 import { showError, showSuccess } from "../../../shared/utils/toast";
 
-export default function CartItem({ item, onQuantityChange }) {
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+
+export default function CartItem({ item, onQuantityChange, onItemDeleted }) {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [isUpdating, setIsUpdating] = useState(false);
   const [quantity, setQuantity] = useState(item.quantity || 1);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Animation values
+  const slideAnim = useRef(new Animated.Value(0)).current;
+  const opacityAnim = useRef(new Animated.Value(1)).current;
+
+  // Debounce timer ref
+  const debounceTimerRef = useRef(null);
+  const pendingQuantityRef = useRef(quantity);
 
   useEffect(() => {
     setQuantity(item.quantity || 1);
+    pendingQuantityRef.current = item.quantity || 1;
   }, [item.quantity]);
+
+  // Debounced API call for quantity updates
+  const debouncedUpdateQuantity = async (newQuantity) => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    debounceTimerRef.current = setTimeout(async () => {
+      try {
+        if (newQuantity <= 0) {
+          // Delete item if quantity is 0
+          await handleDeleteItem();
+        } else {
+          // Update quantity via PATCH API
+          await updateCartItemQuantity(item.medicationId, newQuantity);
+
+          if (onQuantityChange) {
+            onQuantityChange();
+          }
+        }
+      } catch (error) {
+        console.error("❌ [CART ITEM] Error updating quantity:", error);
+        showError("Failed to update quantity");
+        // Revert to previous quantity on error
+        setQuantity(pendingQuantityRef.current);
+      }
+    }, 500); // 500ms debounce
+  };
 
   const handleDelete = () => {
     setShowDeleteModal(true);
@@ -21,77 +72,95 @@ export default function CartItem({ item, onQuantityChange }) {
 
   const handleConfirmDelete = async () => {
     setShowDeleteModal(false);
-    // TODO: Implement delete item from cart
-    if (onQuantityChange) {
-      onQuantityChange();
-    }
+    await handleDeleteItem();
+  };
+
+  const handleDeleteItem = async () => {
+    if (isDeleting) return;
+
+    setIsDeleting(true);
+
+    // Animate slide away
+    Animated.parallel([
+      Animated.timing(slideAnim, {
+        toValue: SCREEN_WIDTH,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacityAnim, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start(async () => {
+      try {
+        await deleteCartItem(item.medicationId);
+
+        if (onItemDeleted) {
+          onItemDeleted(item.medicationId);
+        }
+
+        if (onQuantityChange) {
+          onQuantityChange();
+        }
+      } catch (error) {
+        console.error("❌ [CART ITEM] Error deleting item:", error);
+        showError("Failed to delete item");
+        // Reset animation on error
+        slideAnim.setValue(0);
+        opacityAnim.setValue(1);
+        setIsDeleting(false);
+      }
+    });
   };
 
   const handleCancelDelete = () => {
     setShowDeleteModal(false);
   };
 
-  const handleDecreaseQuantity = async () => {
-    if (quantity <= 1) return;
-    
-    try {
-      setIsUpdating(true);
-      const newQuantity = quantity - 1;
-      
-      // Get current cart
-      const cartData = await getCart();
-      const updatedItems = cartData.items.map((cartItem) => {
-        if (cartItem.medicationId === item.medicationId) {
-          return { ...cartItem, quantity: newQuantity };
-        }
-        return cartItem;
-      });
+  const handleDecreaseQuantity = () => {
+    const newQuantity = Math.max(0, quantity - 1);
+    setQuantity(newQuantity);
+    pendingQuantityRef.current = newQuantity;
 
-      await updateCart(updatedItems);
-      setQuantity(newQuantity);
-      
-      if (onQuantityChange) {
-        onQuantityChange();
-      }
-    } catch (error) {
-      console.error("❌ [CART ITEM] Error decreasing quantity:", error);
-      showError("Failed to update quantity");
-    } finally {
-      setIsUpdating(false);
+    if (newQuantity === 0) {
+      // Delete item if quantity reaches 0
+      handleDeleteItem();
+    } else {
+      // Debounce API call
+      debouncedUpdateQuantity(newQuantity);
     }
   };
 
-  const handleIncreaseQuantity = async () => {
-    try {
-      setIsUpdating(true);
-      const newQuantity = quantity + 1;
-      
-      // Get current cart
-      const cartData = await getCart();
-      const updatedItems = cartData.items.map((cartItem) => {
-        if (cartItem.medicationId === item.medicationId) {
-          return { ...cartItem, quantity: newQuantity };
-        }
-        return cartItem;
-      });
+  const handleIncreaseQuantity = () => {
+    const newQuantity = quantity + 1;
+    setQuantity(newQuantity);
+    pendingQuantityRef.current = newQuantity;
 
-      await updateCart(updatedItems);
-      setQuantity(newQuantity);
-      
-      if (onQuantityChange) {
-        onQuantityChange();
-      }
-    } catch (error) {
-      console.error("❌ [CART ITEM] Error increasing quantity:", error);
-      showError("Failed to update quantity");
-    } finally {
-      setIsUpdating(false);
-    }
+    // Debounce API call
+    debouncedUpdateQuantity(newQuantity);
   };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, []);
 
   return (
     <>
-      <View style={styles.container}>
+      <Animated.View
+        style={[
+          styles.container,
+          {
+            transform: [{ translateX: slideAnim }],
+            opacity: opacityAnim,
+          },
+        ]}
+      >
         <TouchableOpacity style={styles.menuButton}>
           <Ionicons name="ellipsis-horizontal" size={20} color="#EBEBEB" />
         </TouchableOpacity>
@@ -115,6 +184,7 @@ export default function CartItem({ item, onQuantityChange }) {
             <TouchableOpacity
               style={styles.deleteButton}
               onPress={handleDelete}
+              disabled={isDeleting}
             >
               <Ionicons name="trash" size={18} color="#F44336" />
             </TouchableOpacity>
@@ -126,37 +196,29 @@ export default function CartItem({ item, onQuantityChange }) {
               <TouchableOpacity
                 style={[
                   styles.quantityButton,
-                  quantity <= 1 && styles.quantityButtonDisabled,
+                  quantity === 0 && styles.quantityButtonDisabled,
                 ]}
                 onPress={handleDecreaseQuantity}
-                disabled={quantity <= 1 || isUpdating}
+                disabled={isDeleting}
               >
-                {isUpdating ? (
-                  <ActivityIndicator size="small" color={Colors.grey} />
-                ) : (
-                  <Ionicons
-                    name="remove"
-                    size={16}
-                    color={quantity <= 1 ? Colors.lightGray : Colors.grey}
-                  />
-                )}
+                <Ionicons
+                  name="remove"
+                  size={16}
+                  color={quantity === 0 ? Colors.lightGray : Colors.grey}
+                />
               </TouchableOpacity>
               <Text style={styles.quantity}>{quantity}</Text>
               <TouchableOpacity
                 style={styles.quantityButton}
                 onPress={handleIncreaseQuantity}
-                disabled={isUpdating}
+                disabled={isDeleting}
               >
-                {isUpdating ? (
-                  <ActivityIndicator size="small" color={Colors.grey} />
-                ) : (
-                  <Ionicons name="add" size={16} color={Colors.grey} />
-                )}
+                <Ionicons name="add" size={16} color={Colors.grey} />
               </TouchableOpacity>
             </View>
           </View>
         </View>
-      </View>
+      </Animated.View>
 
       {/* Delete Confirmation Modal */}
       <Modal
@@ -170,7 +232,10 @@ export default function CartItem({ item, onQuantityChange }) {
             <View style={styles.iconContainer}>
               <Ionicons name="trash-outline" size={40} color="#F44336" />
             </View>
-            <Text style={styles.modalTitle}>Clear Cart?</Text>
+            <Text style={styles.modalTitle}>Remove Item?</Text>
+            <Text style={styles.modalMessage}>
+              Are you sure you want to remove this item from your cart?
+            </Text>
             <View style={styles.modalButtons}>
               <TouchableOpacity
                 style={styles.cancelButton}
@@ -182,7 +247,7 @@ export default function CartItem({ item, onQuantityChange }) {
                 style={styles.confirmButton}
                 onPress={handleConfirmDelete}
               >
-                <Text style={styles.confirmButtonText}>Yes</Text>
+                <Text style={styles.confirmButtonText}>Yes, Remove</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -327,14 +392,22 @@ const styles = StyleSheet.create({
     marginBottom: Sizes.lg,
   },
   modalTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontFamily: "Poppins-Medium",
     color: Colors.black,
+    marginBottom: Sizes.sm,
+  },
+  modalMessage: {
+    fontSize: 14,
+    fontFamily: "Poppins-Regular",
+    color: Colors.grey,
+    textAlign: "center",
     marginBottom: Sizes.xl,
   },
   modalButtons: {
     flexDirection: "row",
     gap: Sizes.md,
+    width: "100%",
   },
   cancelButton: {
     flex: 1,

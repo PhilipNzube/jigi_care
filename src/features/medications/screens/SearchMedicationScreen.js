@@ -12,7 +12,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
-import { searchMedications, getCart, updateCart } from "../services/medicationService";
+import { searchMedications, addItemToCart } from "../services/medicationService";
 import MedicationCard from "../components/MedicationCard";
 import ShimmerLoader from "../../../shared/components/ShimmerLoader";
 import { showError, showSuccess } from "../../../shared/utils/toast";
@@ -344,36 +344,7 @@ export default function SearchMedicationScreen({ navigation, route }) {
                       // Set loading state for this medication
                       setLoadingMedications((prev) => new Set(prev).add(medicationId));
 
-                      // Get current cart
-                      const cartData = await getCart();
-                      const existingItems = cartData.items || [];
-                      
-                      // Check if medication already in cart
-                      const existingItem = existingItems.find(
-                        (item) => item.medicationId === medicationId
-                      );
-
-                      let updatedItems;
-                      if (existingItem) {
-                        // Increase quantity if already in cart
-                        updatedItems = existingItems.map((item) => {
-                          if (item.medicationId === medicationId) {
-                            return { ...item, quantity: item.quantity + 1 };
-                          }
-                          return item;
-                        });
-                      } else {
-                        // Add new item to cart
-                        updatedItems = [
-                          ...existingItems,
-                          {
-                            medicationId: medicationId,
-                            quantity: 1,
-                          },
-                        ];
-                      }
-
-                      await updateCart(updatedItems);
+                      await addItemToCart(medicationId, 1);
                       showSuccess("Added to cart");
                     } catch (error) {
                       console.error("❌ [SEARCH MEDICATION] Error adding to cart:", error);

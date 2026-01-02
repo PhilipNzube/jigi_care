@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -6,16 +6,21 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
+  Animated,
+  Dimensions,
 } from "react-native";
+
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
 import { useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, Sizes } from "../../../shared/constants";
 import CartItem from "../components/CartItem";
 import ClearCartModal from "../modals/ClearCartModal";
-import { getCart, getMedicationById } from "../services/medicationService";
+import { getCart, getMedicationById, clearCart } from "../services/medicationService";
 import ShimmerLoader from "../../../shared/components/ShimmerLoader";
 import EmptyState from "../../../shared/components/EmptyState";
+import { showError, showSuccess } from "../../../shared/utils/toast";
 
 export default function CartScreen({ navigation }) {
   const insets = useSafeAreaInsets();
@@ -23,6 +28,8 @@ export default function CartScreen({ navigation }) {
   const [cartItems, setCartItems] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [deletingItems, setDeletingItems] = useState(new Set());
+  const itemAnimationsRef = useRef({});
 
   const fetchCartData = useCallback(async (silent = false) => {
     try {
@@ -101,11 +108,67 @@ export default function CartScreen({ navigation }) {
     navigation.navigate("ShippingAddress");
   };
 
-  const handleClearCartConfirm = () => {
+  const handleClearCartConfirm = async () => {
     setShowClearModal(false);
-    // TODO: Implement clear cart API call
-    setCartItems([]);
+    
+    if (cartItems.length === 0) return;
+    
+    try {
+      // Initialize animations for all items
+      cartItems.forEach((item) => {
+        if (!itemAnimationsRef.current[item.id]) {
+          itemAnimationsRef.current[item.id] = {
+            slideAnim: new Animated.Value(0),
+            opacityAnim: new Animated.Value(1),
+          };
+        }
+      });
+      
+      // Animate all items sliding away one after another
+      const animations = cartItems.map((item, index) => {
+        const { slideAnim, opacityAnim } = itemAnimationsRef.current[item.id];
+        
+        return Animated.parallel([
+          Animated.timing(slideAnim, {
+            toValue: SCREEN_WIDTH,
+            duration: 300,
+            delay: index * 50, // Stagger animations (50ms between each)
+            useNativeDriver: true,
+          }),
+          Animated.timing(opacityAnim, {
+            toValue: 0,
+            duration: 300,
+            delay: index * 50,
+            useNativeDriver: true,
+          }),
+        ]);
+      });
+      
+      // Start all animations
+      Animated.parallel(animations).start(async () => {
+        try {
+          await clearCart();
+          setCartItems([]);
+          showSuccess("Cart cleared");
+          
+          // Clean up animations
+          itemAnimationsRef.current = {};
+        } catch (error) {
+          console.error("❌ [CART SCREEN] Error clearing cart:", error);
+          showError("Failed to clear cart");
+        }
+      });
+    } catch (error) {
+      console.error("❌ [CART SCREEN] Error clearing cart:", error);
+      showError("Failed to clear cart");
+    }
   };
+
+  const handleItemDeleted = useCallback((medicationId) => {
+    setCartItems((prevItems) =>
+      prevItems.filter((item) => item.medicationId !== medicationId)
+    );
+  }, []);
 
   // Cart Item Skeleton Component
   const CartItemSkeleton = () => (
@@ -190,13 +253,33 @@ export default function CartScreen({ navigation }) {
           />
         ) : (
           <>
-            {cartItems.map((item) => (
-              <CartItem
-                key={item.id}
-                item={item}
-                onQuantityChange={handleCartUpdate}
-              />
-            ))}
+            {cartItems.map((item) => {
+              // Initialize animation if not exists (for clear all)
+              if (!itemAnimationsRef.current[item.id]) {
+                itemAnimationsRef.current[item.id] = {
+                  slideAnim: new Animated.Value(0),
+                  opacityAnim: new Animated.Value(1),
+                };
+              }
+              
+              const { slideAnim, opacityAnim } = itemAnimationsRef.current[item.id];
+              
+              return (
+                <Animated.View
+                  key={item.id}
+                  style={{
+                    transform: [{ translateX: slideAnim }],
+                    opacity: opacityAnim,
+                  }}
+                >
+                  <CartItem
+                    item={item}
+                    onQuantityChange={handleCartUpdate}
+                    onItemDeleted={handleItemDeleted}
+                  />
+                </Animated.View>
+              );
+            })}
 
             <View style={styles.paymentSummary}>
               <Text style={styles.summaryTitle}>Payment Summary</Text>
