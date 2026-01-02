@@ -26,6 +26,7 @@ export default function CartScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const [showClearModal, setShowClearModal] = useState(false);
   const [cartItems, setCartItems] = useState([]);
+  const [cartId, setCartId] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [deletingItems, setDeletingItems] = useState(new Set());
@@ -37,6 +38,11 @@ export default function CartScreen({ navigation }) {
         setIsLoading(true);
       }
       const cartData = await getCart();
+      
+      // Store cart ID
+      if (cartData.id) {
+        setCartId(cartData.id);
+      }
       
       if (!cartData.items || cartData.items.length === 0) {
         setCartItems([]);
@@ -105,7 +111,11 @@ export default function CartScreen({ navigation }) {
 
   const handleCheckout = () => {
     if (cartItems.length === 0) return;
-    navigation.navigate("ShippingAddress");
+    if (!cartId) {
+      showError("Cart ID not found. Please try again.");
+      return;
+    }
+    navigation.navigate("ShippingAddress", { cartId });
   };
 
   const handleClearCartConfirm = async () => {

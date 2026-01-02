@@ -59,6 +59,16 @@ function BottomTabNavigator({ navigation, route }) {
     }
   }, [route?.params?.screen]);
 
+  // Get nested params for the active screen
+  const getScreenParams = () => {
+    // If we have nested params (screen + params), return the nested params
+    if (route?.params?.screen && route?.params?.params) {
+      return route.params.params;
+    }
+    // Otherwise, return empty object to avoid passing screen param to component
+    return {};
+  };
+
   // Handle tab change - refresh the screen
   const handleTabChange = (tabId) => {
     if (activeTab !== tabId) {
@@ -151,10 +161,16 @@ function BottomTabNavigator({ navigation, route }) {
     },
   };
 
+  // Create a route object with nested params for the active screen
+  const screenRoute = {
+    ...route,
+    params: getScreenParams(),
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.content} key={refreshKey}>
-        <ActiveComponent navigation={tabNavigation} route={route} />
+        <ActiveComponent navigation={tabNavigation} route={screenRoute} />
       </View>
       {renderBottomNavigation()}
     </View>

@@ -125,6 +125,27 @@ export default function PaymentWebViewScreen({ navigation, route }) {
                 console.log(
                   "✅ [PAYMENT WEBVIEW] Navigated to ViewAllTests screen"
                 );
+              } else if (source === "Medication") {
+                // Navigate to Medication tab with Order tab active
+                navigation.dispatch(
+                  CommonActions.reset({
+                    index: 0,
+                    routes: [
+                      {
+                        name: "BottomTabs",
+                        params: {
+                          screen: "medication",
+                          params: {
+                            initialTab: "Order",
+                          },
+                        },
+                      },
+                    ],
+                  })
+                );
+                console.log(
+                  "✅ [PAYMENT WEBVIEW] Navigated to Medication screen with Order tab"
+                );
               } else {
                 // Default: Reset navigation stack and navigate to Consult tab
                 navigation.dispatch(

@@ -33,6 +33,33 @@ export const initializePayment = async (bookingId, consultantId) => {
 };
 
 /**
+ * Initialize payment for medication cart
+ * @param {string} cartId - The cart ID
+ * @param {string} deliveryAddress - The delivery address
+ * @returns {Promise<object>} - Response with payment initialization data
+ */
+export const initializeMedicationPayment = async (cartId, deliveryAddress) => {
+  console.log("💳 [PAYMENT SERVICE] Initializing medication payment...");
+  console.log("💳 [PAYMENT SERVICE] Cart ID:", cartId);
+  console.log("💳 [PAYMENT SERVICE] Delivery Address:", deliveryAddress);
+
+  try {
+    const response = await post("/payments/initialize/medication", {
+      cartId,
+      deliveryAddress,
+    });
+
+    console.log("✅ [PAYMENT SERVICE] Medication payment initialized successfully!");
+    console.log("✅ [PAYMENT SERVICE] Response:", JSON.stringify(response, null, 2));
+
+    return response;
+  } catch (error) {
+    console.error("❌ [PAYMENT SERVICE] Error initializing medication payment:", error);
+    throw error;
+  }
+};
+
+/**
  * Verify payment using reference
  * @param {string} reference - Payment reference
  * @returns {Promise<object>} - Response with payment verification data
@@ -56,6 +83,7 @@ export const verifyPayment = async (reference) => {
 
 export default {
   initializePayment,
+  initializeMedicationPayment,
   verifyPayment,
 };
 

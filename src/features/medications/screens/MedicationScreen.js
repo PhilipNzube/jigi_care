@@ -11,22 +11,35 @@ import HistoryTab from "../components/HistoryTab";
 
 export default function MedicationScreen({ navigation, route }) {
   const insets = useSafeAreaInsets();
-  const [activeTab, setActiveTab] = useState("Prescriptions");
+  // Get initial tab from route params, default to "Prescriptions"
+  const initialTab = route?.params?.initialTab || "Prescriptions";
+  const [activeTab, setActiveTab] = useState(initialTab);
+
+  // Update active tab when route params change
+  useEffect(() => {
+    if (route?.params?.initialTab && route.params.initialTab !== activeTab) {
+      setActiveTab(route.params.initialTab);
+    }
+  }, [route?.params?.initialTab]);
 
   // Refresh when screen comes into focus (tab change)
   useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', () => {
+    const unsubscribe = navigation.addListener("focus", () => {
       // Silently refresh - tabs will handle their own refresh
+      // Also check if we need to update tab from params
+      if (route?.params?.initialTab && route.params.initialTab !== activeTab) {
+        setActiveTab(route.params.initialTab);
+      }
     });
 
     return unsubscribe;
-  }, [navigation]);
+  }, [navigation, route?.params?.initialTab, activeTab]);
 
   // Handle back button - navigate to home
   useFocusEffect(
     React.useCallback(() => {
       const onBackPress = () => {
-        if (Platform.OS === 'android') {
+        if (Platform.OS === "android") {
           // Navigate to home tab using the tab navigation
           if (navigation.navigate) {
             navigation.navigate("BottomTabs", { screen: "home" });
@@ -36,7 +49,10 @@ export default function MedicationScreen({ navigation, route }) {
         return false;
       };
 
-      const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      const subscription = BackHandler.addEventListener(
+        "hardwareBackPress",
+        onBackPress
+      );
 
       return () => subscription.remove();
     }, [navigation])

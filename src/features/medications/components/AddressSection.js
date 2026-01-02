@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useImperativeHandle, forwardRef } from "react";
 import {
   View,
   Text,
@@ -9,9 +9,14 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
 
-export default function AddressSection() {
+const AddressSection = forwardRef((props, ref) => {
   const [address, setAddress] = useState("423 Jakande Estate");
   const [isEditing, setIsEditing] = useState(false);
+
+  // Expose address value via ref
+  useImperativeHandle(ref, () => ({
+    getAddress: () => address,
+  }));
 
   const handleEditAddress = () => {
     setIsEditing(true);
@@ -72,7 +77,11 @@ export default function AddressSection() {
       </View>
     </View>
   );
-}
+});
+
+AddressSection.displayName = "AddressSection";
+
+export default AddressSection;
 
 const styles = StyleSheet.create({
   container: {
