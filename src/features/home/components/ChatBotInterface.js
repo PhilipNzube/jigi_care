@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -14,11 +14,13 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
 import { Images } from "../../../shared/utils/imageUtils";
+import ShimmerLoader from "../../../shared/components/ShimmerLoader";
 
 const { width, height } = Dimensions.get("window");
 
 export default function ChatBotInterface({ visible, onClose }) {
   const [message, setMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
   const [messages, setMessages] = useState([
     {
       id: 1,
@@ -33,6 +35,20 @@ export default function ChatBotInterface({ visible, onClose }) {
       time: "9:51am",
     },
   ]);
+
+  useEffect(() => {
+    if (visible) {
+      // Show shimmer loading when chat opens
+      setIsLoading(true);
+      // Simulate loading delay
+      const timer = setTimeout(() => {
+        setIsLoading(false);
+      }, 1500);
+      return () => clearTimeout(timer);
+    } else {
+      setIsLoading(false);
+    }
+  }, [visible]);
 
   const handleSendMessage = () => {
     if (message.trim()) {
@@ -132,26 +148,48 @@ export default function ChatBotInterface({ visible, onClose }) {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.messagesContent}
         >
-          {messages.map(renderMessage)}
-          {/* Typing Indicator */}
-          <View style={styles.typingIndicator}>
-            <View style={styles.typingBubble}>
-              <View style={styles.typingDots}>
-                <View style={styles.typingDot} />
-                <View style={styles.typingDot} />
-                <View style={styles.typingDot} />
-              </View>
+          {isLoading ? (
+            <View style={styles.loadingContainer}>
+              {[1, 2, 3, 4].map((index) => (
+                <ShimmerLoader key={index}>
+                  <View
+                    style={[
+                      styles.messageSkeleton,
+                      index % 2 === 0
+                        ? styles.skeletonUserMessage
+                        : styles.skeletonDoctorMessage,
+                    ]}
+                  >
+                    <View style={styles.skeletonBubble} />
+                  </View>
+                </ShimmerLoader>
+              ))}
             </View>
-          </View>
+          ) : (
+            <>
+              {messages.map(renderMessage)}
+              {/* Typing Indicator */}
+              <View style={styles.typingIndicator}>
+                <View style={styles.typingBubble}>
+                  <View style={styles.typingDots}>
+                    <View style={styles.typingDot} />
+                    <View style={styles.typingDot} />
+                    <View style={styles.typingDot} />
+                  </View>
+                </View>
+              </View>
+            </>
+          )}
         </ScrollView>
       </View>
 
       {/* Input Area */}
       <View style={styles.inputArea}>
         <View style={styles.inputContainer}>
-          <TouchableOpacity style={styles.cameraButton}>
+          {/* Camera icon - commented out */}
+          {/* <TouchableOpacity style={styles.cameraButton}>
             <Ionicons name="camera-outline" size={20} color="#666666" />
-          </TouchableOpacity>
+          </TouchableOpacity> */}
           <TextInput
             style={styles.messageInput}
             placeholder="Type a message..."
@@ -369,5 +407,25 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
     opacity: 0.3,
+  },
+  loadingContainer: {
+    flex: 1,
+    paddingHorizontal: Sizes.md,
+    paddingVertical: Sizes.sm,
+  },
+  messageSkeleton: {
+    marginVertical: Sizes.xs,
+  },
+  skeletonUserMessage: {
+    alignItems: "flex-end",
+  },
+  skeletonDoctorMessage: {
+    alignItems: "flex-start",
+  },
+  skeletonBubble: {
+    width: "60%",
+    height: 60,
+    borderRadius: 20,
+    backgroundColor: Colors.lightGray,
   },
 });

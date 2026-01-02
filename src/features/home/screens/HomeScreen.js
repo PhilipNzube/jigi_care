@@ -20,12 +20,10 @@ import QuickActionsGrid from "../components/QuickActionsGrid";
 import HealthTipsCarousel from "../components/HealthTipsCarousel";
 import UpcomingAppointmentsList from "../components/UpcomingAppointmentsList";
 import FloatingActionButton from "../components/FloatingActionButton";
-import ConnectingModal from "../components/ConnectingModal";
 import ChatBotInterface from "../components/ChatBotInterface";
 
 export default function HomeScreen({ navigation, route }) {
   const insets = useSafeAreaInsets();
-  const [showConnectingModal, setShowConnectingModal] = useState(false);
   const [showChatBotInterface, setShowChatBotInterface] = useState(false);
   const [isChatMode, setIsChatMode] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -96,17 +94,10 @@ export default function HomeScreen({ navigation, route }) {
       setShowChatBotInterface(false);
       setIsChatMode(false);
     } else {
-      // Show connecting modal first
-      console.log("Showing connecting modal");
-      setShowConnectingModal(true);
-
-      // After 3 seconds, hide connecting modal and show chat bot interface
-      setTimeout(() => {
-        console.log("Transitioning to chat bot interface");
-        setShowConnectingModal(false);
-        setShowChatBotInterface(true);
-        setIsChatMode(true);
-      }, 3000);
+      // Open chat instantly
+      console.log("Opening chat bot interface");
+      setShowChatBotInterface(true);
+      setIsChatMode(true);
     }
   };
 
@@ -127,9 +118,7 @@ export default function HomeScreen({ navigation, route }) {
   }, []);
 
   console.log(
-    "HomeScreen render - showConnectingModal:",
-    showConnectingModal,
-    "showChatBotInterface:",
+    "HomeScreen render - showChatBotInterface:",
     showChatBotInterface,
     "isChatMode:",
     isChatMode
@@ -153,8 +142,6 @@ export default function HomeScreen({ navigation, route }) {
         />
       </ScrollView>
       <FloatingActionButton onPress={handleChatPress} isChatMode={isChatMode} />
-
-      <ConnectingModal visible={showConnectingModal} doctorName="Dr. Sarah" />
 
       <ChatBotInterface
         visible={showChatBotInterface}

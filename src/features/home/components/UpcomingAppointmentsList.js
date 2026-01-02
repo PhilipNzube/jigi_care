@@ -11,10 +11,13 @@ import { Colors, Sizes } from "../../../shared/constants";
 import { getUpcomingAppointments } from "../../consult/services/bookingService";
 import { format, parseISO } from "date-fns";
 import DoctorCardSkeleton from "../../consult/components/DoctorCardSkeleton";
+import ConnectingModal from "./ConnectingModal";
 
 export default function UpcomingAppointmentsList({ navigation, refreshKey }) {
   const [appointments, setAppointments] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [showConnectingModal, setShowConnectingModal] = useState(false);
+  const [selectedDoctor, setSelectedDoctor] = useState(null);
 
   // Refresh when refreshKey changes (from parent pull-to-refresh)
   useEffect(() => {
@@ -66,6 +69,18 @@ export default function UpcomingAppointmentsList({ navigation, refreshKey }) {
     fetchAppointments();
   }, [fetchAppointments]);
 
+  const handleAppointmentPress = (appointment) => {
+    // Show connecting modal with doctor name
+    setSelectedDoctor(appointment.doctor);
+    setShowConnectingModal(true);
+
+    // After 3 seconds, hide connecting modal and navigate to ChatPage
+    setTimeout(() => {
+      setShowConnectingModal(false);
+      navigation.navigate("ChatPage", { doctor: appointment.doctor });
+    }, 3000);
+  };
+
   // Refresh when screen comes into focus
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
@@ -109,9 +124,7 @@ export default function UpcomingAppointmentsList({ navigation, refreshKey }) {
           <TouchableOpacity
             key={appointment.id}
             style={styles.appointmentCard}
-            onPress={() =>
-              navigation.navigate("ChatPage", { doctor: appointment.doctor })
-            }
+            onPress={() => handleAppointmentPress(appointment)}
           >
             <Text style={styles.appointmentDateTime}>
               {appointment.date} • {appointment.time}
@@ -136,6 +149,10 @@ export default function UpcomingAppointmentsList({ navigation, refreshKey }) {
           </TouchableOpacity>
         ))}
       </View>
+      <ConnectingModal 
+        visible={showConnectingModal} 
+        doctorName={selectedDoctor?.name || "Dr. Unknown"} 
+      />
     </View>
   );
 }
