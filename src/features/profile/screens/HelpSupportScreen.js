@@ -5,6 +5,7 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Linking,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -32,6 +33,14 @@ export default function HelpSupportScreen({ navigation }) {
     if (item.screen) {
       navigation.navigate(item.screen);
     }
+  };
+
+  const handlePhonePress = () => {
+    Linking.openURL(`tel:08069407850`);
+  };
+
+  const handleEmailPress = () => {
+    Linking.openURL(`mailto:Jigicareltd@gmail.com`);
   };
 
   return (
@@ -76,6 +85,40 @@ export default function HelpSupportScreen({ navigation }) {
                 {index < helpItems.length - 1 && <View style={styles.divider} />}
               </View>
             ))}
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Contact Us</Text>
+          <View style={styles.card}>
+            <TouchableOpacity
+              style={styles.contactItem}
+              onPress={handlePhonePress}
+            >
+              <View style={styles.iconContainer}>
+                <Ionicons name="call-outline" size={24} color={Colors.primary} />
+              </View>
+              <Text style={styles.contactText}>08069407850</Text>
+            </TouchableOpacity>
+            <View style={styles.divider} />
+            <TouchableOpacity
+              style={styles.contactItem}
+              onPress={handleEmailPress}
+            >
+              <View style={styles.iconContainer}>
+                <Ionicons name="mail-outline" size={24} color={Colors.primary} />
+              </View>
+              <Text style={styles.contactText}>Jigicareltd@gmail.com</Text>
+            </TouchableOpacity>
+            <View style={styles.divider} />
+            <View style={styles.contactItem}>
+              <View style={styles.iconContainer}>
+                <Ionicons name="location-outline" size={24} color={Colors.primary} />
+              </View>
+              <Text style={styles.contactText}>
+                D4/4 Irewolede Estate, Ilawe road,{'\n'}Ado-Ekiti, Ekiti State
+              </Text>
+            </View>
           </View>
         </View>
 
@@ -189,6 +232,8 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins-Regular",
     color: Colors.textPrimary,
     marginLeft: Sizes.md,
+    flex: 1,
+    paddingRight: Sizes.sm,
   },
 });
 
