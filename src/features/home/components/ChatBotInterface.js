@@ -15,26 +15,52 @@ import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
 import { Images } from "../../../shared/utils/imageUtils";
 import ShimmerLoader from "../../../shared/components/ShimmerLoader";
+import { useAuth } from "../../../shared/context/AuthContext";
 
 const { width, height } = Dimensions.get("window");
 
 export default function ChatBotInterface({ visible, onClose }) {
+  const { user } = useAuth();
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Get first name from user
+  const getFirstName = () => {
+    if (!user) return "there";
+    const fullName = user?.fullName || user?.name || "";
+    const firstName = fullName.split(" ")[0];
+    return firstName || "there";
+  };
+
+  const firstName = getFirstName();
+  
   const [messages, setMessages] = useState([
     {
       id: 1,
-      text: "Hi Tim 👋 I'm JigiBot, your virtual health assistant. How can I help you today?",
+      text: `Hi ${firstName} 👋 I'm JigiBot, your virtual health assistant. How can I help you today?`,
       sender: "bot",
-      time: "9:48am",
-    },
-    {
-      id: 2,
-      text: "Can I take paracetamol with ibuprofen?",
-      sender: "user",
-      time: "9:51am",
+      time: new Date().toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
     },
   ]);
+
+  // Update message when user changes
+  useEffect(() => {
+    const currentFirstName = getFirstName();
+    setMessages([
+      {
+        id: 1,
+        text: `Hi ${currentFirstName} 👋 I'm JigiBot, your virtual health assistant. How can I help you today?`,
+        sender: "bot",
+        time: new Date().toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+      },
+    ]);
+  }, [user]);
 
   useEffect(() => {
     if (visible) {
@@ -168,8 +194,8 @@ export default function ChatBotInterface({ visible, onClose }) {
           ) : (
             <>
               {messages.map(renderMessage)}
-              {/* Typing Indicator */}
-              <View style={styles.typingIndicator}>
+              {/* Typing Indicator - commented out for later use */}
+              {/* <View style={styles.typingIndicator}>
                 <View style={styles.typingBubble}>
                   <View style={styles.typingDots}>
                     <View style={styles.typingDot} />
@@ -177,7 +203,7 @@ export default function ChatBotInterface({ visible, onClose }) {
                     <View style={styles.typingDot} />
                   </View>
                 </View>
-              </View>
+              </View> */}
             </>
           )}
         </ScrollView>
