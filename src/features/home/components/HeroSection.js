@@ -106,7 +106,11 @@ export default function HeroSection({ insets, navigation }) {
           <View style={styles.header}>
             <View style={styles.profileSection}>
               <View style={styles.profileImageContainer}>
-                <Ionicons name="person" size={30} color={Colors.white} />
+                {user?.dp ? (
+                  <Image source={{ uri: user.dp }} style={styles.profileImage} />
+                ) : (
+                  <Ionicons name="person" size={30} color={Colors.white} />
+                )}
               </View>
               <View style={styles.greetingSection}>
                 <Text
@@ -269,6 +273,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginRight: Sizes.md,
     flexShrink: 0,
+    overflow: "hidden",
+  },
+  profileImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
   },
   greetingSection: {
     flex: 1,

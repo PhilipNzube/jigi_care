@@ -468,6 +468,59 @@ export const del = (endpoint, options = {}) => {
   return apiRequest(endpoint, { ...options, method: "DELETE" });
 };
 
+/**
+ * Upload file with form data
+ * @param {string} endpoint - API endpoint
+ * @param {FormData} formData - Form data with file
+ * @param {object} options - Additional options
+ * @returns {Promise} - Response data
+ */
+export const uploadFile = async (endpoint, formData, options = {}) => {
+  const url = `${BASE_URL}${endpoint}`;
+  
+  // Get stored access token
+  let accessToken = options.token;
+  if (!accessToken) {
+    accessToken = await getToken();
+  }
+
+  const requestHeaders = {
+    "x-client-type": "mobile",
+    ...options.headers,
+    // Don't set Content-Type - let browser set it with boundary for multipart/form-data
+  };
+
+  // Add authorization token if available
+  if (accessToken) {
+    requestHeaders.Authorization = `Bearer ${accessToken}`;
+  }
+
+  try {
+    console.log("📤 [UPLOAD FILE] Uploading file to:", url);
+    
+    const response = await fetch(url, {
+      method: "POST",
+      headers: requestHeaders,
+      body: formData,
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      const error = new Error(data.message || "Upload failed");
+      error.statusCode = response.status;
+      error.data = data;
+      throw error;
+    }
+
+    console.log("✅ [UPLOAD FILE] Upload successful!");
+    return data;
+  } catch (error) {
+    console.error("❌ [UPLOAD FILE] Error uploading file:", error);
+    throw error;
+  }
+};
+
 export default {
   apiRequest,
   get,
@@ -475,4 +528,5 @@ export default {
   put,
   patch,
   delete: del,
+  uploadFile,
 };

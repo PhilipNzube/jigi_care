@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
 import { useAuth } from "../../../shared/context/AuthContext";
@@ -16,7 +16,11 @@ export default function UserInfoCard({ onEdit }) {
   return (
     <View style={styles.container}>
       <View style={styles.profileImageContainer}>
-        <Ionicons name="person" size={40} color={Colors.white} />
+        {user?.dp ? (
+          <Image source={{ uri: user.dp }} style={styles.profileImage} />
+        ) : (
+          <Ionicons name="person" size={40} color={Colors.white} />
+        )}
       </View>
 
       <View style={styles.userInfo}>
@@ -50,6 +54,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginRight: Sizes.md,
+    overflow: "hidden",
+  },
+  profileImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
   },
   userInfo: {
     flex: 1,

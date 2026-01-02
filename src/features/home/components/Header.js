@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
 import { useAuth } from "../../../shared/context/AuthContext";
@@ -22,7 +22,11 @@ export default function Header({ insets }) {
       <View style={styles.headerContent}>
         <View style={styles.profileSection}>
           <View style={styles.profileImageContainer}>
-            <Ionicons name="person" size={30} color={Colors.white} />
+            {user?.dp ? (
+              <Image source={{ uri: user.dp }} style={styles.profileImage} />
+            ) : (
+              <Ionicons name="person" size={30} color={Colors.white} />
+            )}
           </View>
           <View style={styles.greetingSection}>
             <Text style={styles.greetingText} numberOfLines={2}>Hello {firstName},</Text>
@@ -67,6 +71,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginRight: Sizes.md,
+    overflow: "hidden",
+  },
+  profileImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
   },
   greetingSection: {},
   greetingText: {
