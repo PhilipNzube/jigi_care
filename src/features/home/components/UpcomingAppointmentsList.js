@@ -37,17 +37,17 @@ export default function UpcomingAppointmentsList({ navigation, refreshKey }) {
       const result = await getUpcomingAppointments();
       
       // Map API response to appointment format
-      const mappedAppointments = (result.data || []).map((appointment) => {
+      const mappedAppointments = (result.data || []).map((appointment, index) => {
         const appointmentDate = parseISO(appointment.date);
         return {
-          id: appointment.id,
+          id: appointment.id || `appointment-${index}-${appointment.date}`,
           date: format(appointmentDate, "MMM d, yyyy"),
           time: format(appointmentDate, "h:mm a"),
-      doctor: {
-            name: appointment.consultant?.fullName || "Dr. Unknown",
-            specialty: appointment.consultant?.speciality || "General Practitioner",
+          doctor: {
+            name: appointment.fullName || "Dr. Unknown",
+            specialty: appointment.speciality || "General Practitioner",
             rating: 4.5, // Default rating since not in API
-            consultantId: appointment.consultantId, // Pass consultantId for chat
+            consultantId: appointment.consultantId, // May not be available in new API
           },
           appointmentData: appointment,
         };
