@@ -176,8 +176,7 @@ export default function PaymentWebViewScreen({ navigation, route }) {
             error
           );
           showError(
-            error.message ||
-              "Payment verification failed. Please contact support."
+            "Unable to verify payment. Please contact support if payment was successful."
           );
 
           // Still close the WebView even if verification fails
@@ -191,7 +190,9 @@ export default function PaymentWebViewScreen({ navigation, route }) {
         console.warn(
           "⚠️ [PAYMENT WEBVIEW] No reference available for verification"
         );
-        showError("Payment reference missing. Please contact support.");
+        showError(
+          "Payment information is missing. Please contact support for assistance."
+        );
         setTimeout(() => {
           navigation.goBack();
         }, 2000);

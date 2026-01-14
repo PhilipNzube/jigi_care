@@ -32,10 +32,12 @@ export default function DoctorCard({ doctor, onPress, navigation }) {
           </View>
         </View>
         <View style={styles.doctorStats}>
-          <View style={styles.ratingContainer}>
-            <Ionicons name="star" size={16} color="#FFD700" />
-            <Text style={styles.ratingText}>{doctor.rating}</Text>
-          </View>
+          {doctor.rating !== null && doctor.rating !== undefined && (
+            <View style={styles.ratingContainer}>
+              <Ionicons name="star" size={16} color="#FFD700" />
+              <Text style={styles.ratingText}>{doctor.rating}</Text>
+            </View>
+          )}
           <Text style={styles.experienceText}>{doctor.experience}</Text>
           <Text style={styles.priceText}>{doctor.price}</Text>
           {/* Book Now Button */}

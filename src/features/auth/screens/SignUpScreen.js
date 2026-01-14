@@ -251,7 +251,7 @@ export default function SignUpScreen({ navigation }) {
       if (error.isNetworkError) {
         showError("Network error. Please check your connection.");
       } else {
-        showError(error.message || "Failed to send OTP. Please try again.");
+        showError("Unable to send verification code. Please try again.");
       }
     } finally {
       setIsLoading(false);
@@ -313,7 +313,7 @@ export default function SignUpScreen({ navigation }) {
       } else if (error.isNetworkError) {
         showError("Network error. Please check your connection.");
       } else {
-        showError(error.message || "Google sign up failed. Please try again.");
+        showError("Unable to sign up with Google. Please try again.");
       }
     } finally {
       setIsLoading(false);

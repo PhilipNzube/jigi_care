@@ -46,10 +46,14 @@ export default function UpcomingAppointmentsList({ navigation, refreshKey }) {
           doctor: {
             name: appointment.fullName || "Dr. Unknown",
             specialty: appointment.speciality || "General Practitioner",
-            rating: 4.5, // Default rating since not in API
-            consultantId: appointment.consultantId, // May not be available in new API
+            rating: appointment.rating !== null && appointment.rating !== undefined 
+              ? parseFloat(appointment.rating) 
+              : null,
+            consultantId: appointment.consultantId,
+            bookingId: appointment.bookingId,
           },
           appointmentData: appointment,
+          bookingId: appointment.bookingId,
         };
       });
 
@@ -77,7 +81,10 @@ export default function UpcomingAppointmentsList({ navigation, refreshKey }) {
     // After 3 seconds, hide connecting modal and navigate to ChatPage
     setTimeout(() => {
       setShowConnectingModal(false);
-      navigation.navigate("ChatPage", { doctor: appointment.doctor });
+      navigation.navigate("ChatPage", { 
+        doctor: appointment.doctor,
+        bookingId: appointment.bookingId,
+      });
     }, 3000);
   };
 
@@ -139,12 +146,14 @@ export default function UpcomingAppointmentsList({ navigation, refreshKey }) {
                   {appointment.doctor.specialty}
                 </Text>
               </View>
-              <View style={styles.ratingContainer}>
-                <Ionicons name="star" size={16} color="#FFD700" />
-                <Text style={styles.ratingText}>
-                  {appointment.doctor.rating}
-                </Text>
-              </View>
+              {appointment.doctor.rating !== null && appointment.doctor.rating !== undefined && (
+                <View style={styles.ratingContainer}>
+                  <Ionicons name="star" size={16} color="#FFD700" />
+                  <Text style={styles.ratingText}>
+                    {appointment.doctor.rating}
+                  </Text>
+                </View>
+              )}
             </View>
           </TouchableOpacity>
         ))}

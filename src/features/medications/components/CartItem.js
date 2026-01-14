@@ -59,7 +59,7 @@ export default function CartItem({ item, onQuantityChange, onItemDeleted }) {
         }
       } catch (error) {
         console.error("❌ [CART ITEM] Error updating quantity:", error);
-        showError("Failed to update quantity");
+        showError("Unable to update quantity. Please try again.");
         // Revert to previous quantity on error
         setQuantity(pendingQuantityRef.current);
       }
@@ -105,7 +105,7 @@ export default function CartItem({ item, onQuantityChange, onItemDeleted }) {
         }
       } catch (error) {
         console.error("❌ [CART ITEM] Error deleting item:", error);
-        showError("Failed to delete item");
+        showError("Unable to remove item. Please try again.");
         // Reset animation on error
         slideAnim.setValue(0);
         opacityAnim.setValue(1);

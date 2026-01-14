@@ -200,7 +200,7 @@ export default function BookLabTestScreen({ navigation, route }) {
       });
     } catch (error) {
       console.error("❌ [BOOK LAB TEST] Error:", error);
-      showError(error.message || "Failed to book test. Please try again.");
+      showError("Unable to book test. Please check your connection and try again.");
     } finally {
       setIsLoading(false);
     }

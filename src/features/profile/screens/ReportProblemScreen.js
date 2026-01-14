@@ -49,7 +49,7 @@ export default function ReportProblemScreen({ navigation }) {
       showSuccess("Problem reported successfully. We'll get back to you soon!");
       navigation.goBack();
     } catch (error) {
-      showError("Failed to submit report. Please try again.");
+      showError("Unable to submit report. Please check your connection and try again.");
     } finally {
       setIsSubmitting(false);
     }

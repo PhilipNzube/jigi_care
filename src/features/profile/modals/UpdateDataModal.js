@@ -100,7 +100,7 @@ export default function UpdateDataModal({ visible, onClose, field }) {
       onClose();
     } catch (err) {
       console.error(`❌ [UPDATE ${field?.toUpperCase()}] Error updating ${field}:`, err);
-      showError(err.message || `Failed to update ${field}. Please try again.`);
+      showError(`Unable to update ${field === "weight" ? "weight" : field === "height" ? "height" : "blood type"}. Please try again.`);
     } finally {
       setIsLoading(false);
     }

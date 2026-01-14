@@ -13,9 +13,9 @@ export default function DoctorProfileHeader({
         <Ionicons name="chevron-back" size={24} color={Colors.white} />
       </TouchableOpacity>
       <Text style={styles.title}>{title}</Text>
-      <TouchableOpacity style={styles.favoriteButton}>
+      {/* <TouchableOpacity style={styles.favoriteButton}>
         <Ionicons name="heart-outline" size={24} color={Colors.white} />
-      </TouchableOpacity>
+      </TouchableOpacity> */}
     </View>
   );
 }

@@ -66,7 +66,7 @@ export default function WeightBottomSheet({ visible, onClose, onSave, editingDat
         onClose();
       }
     } catch (error) {
-      showError(error.message || "Failed to update weight");
+      showError("Unable to save weight reading. Please try again.");
     } finally {
       setIsLoading(false);
     }

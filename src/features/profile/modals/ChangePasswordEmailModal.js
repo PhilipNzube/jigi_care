@@ -36,7 +36,7 @@ export default function ChangePasswordEmailModal({ visible, onClose, onVerify })
       if (error.isNetworkError) {
         showError("Network error. Please check your connection.");
       } else {
-        showError(error.message || "Failed to send OTP. Please try again.");
+        showError("Unable to send verification code. Please try again.");
       }
     } finally {
       setIsLoading(false);

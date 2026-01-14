@@ -12,7 +12,11 @@ import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
 import MedicationCard from "./MedicationCard";
 import RequestMedicationModal from "../modals/RequestMedicationModal";
-import { searchMedications, addItemToCart, getCart } from "../services/medicationService";
+import {
+  searchMedications,
+  addItemToCart,
+  getCart,
+} from "../services/medicationService";
 import ShimmerLoader from "../../../shared/components/ShimmerLoader";
 import EmptyState from "../../../shared/components/EmptyState";
 import { showError, showSuccess } from "../../../shared/utils/toast";
@@ -89,7 +93,8 @@ export default function OrderTab({ navigation }) {
   const fetchCartCount = useCallback(async () => {
     try {
       const cartData = await getCart();
-      const count = cartData.items?.reduce((sum, item) => sum + item.quantity, 0) || 0;
+      const count =
+        cartData.items?.reduce((sum, item) => sum + item.quantity, 0) || 0;
       setCartItemCount(count);
     } catch (error) {
       console.error("❌ [ORDER TAB] Error fetching cart count:", error);
@@ -140,7 +145,7 @@ export default function OrderTab({ navigation }) {
       fetchCartCount();
     } catch (error) {
       console.error("❌ [ORDER TAB] Error adding to cart:", error);
-      showError("Failed to add to cart");
+      showError("Unable to add item to cart. Please try again.");
     } finally {
       // Remove loading state
       setLoadingMedications((prev) => {
@@ -354,12 +359,15 @@ export default function OrderTab({ navigation }) {
         ) : (
           <>
             {medications.map((medication) => {
-              const medicationId = medication.id || medication.medicationData?.id;
+              const medicationId =
+                medication.id || medication.medicationData?.id;
               return (
                 <MedicationCard
                   key={medication.id}
                   medication={mapMedicationToCard(medication)}
-                  onAddToCart={() => handleAddToCart(medication.medicationData || medication)}
+                  onAddToCart={() =>
+                    handleAddToCart(medication.medicationData || medication)
+                  }
                   isLoading={loadingMedications.has(medicationId)}
                 />
               );

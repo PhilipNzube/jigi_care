@@ -99,7 +99,7 @@ export default function ProfilePictureSection() {
       showSuccess("Profile picture updated successfully!");
     } catch (error) {
       console.error("❌ [PROFILE PICTURE] Error updating profile picture:", error);
-      showError(error.message || "Failed to update profile picture. Please try again.");
+      showError("Unable to update profile picture. Please check your connection and try again.");
     } finally {
       setIsUploading(false);
     }

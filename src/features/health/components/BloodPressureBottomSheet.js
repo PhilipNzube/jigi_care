@@ -75,7 +75,7 @@ export default function BloodPressureBottomSheet({
         onClose();
       }
     } catch (error) {
-      showError(error.message || "Failed to update blood pressure");
+      showError("Unable to save blood pressure reading. Please try again.");
     } finally {
       setIsLoading(false);
     }

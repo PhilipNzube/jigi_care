@@ -135,7 +135,7 @@ export default function HomeScreen({ navigation, route }) {
       >
         <HeroSection insets={insets} navigation={navigation} />
         <QuickActionsGrid navigation={navigation} />
-        <HealthTipsCarousel />
+        <HealthTipsCarousel navigation={navigation} />
         <UpcomingAppointmentsList
           navigation={navigation}
           refreshKey={refreshKeyRef.current}

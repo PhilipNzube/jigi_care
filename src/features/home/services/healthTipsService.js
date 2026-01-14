@@ -30,7 +30,31 @@ export const getHealthTips = async () => {
   }
 };
 
+/**
+ * Get health tip by ID
+ * @param {string} id - Health tip ID
+ * @returns {Promise<object>} - Health tip details
+ */
+export const getHealthTipById = async (id) => {
+  try {
+    console.log("💡 [HEALTH TIPS SERVICE] Fetching health tip:", id);
+    const response = await get(`/health-tips/${id}`);
+    
+    if (response && response.success && response.data) {
+      console.log("✅ [HEALTH TIPS SERVICE] Fetched health tip");
+      return response.data;
+    }
+    
+    console.warn("⚠️ [HEALTH TIPS SERVICE] Unexpected response format:", response);
+    return null;
+  } catch (error) {
+    console.error("❌ [HEALTH TIPS SERVICE] Error fetching health tip:", error);
+    throw error;
+  }
+};
+
 export default {
   getHealthTips,
+  getHealthTipById,
 };
 

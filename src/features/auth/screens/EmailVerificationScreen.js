@@ -85,7 +85,7 @@ export default function EmailVerificationScreen({ navigation, route }) {
       if (error.isNetworkError) {
         showError("Network error. Please check your connection.");
       } else {
-        showError(error.message || "Failed to send OTP. Please try again.");
+        showError("Unable to send verification code. Please try again.");
       }
     }
   };
@@ -195,7 +195,7 @@ export default function EmailVerificationScreen({ navigation, route }) {
         } else if (error.isNetworkError) {
           showError("Network error. Please check your connection.");
         } else {
-          showError(error.message || "Failed to verify OTP. Please try again.");
+          showError("Unable to verify code. Please check and try again.");
         }
       }
     } finally {
@@ -222,7 +222,7 @@ export default function EmailVerificationScreen({ navigation, route }) {
         if (error.isNetworkError) {
           showError("Network error. Please check your connection.");
         } else {
-          showError(error.message || "Failed to resend OTP. Please try again.");
+          showError("Unable to resend verification code. Please try again.");
         }
       }
     } else {

@@ -26,7 +26,6 @@ import {
   startTyping,
   stopTyping,
   getConversations,
-  createConversation,
   getMessages,
   sendMessage,
   markMessagesAsReadViaSocket,
@@ -165,33 +164,24 @@ export default function ChatPage({ navigation, route }) {
   const fetchConversations = async () => {
     try {
       setIsLoading(true);
-      console.log("💬 [CHAT PAGE] Fetching conversations...");
+      console.log("💬 [CHAT PAGE] Getting or creating conversation...");
 
-      // Try to get existing conversations
-      let conversations = await getConversations(consultantId, patientId);
-      conversations = Array.isArray(conversations) ? conversations : [];
+      // Use POST endpoint to get or create conversation
+      const conversation = await getConversations(
+        consultantId,
+        patientId,
+        bookingId
+      );
 
       let currentConversationId = null;
 
-      if (conversations.length > 0) {
-        // Use existing conversation
-        currentConversationId = conversations[0].id;
+      if (conversation && conversation.id) {
+        // Use the conversation returned from POST endpoint
+        currentConversationId = conversation.id;
         setConversationId(currentConversationId);
       } else {
-        // Create new conversation if bookingId is available
-        if (bookingId) {
-          console.log("📝 [CHAT PAGE] Creating new conversation...");
-          const newConversation = await createConversation(
-            consultantId,
-            patientId,
-            bookingId
-          );
-          currentConversationId = newConversation.id;
-          setConversationId(currentConversationId);
-        } else {
-          // No conversation and no bookingId - will be created on first message
-          setConversationId(null);
-        }
+        console.log("ℹ️ [CHAT PAGE] No conversation found");
+        setConversationId(null);
       }
 
       // Fetch messages if conversation exists
@@ -242,7 +232,9 @@ export default function ChatPage({ navigation, route }) {
       }
     } catch (error) {
       console.error("❌ [CHAT PAGE] Error fetching conversations:", error);
-      showError(error.message || "Failed to load messages");
+      showError(
+        "Unable to load messages. Please check your connection and try again."
+      );
       setMessages([]);
     } finally {
       setIsLoading(false);
@@ -363,7 +355,7 @@ export default function ChatPage({ navigation, route }) {
     }
 
     if (!consultantId || !patientId) {
-      showError("Unable to send message. Missing user information.");
+      showError("Unable to send message. Please try again later.");
       return;
     }
 
@@ -438,7 +430,9 @@ export default function ChatPage({ navigation, route }) {
       console.log("✅ [CHAT PAGE] Message sent successfully");
     } catch (error) {
       console.error("❌ [CHAT PAGE] Error sending message:", error);
-      showError(error.message || "Failed to send message");
+      showError(
+        "Unable to send message. Please check your connection and try again."
+      );
 
       // Remove temp message on error
       setMessages((prev) => prev.filter((msg) => msg.id !== tempMessageId));

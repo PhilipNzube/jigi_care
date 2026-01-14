@@ -348,7 +348,7 @@ export default function SearchMedicationScreen({ navigation, route }) {
                       showSuccess("Added to cart");
                     } catch (error) {
                       console.error("❌ [SEARCH MEDICATION] Error adding to cart:", error);
-                      showError("Failed to add to cart");
+                      showError("Unable to add item to cart. Please try again.");
                     } finally {
                       // Remove loading state
                       setLoadingMedications((prev) => {

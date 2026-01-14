@@ -16,7 +16,7 @@ import ShimmerLoader from "../../../shared/components/ShimmerLoader";
 
 const { width } = Dimensions.get("window");
 
-export default function HealthTipsCarousel() {
+export default function HealthTipsCarousel({ navigation }) {
   const [healthTips, setHealthTips] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -28,7 +28,7 @@ export default function HealthTipsCarousel() {
     try {
       setIsLoading(true);
       const tips = await getHealthTips();
-      
+
       // Map API data to UI format
       const mappedTips = tips.map((tip) => ({
         id: tip.id,
@@ -37,11 +37,15 @@ export default function HealthTipsCarousel() {
         readTime: tip.minutesToRead ? `${tip.minutesToRead} mins read` : "N/A",
         category: tip.category || "Health",
         image: tip.img || null,
+        minutesToRead: tip.minutesToRead, // Pass through for detail screen
       }));
-      
+
       setHealthTips(mappedTips);
     } catch (error) {
-      console.error("❌ [HEALTH TIPS CAROUSEL] Error fetching health tips:", error);
+      console.error(
+        "❌ [HEALTH TIPS CAROUSEL] Error fetching health tips:",
+        error
+      );
       setHealthTips([]);
     } finally {
       setIsLoading(false);
@@ -91,9 +95,23 @@ export default function HealthTipsCarousel() {
         style={styles.healthTipsScroll}
       >
         {healthTips.map((tip) => (
-          <TouchableOpacity key={tip.id} style={styles.healthTipCard}>
+          <TouchableOpacity
+            key={tip.id}
+            style={styles.healthTipCard}
+            onPress={() => {
+              if (navigation) {
+                navigation.navigate("HealthTipDetail", {
+                  tipId: tip.id,
+                  tipData: tip,
+                });
+              }
+            }}
+          >
             {tip.image ? (
-              <Image source={{ uri: tip.image }} style={styles.healthTipImage} />
+              <Image
+                source={{ uri: tip.image }}
+                style={styles.healthTipImage}
+              />
             ) : (
               <View style={styles.healthTipImagePlaceholder}>
                 <Ionicons

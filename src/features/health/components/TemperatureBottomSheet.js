@@ -65,7 +65,7 @@ export default function TemperatureBottomSheet({ visible, onClose, onSave, editi
         onClose();
       }
     } catch (error) {
-      showError(error.message || "Failed to update temperature");
+      showError("Unable to save temperature reading. Please try again.");
     } finally {
       setIsLoading(false);
     }

@@ -189,7 +189,7 @@ export default function LoginScreen({ navigation }) {
       } else if (error.isNetworkError) {
         showError("Network error. Please check your connection.");
       } else {
-        showError(error.message || "An error occurred. Please try again.");
+        showError("Unable to sign in. Please check your credentials and try again.");
       }
     } finally {
       setIsLoading(false);
@@ -251,7 +251,7 @@ export default function LoginScreen({ navigation }) {
       } else if (error.isNetworkError) {
         showError("Network error. Please check your connection.");
       } else {
-        showError(error.message || "Google sign in failed. Please try again.");
+        showError("Unable to sign in with Google. Please try again.");
       }
     } finally {
       setIsLoading(false);

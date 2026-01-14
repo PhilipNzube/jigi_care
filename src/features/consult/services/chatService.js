@@ -280,41 +280,46 @@ export const markMessagesAsReadViaSocket = (conversationId, messageIds) => {
 // ==================== REST API ENDPOINTS ====================
 
 /**
- * Get conversations for a user
- * @param {string} consultantId - Consultant ID (optional)
- * @param {string} patientId - Patient ID (optional)
- * @returns {Promise<Array>} - Array of conversations
+ * Get or create conversation (POST endpoint)
+ * @param {string} consultantId - Consultant ID
+ * @param {string} patientId - Patient ID
+ * @param {string} bookingId - Booking ID (optional)
+ * @returns {Promise<object>} - Conversation data
  */
-export const getConversations = async (consultantId, patientId) => {
-  console.log("💬 [CHAT SERVICE] Fetching conversations...");
+export const getConversations = async (
+  consultantId,
+  patientId,
+  bookingId = null
+) => {
+  console.log("💬 [CHAT SERVICE] Getting or creating conversation...");
   console.log("💬 [CHAT SERVICE] Consultant ID:", consultantId);
   console.log("💬 [CHAT SERVICE] Patient ID:", patientId);
+  console.log("💬 [CHAT SERVICE] Booking ID:", bookingId);
 
   try {
-    let endpoint = "/chat/conversations";
-    const params = [];
+    const body = {
+      consultantId,
+      patientId,
+    };
 
-    if (consultantId) {
-      params.push(`consultantId=${consultantId}`);
-    }
-    if (patientId) {
-      params.push(`patientId=${patientId}`);
-    }
-
-    if (params.length > 0) {
-      endpoint += `?${params.join("&")}`;
+    // Add bookingId if provided
+    if (bookingId) {
+      body.bookingId = bookingId;
     }
 
-    const response = await get(endpoint);
+    const response = await post("/chat/conversations", body);
     console.log(
-      "✅ [CHAT SERVICE] Conversations fetched successfully:",
+      "✅ [CHAT SERVICE] Conversation retrieved/created successfully:",
       JSON.stringify(response, null, 2)
     );
 
-    // Handle array response directly
-    return Array.isArray(response) ? response : response.data || [];
+    // Return the conversation object (single conversation, not array)
+    return response;
   } catch (error) {
-    console.error("❌ [CHAT SERVICE] Error fetching conversations:", error);
+    console.error(
+      "❌ [CHAT SERVICE] Error getting/creating conversation:",
+      error
+    );
     throw error;
   }
 };

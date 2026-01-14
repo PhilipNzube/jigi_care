@@ -144,7 +144,7 @@ export default function CreateNewPasswordScreen({ navigation, route }) {
         } else if (error.isNetworkError) {
           showError("Network error. Please check your connection.");
         } else {
-          showError(error.message || "Failed to reset password. Please try again.");
+          showError("Unable to reset password. Please try again.");
         }
       } finally {
         setIsLoading(false);

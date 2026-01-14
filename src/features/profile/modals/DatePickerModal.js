@@ -64,7 +64,7 @@ export default function DatePickerModal({ visible, onClose }) {
       onClose();
     } catch (err) {
       console.error("❌ [UPDATE DATE] Error updating date of birth:", err);
-      showError(err.message || "Failed to update date of birth. Please try again.");
+      showError("Unable to update date of birth. Please try again.");
     } finally {
       setIsLoading(false);
     }

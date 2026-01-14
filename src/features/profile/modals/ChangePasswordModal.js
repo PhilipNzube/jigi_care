@@ -168,9 +168,7 @@ export default function ChangePasswordModal({ visible, onClose, otp, email }) {
       } else if (error.isNetworkError) {
         showError("Network error. Please check your connection.");
       } else {
-        showError(
-          error.message || "Failed to change password. Please try again."
-        );
+        showError("Unable to change password. Please try again.");
       }
     } finally {
       setIsLoading(false);

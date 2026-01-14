@@ -46,7 +46,7 @@ export default function UpdateNameModal({ visible, onClose }) {
       onClose();
     } catch (err) {
       console.error("❌ [UPDATE NAME] Error updating name:", err);
-      showError(err.message || "Failed to update name. Please try again.");
+      showError("Unable to update name. Please try again.");
     } finally {
       setIsLoading(false);
     }

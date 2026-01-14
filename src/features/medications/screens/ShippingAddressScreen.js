@@ -79,7 +79,7 @@ export default function ShippingAddressScreen({ navigation, route }) {
       });
     } catch (error) {
       console.error("❌ [SHIPPING ADDRESS] Error initializing payment:", error);
-      showError(error.message || "Failed to initialize payment. Please try again.");
+      showError("Unable to process payment. Please check your connection and try again.");
     } finally {
       setIsLoading(false);
     }

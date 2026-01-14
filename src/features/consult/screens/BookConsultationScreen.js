@@ -204,7 +204,7 @@ export default function BookConsultationScreen({ navigation, route }) {
       } catch (error) {
         console.error("❌ [BOOK CONSULTATION] Error fetching slots:", error);
         setAvailableSlots([]);
-        showError("Failed to load available time slots");
+        showError("Unable to load available time slots. Please try again.");
       } finally {
         setIsLoadingSlots(false);
       }
@@ -337,7 +337,7 @@ export default function BookConsultationScreen({ navigation, route }) {
         const errorMessage =
           error.data?.message ||
           error.message ||
-          "Failed to create booking. Please try again.";
+          "Unable to book consultation. Please try again.";
         showError(errorMessage);
       }
     } finally {

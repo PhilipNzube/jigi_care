@@ -107,7 +107,7 @@ export default function ProfileScreen({ navigation, route }) {
     } catch (error) {
       console.error("❌ [PROFILE SCREEN] Error during logout:", error);
       // Show error to user
-      showError(error.message || "Logout failed. Please try again.");
+      showError("Unable to sign out. Please try again.");
       // Do NOT navigate to login if logout API call failed
       // User remains logged in
     } finally {

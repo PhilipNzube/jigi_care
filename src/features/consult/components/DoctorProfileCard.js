@@ -14,7 +14,9 @@ export default function DoctorProfileCard({ doctor }) {
     doctor.consultantData?.speciality ||
     "General Practitioner";
   const languages = doctor.languages || "English";
-  const rating = doctor.rating || 4.5;
+  const rating = doctor.rating !== null && doctor.rating !== undefined
+    ? parseFloat(doctor.rating)
+    : null;
   const experience = doctor.experience || "Experienced";
   const price = doctor.price || "Contact for pricing";
 
@@ -44,10 +46,12 @@ export default function DoctorProfileCard({ doctor }) {
         </View>
 
         <View style={styles.doctorStats}>
-          <View style={styles.ratingContainer}>
-            <Ionicons name="star" size={16} color="#FFD700" />
-            <Text style={styles.ratingText}>{rating}</Text>
-          </View>
+          {rating !== null && rating !== undefined && (
+            <View style={styles.ratingContainer}>
+              <Ionicons name="star" size={16} color="#FFD700" />
+              <Text style={styles.ratingText}>{rating}</Text>
+            </View>
+          )}
           <Text style={styles.experienceText}>{experience}</Text>
           <Text style={styles.priceText}>{price}</Text>
         </View>

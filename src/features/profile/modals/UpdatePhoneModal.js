@@ -67,7 +67,7 @@ export default function UpdatePhoneModal({ visible, onClose }) {
       onClose();
     } catch (err) {
       console.error("❌ [UPDATE PHONE] Error updating phone:", err);
-      showError(err.message || "Failed to update phone. Please try again.");
+      showError("Unable to update phone number. Please try again.");
     } finally {
       setIsLoading(false);
     }

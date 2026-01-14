@@ -65,7 +65,7 @@ export default function HeartRateBottomSheet({ visible, onClose, onSave, editing
         onClose();
       }
     } catch (error) {
-      showError(error.message || "Failed to update heart rate");
+      showError("Unable to save heart rate reading. Please try again.");
     } finally {
       setIsLoading(false);
     }

@@ -57,7 +57,7 @@ export default function GenderModal({ visible, onClose }) {
       onClose();
     } catch (err) {
       console.error("❌ [UPDATE GENDER] Error updating gender:", err);
-      showError(err.message || "Failed to update gender. Please try again.");
+      showError("Unable to update gender. Please try again.");
     } finally {
       setIsLoading(false);
     }

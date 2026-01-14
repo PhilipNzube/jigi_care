@@ -165,7 +165,7 @@ export default function CartScreen({ navigation }) {
           itemAnimationsRef.current = {};
         } catch (error) {
           console.error("❌ [CART SCREEN] Error clearing cart:", error);
-          showError("Failed to clear cart");
+          showError("Unable to clear cart. Please try again.");
         }
       });
     } catch (error) {

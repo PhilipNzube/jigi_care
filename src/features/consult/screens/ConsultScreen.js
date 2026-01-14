@@ -17,7 +17,7 @@ import ConsultationsHeader from "../components/ConsultationsHeader";
 import SearchBar from "../components/SearchBar";
 import SpecialtySection from "../components/SpecialtySection";
 import AvailableDoctorsSection from "../components/AvailableDoctorsSection";
-import EmergencySection from "../components/EmergencySection";
+// import EmergencySection from "../components/EmergencySection";
 
 export default function ConsultScreen({ navigation, route }) {
   const [doctors, setDoctors] = useState([]);
@@ -67,7 +67,9 @@ export default function ConsultScreen({ navigation, route }) {
           name: consultant.fullName || consultant.name || "Dr. Unknown",
       specialty:
         consultant.speciality || consultant.specialty || "General Practitioner",
-      rating: consultant.rating || 4.5, // Dummy rating since not in API
+      rating: consultant.rating !== null && consultant.rating !== undefined
+        ? parseFloat(consultant.rating)
+        : null,
           experience: consultant.yrsOfExperience 
             ? `${consultant.yrsOfExperience}+ years experience`
             : "Experienced",
@@ -187,11 +189,11 @@ export default function ConsultScreen({ navigation, route }) {
       </ScrollView>
 
       {/* Emergency Section - Sticky to bottom */}
-      <View
+      {/* <View
         style={[styles.emergencyContainer, { paddingBottom: insets.bottom }]}
       >
         <EmergencySection />
-      </View>
+      </View> */}
     </View>
   );
 }
@@ -205,12 +207,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 100, // Space for emergency section
+    // paddingBottom: 100, // Space for emergency section
   },
   headerContainer: {
     backgroundColor: "#F5F5F5",
   },
-  emergencyContainer: {
-    backgroundColor: "#F5F5F5",
-  },
+  // emergencyContainer: {
+  //   backgroundColor: "#F5F5F5",
+  // },
 });

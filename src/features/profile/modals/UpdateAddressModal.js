@@ -60,7 +60,7 @@ export default function UpdateAddressModal({ visible, onClose }) {
       onClose();
     } catch (err) {
       console.error("❌ [UPDATE ADDRESS] Error updating address:", err);
-      showError(err.message || "Failed to update address. Please try again.");
+      showError("Unable to update address. Please try again.");
     } finally {
       setIsLoading(false);
     }
