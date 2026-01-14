@@ -17,7 +17,20 @@ import { Colors, Sizes } from "../../../shared/constants";
 import { Images } from "../../../shared/utils/imageUtils";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { useAuth } from "../../../shared/context/AuthContext";
-import { getConversations, sendMessage } from "../services/chatService";
+import {
+  connectSocket,
+  disconnectSocket,
+  joinConversation,
+  leaveConversation,
+  sendMessageViaSocket,
+  startTyping,
+  stopTyping,
+  getConversations,
+  createConversation,
+  getMessages,
+  sendMessage,
+  markMessagesAsReadViaSocket,
+} from "../services/chatService";
 import { format, parseISO } from "date-fns";
 import { showError } from "../../../shared/utils/toast";
 import ShimmerLoader from "../../../shared/components/ShimmerLoader";
@@ -32,11 +45,15 @@ export default function ChatPage({ navigation, route }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [conversationId, setConversationId] = useState(null);
+  const [isTyping, setIsTyping] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
   const scrollViewRef = useRef(null);
+  const typingTimeoutRef = useRef(null);
 
   // Get consultantId and patientId
   const consultantId = doctor?.consultantId || doctor?.consultantData?.userId;
   const patientId = user?.id; // User ID from AuthContext
+  const bookingId = doctor?.bookingId || route.params?.bookingId; // Booking ID if available
 
   useEffect(() => {
     const keyboardDidShowListener = Keyboard.addListener(
@@ -58,6 +75,64 @@ export default function ChatPage({ navigation, route }) {
     };
   }, []);
 
+  // Initialize WebSocket connection
+  useEffect(() => {
+    if (!patientId) {
+      setIsLoading(false);
+      return;
+    }
+
+    console.log("🔌 [CHAT PAGE] Initializing WebSocket connection...");
+
+    const socket = connectSocket(patientId, "patient", {
+      onConnect: () => {
+        console.log("✅ [CHAT PAGE] WebSocket connected");
+        setIsConnected(true);
+      },
+      onDisconnect: () => {
+        console.log("❌ [CHAT PAGE] WebSocket disconnected");
+        setIsConnected(false);
+      },
+      onError: (error) => {
+        console.error("❌ [CHAT PAGE] WebSocket error:", error);
+        setIsConnected(false);
+      },
+      onNewMessage: (data) => {
+        console.log("💬 [CHAT PAGE] New message received via WebSocket:", data);
+        handleNewMessage(data);
+      },
+      onMessageSent: (data) => {
+        console.log("✅ [CHAT PAGE] Message sent confirmation:", data);
+        handleMessageSent(data);
+      },
+      onUserTyping: (data) => {
+        console.log("⌨️ [CHAT PAGE] User typing:", data);
+        // Only show typing if it's not the current user
+        if (data.userId !== patientId) {
+          setIsTyping(true);
+        }
+      },
+      onUserStoppedTyping: (data) => {
+        console.log("⌨️ [CHAT PAGE] User stopped typing:", data);
+        if (data.userId !== patientId) {
+          setIsTyping(false);
+        }
+      },
+      onMessagesRead: (data) => {
+        console.log("✅ [CHAT PAGE] Messages read:", data);
+        handleMessagesRead(data);
+      },
+    });
+
+    return () => {
+      console.log("🔌 [CHAT PAGE] Cleaning up WebSocket connection...");
+      if (conversationId) {
+        leaveConversation(conversationId);
+      }
+      disconnectSocket();
+    };
+  }, [patientId]);
+
   // Fetch conversations and messages on mount
   useEffect(() => {
     if (consultantId && patientId) {
@@ -66,6 +141,14 @@ export default function ChatPage({ navigation, route }) {
       setIsLoading(false);
     }
   }, [consultantId, patientId]);
+
+  // Join conversation room when conversationId is available
+  useEffect(() => {
+    if (conversationId && isConnected && patientId) {
+      console.log("🚪 [CHAT PAGE] Joining conversation room:", conversationId);
+      joinConversation(conversationId, patientId, "patient");
+    }
+  }, [conversationId, isConnected, patientId]);
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -83,19 +166,45 @@ export default function ChatPage({ navigation, route }) {
     try {
       setIsLoading(true);
       console.log("💬 [CHAT PAGE] Fetching conversations...");
-      const response = await getConversations(consultantId, patientId);
 
-      // Handle array response
-      const conversations = Array.isArray(response)
-        ? response
-        : response.data || [];
+      // Try to get existing conversations
+      let conversations = await getConversations(consultantId, patientId);
+      conversations = Array.isArray(conversations) ? conversations : [];
+
+      let currentConversationId = null;
 
       if (conversations.length > 0) {
-        const conversation = conversations[0]; // Get first conversation
-        setConversationId(conversation.id);
+        // Use existing conversation
+        currentConversationId = conversations[0].id;
+        setConversationId(currentConversationId);
+      } else {
+        // Create new conversation if bookingId is available
+        if (bookingId) {
+          console.log("📝 [CHAT PAGE] Creating new conversation...");
+          const newConversation = await createConversation(
+            consultantId,
+            patientId,
+            bookingId
+          );
+          currentConversationId = newConversation.id;
+          setConversationId(currentConversationId);
+        } else {
+          // No conversation and no bookingId - will be created on first message
+          setConversationId(null);
+        }
+      }
+
+      // Fetch messages if conversation exists
+      if (currentConversationId) {
+        const messagesResponse = await getMessages(
+          currentConversationId,
+          50,
+          0
+        );
+        const conversationMessages = messagesResponse.messages || [];
 
         // Map messages from API to display format
-        const mappedMessages = (conversation.messages || []).map((msg) => {
+        const mappedMessages = conversationMessages.map((msg) => {
           const messageDate = parseISO(msg.createdAt);
           const isUserMessage = msg.senderType === "patient";
 
@@ -109,7 +218,7 @@ export default function ChatPage({ navigation, route }) {
           };
         });
 
-        // Sort messages by createdAt
+        // Sort messages by createdAt (oldest first)
         mappedMessages.sort((a, b) => {
           const dateA = new Date(a.createdAt || 0);
           const dateB = new Date(b.createdAt || 0);
@@ -118,10 +227,17 @@ export default function ChatPage({ navigation, route }) {
 
         setMessages(mappedMessages);
         console.log("✅ [CHAT PAGE] Messages loaded:", mappedMessages.length);
+
+        // Mark messages as read
+        const unreadMessageIds = mappedMessages
+          .filter((msg) => msg.sender === "doctor" && msg.status !== "read")
+          .map((msg) => msg.id);
+
+        if (unreadMessageIds.length > 0) {
+          markMessagesAsReadViaSocket(currentConversationId, unreadMessageIds);
+        }
       } else {
-        // No conversation exists yet
         setMessages([]);
-        setConversationId(null);
         console.log("ℹ️ [CHAT PAGE] No conversation found");
       }
     } catch (error) {
@@ -134,10 +250,118 @@ export default function ChatPage({ navigation, route }) {
   };
 
   /**
+   * Handle new message from WebSocket
+   * Only handles messages from others (not our own messages)
+   */
+  const handleNewMessage = (data) => {
+    if (!data.message) return;
+
+    const msg = data.message;
+    const messageDate = parseISO(msg.createdAt);
+    const isUserMessage = msg.senderType === "patient";
+
+    // Ignore our own messages - they're handled by handleMessageSent
+    if (isUserMessage && msg.senderId === patientId) {
+      console.log("ℹ️ [CHAT PAGE] Ignoring own message in new_message event");
+      return;
+    }
+
+    const newMessage = {
+      id: msg.id,
+      text: msg.content,
+      sender: isUserMessage ? "user" : "doctor",
+      time: format(messageDate, "h:mm a").toLowerCase(),
+      status: msg.isRead ? "read" : "sent",
+      createdAt: msg.createdAt,
+    };
+
+    setMessages((prev) => {
+      // Check if message already exists (avoid duplicates)
+      const exists = prev.some((m) => m.id === newMessage.id);
+      if (exists) {
+        return prev;
+      }
+      return [...prev, newMessage];
+    });
+
+    // Update conversation ID if needed
+    if (data.conversation?.id && !conversationId) {
+      setConversationId(data.conversation.id);
+    }
+
+    // Mark as read if it's a doctor message
+    if (!isUserMessage && !msg.isRead) {
+      markMessagesAsReadViaSocket(data.conversation?.id || conversationId, [
+        msg.id,
+      ]);
+    }
+  };
+
+  /**
+   * Handle message sent confirmation
+   * Only handles our own messages
+   */
+  const handleMessageSent = (data) => {
+    if (!data.message) return;
+
+    const msg = data.message;
+    const messageDate = parseISO(msg.createdAt);
+
+    const realMessage = {
+      id: msg.id,
+      text: msg.content,
+      sender: "user",
+      time: format(messageDate, "h:mm a").toLowerCase(),
+      status: msg.isRead ? "read" : "sent",
+      createdAt: msg.createdAt,
+    };
+
+    setMessages((prev) => {
+      // Remove any temp messages with same content
+      const filtered = prev.filter((m) => {
+        // Remove temp messages
+        if (m.id.startsWith("temp-")) {
+          return false;
+        }
+        // Remove any existing message with same ID (avoid duplicates)
+        if (m.id === realMessage.id) {
+          return false;
+        }
+        return true;
+      });
+
+      // Add the real message
+      return [...filtered, realMessage];
+    });
+
+    // Update conversation ID if needed
+    if (data.conversation?.id && !conversationId) {
+      setConversationId(data.conversation.id);
+    }
+  };
+
+  /**
+   * Handle messages read update
+   */
+  const handleMessagesRead = (data) => {
+    if (!data.messageIds || !Array.isArray(data.messageIds)) return;
+
+    setMessages((prev) =>
+      prev.map((msg) =>
+        data.messageIds.includes(msg.id) ? { ...msg, status: "read" } : msg
+      )
+    );
+  };
+
+  /**
    * Send a message
    */
   const handleSendMessage = async () => {
-    if (!message.trim() || isSending) return;
+    // Prevent double-tap and ensure message is not empty
+    if (!message.trim() || isSending) {
+      return;
+    }
+
     if (!consultantId || !patientId) {
       showError("Unable to send message. Missing user information.");
       return;
@@ -145,10 +369,15 @@ export default function ChatPage({ navigation, route }) {
 
     const messageContent = message.trim();
     setMessage(""); // Clear input immediately for better UX
+    stopTypingIndicator(); // Stop typing indicator
+
+    // Set sending state immediately to prevent double-tap
+    setIsSending(true);
 
     // Optimistically add message to UI
+    const tempMessageId = `temp-${Date.now()}`;
     const tempMessage = {
-      id: `temp-${Date.now()}`,
+      id: tempMessageId,
       text: messageContent,
       sender: "user",
       time: format(new Date(), "h:mm a").toLowerCase(),
@@ -158,43 +387,52 @@ export default function ChatPage({ navigation, route }) {
     setMessages((prev) => [...prev, tempMessage]);
 
     try {
-      setIsSending(true);
       console.log("📤 [CHAT PAGE] Sending message...");
 
-      const response = await sendMessage({
-        consultantId,
-        patientId,
-        content: messageContent,
-        senderType: "patient",
-      });
-
-      // Update conversation ID if this is a new conversation
-      if (response.conversation?.id && !conversationId) {
-        setConversationId(response.conversation.id);
-      }
-
-      // Replace temp message with real message from API
-      if (response.message) {
-        const realMessage = {
-          id: response.message.id,
-          text: response.message.content,
-          sender: "user",
-          time: format(
-            parseISO(response.message.createdAt),
-            "h:mm a"
-          ).toLowerCase(),
-          status: response.message.isRead ? "read" : "sent",
-          createdAt: response.message.createdAt,
-        };
-
-        setMessages((prev) => {
-          // Remove temp message and add real one
-          const filtered = prev.filter((msg) => msg.id !== tempMessage.id);
-          return [...filtered, realMessage];
-        });
+      // If conversation exists, use WebSocket
+      if (conversationId && isConnected) {
+        console.log("📤 [CHAT PAGE] Sending via WebSocket");
+        sendMessageViaSocket(conversationId, messageContent, "patient");
+        // Message will be confirmed via WebSocket event (message_sent)
+        // Temp message will be replaced by handleMessageSent
       } else {
-        // If API doesn't return message, keep the temp one but mark it as sent
-        setMessages((prev) => prev);
+        // Fallback to REST API (will create conversation if needed)
+        console.log("📤 [CHAT PAGE] Sending via REST API (fallback)");
+        const response = await sendMessage({
+          consultantId,
+          patientId,
+          bookingId: bookingId || undefined,
+          content: messageContent,
+          senderType: "patient",
+        });
+
+        // Update conversation ID if this is a new conversation
+        if (response.conversation?.id && !conversationId) {
+          setConversationId(response.conversation.id);
+        }
+
+        // Replace temp message with real message from API
+        if (response.message) {
+          const realMessage = {
+            id: response.message.id,
+            text: response.message.content,
+            sender: "user",
+            time: format(
+              parseISO(response.message.createdAt),
+              "h:mm a"
+            ).toLowerCase(),
+            status: response.message.isRead ? "read" : "sent",
+            createdAt: response.message.createdAt,
+          };
+
+          setMessages((prev) => {
+            const filtered = prev.filter((msg) => msg.id !== tempMessageId);
+            return [...filtered, realMessage];
+          });
+        } else {
+          // If no message in response, remove temp message
+          setMessages((prev) => prev.filter((msg) => msg.id !== tempMessageId));
+        }
       }
 
       console.log("✅ [CHAT PAGE] Message sent successfully");
@@ -203,10 +441,45 @@ export default function ChatPage({ navigation, route }) {
       showError(error.message || "Failed to send message");
 
       // Remove temp message on error
-      setMessages((prev) => prev.filter((msg) => msg.id !== tempMessage.id));
+      setMessages((prev) => prev.filter((msg) => msg.id !== tempMessageId));
       setMessage(messageContent); // Restore message in input
     } finally {
       setIsSending(false);
+    }
+  };
+
+  /**
+   * Handle typing indicator
+   */
+  const handleTyping = (text) => {
+    setMessage(text);
+
+    if (!conversationId || !isConnected) return;
+
+    // Clear existing timeout
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    // Start typing indicator
+    startTyping(conversationId, patientId, "patient");
+
+    // Stop typing after 2 seconds of inactivity
+    typingTimeoutRef.current = setTimeout(() => {
+      stopTypingIndicator();
+    }, 2000);
+  };
+
+  /**
+   * Stop typing indicator
+   */
+  const stopTypingIndicator = () => {
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = null;
+    }
+    if (conversationId && isConnected) {
+      stopTyping(conversationId, patientId);
     }
   };
 
@@ -351,6 +624,11 @@ export default function ChatPage({ navigation, route }) {
             </View>
           ))
         )}
+        {isTyping && (
+          <View style={styles.typingIndicator}>
+            <Text style={styles.typingText}>Doctor is typing...</Text>
+          </View>
+        )}
       </ScrollView>
 
       <View
@@ -369,7 +647,7 @@ export default function ChatPage({ navigation, route }) {
           placeholder="Type a message..."
           placeholderTextColor={Colors.grey}
           value={message}
-          onChangeText={setMessage}
+          onChangeText={handleTyping}
           multiline
         />
 
@@ -582,5 +860,15 @@ const styles = StyleSheet.create({
     color: Colors.grey,
     textAlign: "center",
     paddingHorizontal: Sizes.lg,
+  },
+  typingIndicator: {
+    paddingHorizontal: Sizes.md,
+    paddingVertical: Sizes.xs,
+  },
+  typingText: {
+    fontSize: 12,
+    fontFamily: "Poppins-Regular",
+    color: Colors.grey,
+    fontStyle: "italic",
   },
 });
