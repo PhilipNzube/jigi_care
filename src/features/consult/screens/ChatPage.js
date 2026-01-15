@@ -11,6 +11,7 @@ import {
   Platform,
   Keyboard,
   ActivityIndicator,
+  Animated,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, Sizes } from "../../../shared/constants";
@@ -33,6 +34,7 @@ import {
 import { format, parseISO } from "date-fns";
 import { showError } from "../../../shared/utils/toast";
 import ShimmerLoader from "../../../shared/components/ShimmerLoader";
+import { useFocusEffect } from "@react-navigation/native";
 
 export default function ChatPage({ navigation, route }) {
   const insets = useSafeAreaInsets();
@@ -48,6 +50,8 @@ export default function ChatPage({ navigation, route }) {
   const [isConnected, setIsConnected] = useState(false);
   const scrollViewRef = useRef(null);
   const typingTimeoutRef = useRef(null);
+  const isNearBottomRef = useRef(true);
+  const shouldAutoScrollRef = useRef(true);
 
   // Get consultantId and patientId
   const consultantId = doctor?.consultantId || doctor?.consultantData?.userId;
@@ -149,14 +153,49 @@ export default function ChatPage({ navigation, route }) {
     }
   }, [conversationId, isConnected, patientId]);
 
-  // Scroll to bottom when messages change
+  // Scroll to bottom when messages change (only if user is near bottom)
   useEffect(() => {
-    if (scrollViewRef.current && messages.length > 0) {
+    if (scrollViewRef.current && messages.length > 0 && shouldAutoScrollRef.current) {
       setTimeout(() => {
         scrollViewRef.current?.scrollToEnd({ animated: true });
       }, 100);
     }
   }, [messages]);
+
+  // Handle scroll events to track if user is near bottom
+  const handleScroll = (event) => {
+    const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+    const paddingToBottom = 100; // Threshold for "near bottom"
+    const isNearBottom = 
+      contentOffset.y + layoutMeasurement.height >= contentSize.height - paddingToBottom;
+    
+    isNearBottomRef.current = isNearBottom;
+    shouldAutoScrollRef.current = isNearBottom;
+  };
+
+  // Mark messages as read when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      if (conversationId && messages.length > 0) {
+        // Get all unread doctor messages
+        const unreadMessageIds = messages
+          .filter((msg) => msg.sender === "doctor" && msg.status !== "read")
+          .map((msg) => msg.id);
+
+        if (unreadMessageIds.length > 0) {
+          console.log("📖 [CHAT PAGE] Marking messages as read on focus");
+          markMessagesAsReadViaSocket(conversationId, unreadMessageIds);
+          
+          // Update local state
+          setMessages((prev) =>
+            prev.map((msg) =>
+              unreadMessageIds.includes(msg.id) ? { ...msg, status: "read" } : msg
+            )
+          );
+        }
+      }
+    }, [conversationId, messages])
+  );
 
   /**
    * Fetch conversations and messages
@@ -273,6 +312,10 @@ export default function ChatPage({ navigation, route }) {
       if (exists) {
         return prev;
       }
+      // If it's a doctor message and user is near bottom, auto-scroll
+      if (!isUserMessage && isNearBottomRef.current) {
+        shouldAutoScrollRef.current = true;
+      }
       return [...prev, newMessage];
     });
 
@@ -321,6 +364,11 @@ export default function ChatPage({ navigation, route }) {
         }
         return true;
       });
+
+      // If user is near bottom, auto-scroll for own messages
+      if (isNearBottomRef.current) {
+        shouldAutoScrollRef.current = true;
+      }
 
       // Add the real message
       return [...filtered, realMessage];
@@ -485,6 +533,76 @@ export default function ChatPage({ navigation, route }) {
     navigation.navigate("VideoCall", { doctor });
   };
 
+  // Typing Indicator Component with Animated Dots
+  const TypingIndicator = () => {
+    const dot1 = useRef(new Animated.Value(0)).current;
+    const dot2 = useRef(new Animated.Value(0)).current;
+    const dot3 = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+      const animateDot = (dot, delay) => {
+        return Animated.loop(
+          Animated.sequence([
+            Animated.delay(delay),
+            Animated.timing(dot, {
+              toValue: 1,
+              duration: 400,
+              useNativeDriver: true,
+            }),
+            Animated.timing(dot, {
+              toValue: 0,
+              duration: 400,
+              useNativeDriver: true,
+            }),
+          ])
+        );
+      };
+
+      const animations = [
+        animateDot(dot1, 0),
+        animateDot(dot2, 200),
+        animateDot(dot3, 400),
+      ];
+
+      animations.forEach((anim) => anim.start());
+
+      return () => {
+        animations.forEach((anim) => anim.stop());
+      };
+    }, []);
+
+    const dot1Opacity = dot1.interpolate({
+      inputRange: [0, 1],
+      outputRange: [0.3, 1],
+    });
+
+    const dot2Opacity = dot2.interpolate({
+      inputRange: [0, 1],
+      outputRange: [0.3, 1],
+    });
+
+    const dot3Opacity = dot3.interpolate({
+      inputRange: [0, 1],
+      outputRange: [0.3, 1],
+    });
+
+    return (
+      <View style={styles.typingContainer}>
+        <View style={styles.typingBubble}>
+          <Animated.View
+            style={[styles.typingDot, { opacity: dot1Opacity }]}
+          />
+          <Animated.View
+            style={[styles.typingDot, { opacity: dot2Opacity }]}
+          />
+          <Animated.View
+            style={[styles.typingDot, { opacity: dot3Opacity }]}
+          />
+        </View>
+      </View>
+    );
+  };
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
@@ -535,6 +653,8 @@ export default function ChatPage({ navigation, route }) {
         style={styles.messagesContainer}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
+        onScroll={handleScroll}
+        scrollEventThrottle={400}
       >
         {isLoading ? (
           <View style={styles.loadingContainer}>
@@ -618,11 +738,7 @@ export default function ChatPage({ navigation, route }) {
             </View>
           ))
         )}
-        {isTyping && (
-          <View style={styles.typingIndicator}>
-            <Text style={styles.typingText}>Doctor is typing...</Text>
-          </View>
-        )}
+        {isTyping && <TypingIndicator />}
       </ScrollView>
 
       <View
@@ -855,14 +971,29 @@ const styles = StyleSheet.create({
     textAlign: "center",
     paddingHorizontal: Sizes.lg,
   },
-  typingIndicator: {
-    paddingHorizontal: Sizes.md,
-    paddingVertical: Sizes.xs,
+  typingContainer: {
+    marginVertical: Sizes.xs,
+    alignItems: "flex-start",
   },
-  typingText: {
-    fontSize: 12,
-    fontFamily: "Poppins-Regular",
-    color: Colors.grey,
-    fontStyle: "italic",
+  typingBubble: {
+    backgroundColor: Colors.white,
+    borderRadius: 20,
+    borderBottomLeftRadius: 5,
+    paddingHorizontal: Sizes.md,
+    paddingVertical: Sizes.sm,
+    flexDirection: "row",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  typingDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.grey,
+    marginHorizontal: 2,
   },
 });
