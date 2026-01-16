@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -8,9 +8,9 @@ import {
   Modal,
   TextInput,
   ScrollView,
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  Animated,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -22,6 +22,7 @@ import {
 import { formatDistanceToNow, parseISO } from "date-fns";
 import ShimmerLoader from "../../../shared/components/ShimmerLoader";
 import { showError, showSuccess } from "../../../shared/utils/toast";
+import { Images } from "../../../shared/utils/imageUtils";
 
 // Review Skeleton Component
 function ReviewSkeleton() {
@@ -54,67 +55,87 @@ export default function PatientsReviewSection({ doctor }) {
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewMessage, setReviewMessage] = useState("");
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const spinValue = useRef(new Animated.Value(0)).current;
 
   const consultantData = doctor?.consultantData || {};
   const consultantId = consultantData.userId || consultantData.id;
 
-  useEffect(() => {
-    const fetchReviews = async () => {
-      if (!consultantId) {
-        setIsLoading(false);
-        return;
-      }
+  const fetchReviews = async () => {
+    if (!consultantId) {
+      setIsLoading(false);
+      return;
+    }
 
-      try {
-        setIsLoading(true);
-        console.log(
-          "⭐ [REVIEWS SECTION] Fetching reviews for consultant:",
-          consultantId
-        );
-        const result = await getConsultantReviews(consultantId);
+    try {
+      setIsLoading(true);
+      console.log(
+        "⭐ [REVIEWS SECTION] Fetching reviews for consultant:",
+        consultantId
+      );
+      const result = await getConsultantReviews(consultantId);
 
-        // Map API response to review format
-        const mappedReviews = (result.data || []).map((item) => {
-          const rating = item.ratings || {};
-          const user = item.users || {};
+      // Map API response to review format
+      const mappedReviews = (result.data || []).map((item) => {
+        const rating = item.ratings || {};
+        const user = item.users || {};
 
-          // Format time ago
-          let timeAgo = "";
-          if (rating.createdAt) {
-            try {
-              const reviewDate = parseISO(rating.createdAt);
-              timeAgo = formatDistanceToNow(reviewDate, { addSuffix: true });
-            } catch (error) {
-              console.error("Error parsing date:", error);
-              timeAgo = "";
-            }
+        // Format time ago
+        let timeAgo = "";
+        if (rating.createdAt) {
+          try {
+            const reviewDate = parseISO(rating.createdAt);
+            timeAgo = formatDistanceToNow(reviewDate, { addSuffix: true });
+          } catch (error) {
+            console.error("Error parsing date:", error);
+            timeAgo = "";
           }
+        }
 
-          return {
-            id: rating.id,
-            name: user.fullName || "Anonymous",
-            rating: rating.rating || 0,
-            review: rating.message || "",
-            timeAgo: timeAgo,
-            createdAt: rating.createdAt,
-          };
-        });
+        return {
+          id: rating.id,
+          name: user.fullName || "Anonymous",
+          rating: rating.rating || 0,
+          review: rating.message || "",
+          timeAgo: timeAgo,
+          createdAt: rating.createdAt,
+        };
+      });
 
-        console.log(
-          "✅ [REVIEWS SECTION] Mapped reviews:",
-          mappedReviews.length
-        );
-        setReviews(mappedReviews);
-      } catch (error) {
-        console.error("❌ [REVIEWS SECTION] Error fetching reviews:", error);
-        setReviews([]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+      // Sort reviews by createdAt (newest first)
+      const sortedReviews = mappedReviews.sort((a, b) => {
+        if (!a.createdAt) return 1;
+        if (!b.createdAt) return -1;
+        return new Date(b.createdAt) - new Date(a.createdAt);
+      });
 
+      console.log("✅ [REVIEWS SECTION] Mapped reviews:", sortedReviews.length);
+      setReviews(sortedReviews);
+    } catch (error) {
+      console.error("❌ [REVIEWS SECTION] Error fetching reviews:", error);
+      setReviews([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchReviews();
   }, [consultantId]);
+
+  useEffect(() => {
+    if (isSubmittingReview) {
+      spinValue.setValue(0);
+      Animated.loop(
+        Animated.timing(spinValue, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+        })
+      ).start();
+    } else {
+      spinValue.stopAnimation();
+    }
+  }, [isSubmittingReview]);
 
   const handleWriteReview = () => {
     setShowReviewModal(true);
@@ -312,7 +333,22 @@ export default function PatientsReviewSection({ doctor }) {
                       disabled={!isReviewValid() || isSubmittingReview}
                     >
                       {isSubmittingReview ? (
-                        <ActivityIndicator size="small" color={Colors.white} />
+                        <Animated.Image
+                          source={Images.loader}
+                          style={[
+                            styles.loadingSpinner,
+                            {
+                              transform: [
+                                {
+                                  rotate: spinValue.interpolate({
+                                    inputRange: [0, 1],
+                                    outputRange: ["0deg", "360deg"],
+                                  }),
+                                },
+                              ],
+                            },
+                          ]}
+                        />
                       ) : (
                         <Text style={styles.submitButtonText}>
                           Submit Review
@@ -427,11 +463,6 @@ export default function PatientsReviewSection({ doctor }) {
                     </TouchableOpacity>
                   ))}
                 </View>
-                {reviewRating > 0 && (
-                  <Text style={styles.ratingText}>
-                    {reviewRating} {reviewRating === 1 ? "star" : "stars"}
-                  </Text>
-                )}
 
                 {/* Review Message */}
                 <Text style={styles.modalLabel}>Your review</Text>
@@ -472,7 +503,22 @@ export default function PatientsReviewSection({ doctor }) {
                     disabled={!isReviewValid() || isSubmittingReview}
                   >
                     {isSubmittingReview ? (
-                      <ActivityIndicator size="small" color={Colors.white} />
+                      <Animated.Image
+                        source={Images.loader}
+                        style={[
+                          styles.loadingSpinner,
+                          {
+                            transform: [
+                              {
+                                rotate: spinValue.interpolate({
+                                  inputRange: [0, 1],
+                                  outputRange: ["0deg", "360deg"],
+                                }),
+                              },
+                            ],
+                          },
+                        ]}
+                      />
                     ) : (
                       <Text style={styles.submitButtonText}>Submit Review</Text>
                     )}
@@ -736,5 +782,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: "Poppins-SemiBold",
     color: Colors.white,
+  },
+  loadingSpinner: {
+    width: 24,
+    height: 24,
   },
 });
