@@ -3,7 +3,7 @@
  * Handles consultant-related API calls
  */
 
-import { get } from "../../../shared/services/api";
+import { get, post } from "../../../shared/services/api";
 
 /**
  * Get list of all consultants
@@ -117,10 +117,55 @@ export const getConsultantReviews = async (consultantId) => {
   }
 };
 
+/**
+ * Create a rating/review for a consultant
+ * @param {string} consultantId - Consultant ID
+ * @param {number} rating - Rating value (e.g., 4.5)
+ * @param {string} message - Review message
+ * @returns {Promise<object>} - Response with rating data
+ */
+export const createRating = async (consultantId, rating, message) => {
+  console.log("⭐ [CREATE RATING] Creating rating for consultant:", consultantId);
+  console.log("⭐ [CREATE RATING] Rating:", rating);
+  console.log("⭐ [CREATE RATING] Message:", message);
+
+  if (!consultantId) {
+    throw new Error("Consultant ID is required");
+  }
+
+  if (!rating || rating < 0 || rating > 5) {
+    throw new Error("Rating must be between 0 and 5");
+  }
+
+  try {
+    const endpoint = `/rating/create`;
+    const body = {
+      consultantId,
+      rating,
+      message: message || "",
+    };
+
+    console.log("⭐ [CREATE RATING] Making POST request to:", endpoint);
+    console.log("⭐ [CREATE RATING] Request body:", JSON.stringify(body, null, 2));
+
+    const response = await post(endpoint, body);
+
+    console.log("✅ [CREATE RATING] Rating created successfully!");
+    console.log("✅ [CREATE RATING] Full response data:", JSON.stringify(response, null, 2));
+
+    return response;
+  } catch (error) {
+    console.error("❌ [CREATE RATING] Create error:", error);
+    console.error("❌ [CREATE RATING] Error details:", JSON.stringify(error, null, 2));
+    throw error;
+  }
+};
+
 export default {
   getConsultantsList,
   searchConsultants,
   getConsultantReviews,
+  createRating,
 };
 
 
