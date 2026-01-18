@@ -4,7 +4,7 @@
  */
 
 import { getToken } from "../../../shared/utils/storage";
-import { post } from "../../../shared/services/api";
+import { get } from "../../../shared/services/api";
 
 const BASE_URL = "https://jiggy-care.onrender.com/api/v1";
 
@@ -15,7 +15,7 @@ const BASE_URL = "https://jiggy-care.onrender.com/api/v1";
 export const getAllNotifications = async () => {
   try {
     console.log("🔔 [NOTIFICATION SERVICE] Fetching all notifications...");
-    const response = await post("/notification/all", {});
+    const response = await get("/notification/all");
 
     if (response && response.data && Array.isArray(response.data)) {
       console.log(
