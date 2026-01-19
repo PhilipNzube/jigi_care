@@ -9,11 +9,11 @@ export default function SettingsSection({
   onHelpSupport,
 }) {
   const settings = [
-    {
-      id: 1,
-      title: "Medical History",
-      onPress: onMedicalHistory,
-    },
+    // {
+    //   id: 1,
+    //   title: "Medical History",
+    //   onPress: onMedicalHistory,
+    // },
     {
       id: 2,
       title: "Privacy Preferences",
