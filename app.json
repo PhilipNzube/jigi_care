@@ -19,11 +19,18 @@
         {
           "iosUrlScheme": "com.googleusercontent.apps.326138021655-4tnvd4k857q8lipkcpu4k9ka73617cmg"
         }
+      ],
+      [
+        "onesignal-expo-plugin",
+        {
+          "mode": "development"
+        }
       ]
     ],
     "ios": {
       "supportsTablet": true,
-      "requireFullScreen": false
+      "requireFullScreen": false,
+      "bundleIdentifier": "com.jigicare.app"
     },
     "android": {
       "adaptiveIcon": {

@@ -8,6 +8,7 @@ import { configureGoogleSignIn } from "./src/features/auth/services/googleSignIn
 import { GOOGLE_WEB_CLIENT_ID } from "./src/shared/config/googleConfig";
 import { loadFonts } from "./src/shared/utils/fontUtils";
 import { resetToLogin } from "./src/shared/navigation/navigationRef";
+import oneSignalService from "./src/shared/services/onesignalService";
 
 // Keep the native splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
@@ -52,6 +53,13 @@ export default function App() {
         await configureGoogleSignIn(GOOGLE_WEB_CLIENT_ID);
       } catch (error) {
         console.error("Failed to configure Google Sign-In:", error);
+      }
+
+      // Initialize OneSignal
+      try {
+        await oneSignalService.initialize();
+      } catch (error) {
+        console.error("Failed to initialize OneSignal:", error);
       }
     };
 
