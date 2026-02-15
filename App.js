@@ -1,7 +1,7 @@
 import React, { useEffect } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import * as SplashScreen from "expo-splash-screen";
-import Toast from "react-native-toast-message";
+import Toast, { BaseToast } from "react-native-toast-message";
 import AppNavigator from "./src/shared/navigation/AppNavigator";
 import { AuthProvider, useAuth } from "./src/shared/context/AuthContext";
 import { configureGoogleSignIn } from "./src/features/auth/services/googleSignInService";
@@ -66,11 +66,42 @@ export default function App() {
     init();
   }, []);
 
+  // Custom toast config: show full messages (no ellipsis), allow height to grow
+  const toastConfig = {
+    success: (props) => (
+      <BaseToast
+        {...props}
+        text1NumberOfLines={0}
+        text2NumberOfLines={0}
+        style={[props.style, { minHeight: 60, height: undefined }]}
+      />
+    ),
+    error: (props) => (
+      <BaseToast
+        {...props}
+        text1NumberOfLines={0}
+        text2NumberOfLines={0}
+        style={[
+          props.style,
+          { borderLeftColor: "#F44336", minHeight: 60, height: undefined },
+        ]}
+      />
+    ),
+    info: (props) => (
+      <BaseToast
+        {...props}
+        text1NumberOfLines={0}
+        text2NumberOfLines={0}
+        style={[props.style, { minHeight: 60, height: undefined }]}
+      />
+    ),
+  };
+
   return (
     <SafeAreaProvider>
       <AuthProvider>
         <AppContent />
-        <Toast />
+        <Toast config={toastConfig} />
       </AuthProvider>
     </SafeAreaProvider>
   );

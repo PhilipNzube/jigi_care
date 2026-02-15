@@ -19,12 +19,29 @@ import EmptyState from "../../../shared/components/EmptyState";
 const STATUS_LABELS = {
   pending_confirmation: "Pending confirmation",
   upcoming: "Upcoming",
-  in_progress: "In progress",
+  in_progress: "In Progress",
   completed: "Completed",
-  no_show: "No show",
+  no_show: "No Show",
   cancelled: "Cancelled",
   disputed: "Disputed",
 };
+
+/** Badge background color by status */
+const STATUS_BADGE_COLORS = {
+  pending_confirmation: { bg: "#FFF3E0", text: "#E65100" },
+  upcoming: { bg: "#E3F2FD", text: "#1565C0" },
+  in_progress: { bg: "#E8F5E9", text: "#2E7D32" },
+  completed: { bg: "#E8F5E9", text: "#1B5E20" },
+  no_show: { bg: "#FFEBEE", text: "#C62828" },
+  cancelled: { bg: "#F5F5F5", text: "#616161" },
+  disputed: { bg: "#FFF8E1", text: "#F57F17" },
+};
+const DEFAULT_BADGE_COLOR = { bg: "#EEEEEE", text: "#424242" };
+
+const getStatusLabel = (status) =>
+  status ? STATUS_LABELS[status] || status.replace(/_/g, " ") : "";
+const getStatusBadgeStyle = (status) =>
+  STATUS_BADGE_COLORS[status] || DEFAULT_BADGE_COLOR;
 
 const SECTION_ORDER = [
   "pending_confirmation",
@@ -85,7 +102,7 @@ export default function AppointmentsScreen({ navigation }) {
     useCallback(() => {
       if (appointments.length > 0) fetchAppointments(true);
       else fetchAppointments(false);
-    }, [appointments.length, fetchAppointments])
+    }, [appointments.length, fetchAppointments]),
   );
 
   const onRefresh = useCallback(() => {
@@ -142,7 +159,8 @@ export default function AppointmentsScreen({ navigation }) {
   }
 
   const filters = ["all", ...statusesInData];
-  const filterLabel = (key) => (key === "all" ? "All" : STATUS_LABELS[key] || key);
+  const filterLabel = (key) =>
+    key === "all" ? "All" : STATUS_LABELS[key] || key;
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -157,7 +175,10 @@ export default function AppointmentsScreen({ navigation }) {
         {filters.map((key) => (
           <TouchableOpacity
             key={key}
-            style={[styles.filterChip, filter === key && styles.filterChipActive]}
+            style={[
+              styles.filterChip,
+              filter === key && styles.filterChipActive,
+            ]}
             onPress={() => setFilter(key)}
           >
             <Text
@@ -202,6 +223,7 @@ export default function AppointmentsScreen({ navigation }) {
                     "upcoming",
                     "in_progress",
                   ].includes(item.status);
+                  const badgeStyle = getStatusBadgeStyle(item.status);
                   return (
                     <TouchableOpacity
                       key={item.bookingId || item.id}
@@ -210,9 +232,32 @@ export default function AppointmentsScreen({ navigation }) {
                       activeOpacity={canOpenChat ? 0.7 : 1}
                       disabled={!canOpenChat}
                     >
-                      <Text style={styles.cardDateTime}>
-                        {format(date, "MMM d, yyyy")} • {format(date, "h:mm a")}
-                      </Text>
+                      <View style={styles.cardTopRow}>
+                        <Text style={styles.cardDateTime}>
+                          {format(date, "MMM d, yyyy")} •{" "}
+                          {format(date, "h:mm a")}
+                        </Text>
+                        {item.status ? (
+                          <View
+                            style={[
+                              styles.statusBadge,
+                              {
+                                backgroundColor: badgeStyle.bg,
+                              },
+                            ]}
+                          >
+                            <Text
+                              style={[
+                                styles.statusBadgeText,
+                                { color: badgeStyle.text },
+                              ]}
+                              numberOfLines={1}
+                            >
+                              {getStatusLabel(item.status)}
+                            </Text>
+                          </View>
+                        ) : null}
+                      </View>
                       <View style={styles.doctorInfo}>
                         <View style={styles.avatar}>
                           <Ionicons
@@ -336,11 +381,28 @@ const styles = StyleSheet.create({
   cardTop: {
     marginBottom: Sizes.sm,
   },
+  cardTopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: Sizes.sm,
+    gap: Sizes.sm,
+  },
   cardDateTime: {
+    flex: 1,
     fontSize: 14,
     fontFamily: "Poppins-Regular",
     color: Colors.textSecondary,
-    marginBottom: Sizes.sm,
+  },
+  statusBadge: {
+    paddingHorizontal: Sizes.sm,
+    paddingVertical: 4,
+    borderRadius: 12,
+    maxWidth: "50%",
+  },
+  statusBadgeText: {
+    fontSize: 12,
+    fontFamily: "Poppins-SemiBold",
   },
   doctorInfo: {
     flexDirection: "row",
