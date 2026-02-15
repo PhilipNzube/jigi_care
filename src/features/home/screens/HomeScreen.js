@@ -18,7 +18,7 @@ import { showWarning } from "../../../shared/utils/toast";
 import HeroSection from "../components/HeroSection";
 import QuickActionsGrid from "../components/QuickActionsGrid";
 import HealthTipsCarousel from "../components/HealthTipsCarousel";
-import UpcomingAppointmentsList from "../components/UpcomingAppointmentsList";
+// import UpcomingAppointmentsList from "../components/UpcomingAppointmentsList";
 import FloatingActionButton from "../components/FloatingActionButton";
 import ChatBotInterface from "../components/ChatBotInterface";
 
@@ -136,10 +136,12 @@ export default function HomeScreen({ navigation, route }) {
         <HeroSection insets={insets} navigation={navigation} />
         <QuickActionsGrid navigation={navigation} />
         <HealthTipsCarousel navigation={navigation} />
+        {/* Upcoming appointments section - commented out
         <UpcomingAppointmentsList
           navigation={navigation}
           refreshKey={refreshKeyRef.current}
         />
+        */}
       </ScrollView>
       <FloatingActionButton onPress={handleChatPress} isChatMode={isChatMode} />
 

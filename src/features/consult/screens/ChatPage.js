@@ -31,8 +31,12 @@ import {
   sendMessage,
   markMessagesAsReadViaSocket,
 } from "../services/chatService";
+import {
+  markBookingCompleted,
+  markBookingNoShow,
+} from "../services/bookingService";
 import { format, parseISO } from "date-fns";
-import { showError } from "../../../shared/utils/toast";
+import { showError, showSuccess } from "../../../shared/utils/toast";
 import ShimmerLoader from "../../../shared/components/ShimmerLoader";
 import { useFocusEffect } from "@react-navigation/native";
 
@@ -53,10 +57,14 @@ export default function ChatPage({ navigation, route }) {
   const isNearBottomRef = useRef(true);
   const shouldAutoScrollRef = useRef(true);
 
-  // Get consultantId and patientId
+  // Get consultantId, patientId, bookingId, and appointment status
   const consultantId = doctor?.consultantId || doctor?.consultantData?.userId;
-  const patientId = user?.id; // User ID from AuthContext
-  const bookingId = doctor?.bookingId || route.params?.bookingId; // Booking ID if available
+  const patientId = user?.id;
+  const bookingId = doctor?.bookingId || route.params?.bookingId;
+  const appointmentData = route.params?.appointmentData || {};
+  const bookingStatus = appointmentData?.status || route.params?.bookingStatus || "";
+  const consultantConfirmed = appointmentData?.consultantConfirmed === true;
+  const [actionLoading, setActionLoading] = useState({ complete: false, noShow: false });
 
   useEffect(() => {
     const keyboardDidShowListener = Keyboard.addListener(
@@ -271,6 +279,15 @@ export default function ChatPage({ navigation, route }) {
       }
     } catch (error) {
       console.error("❌ [CHAT PAGE] Error fetching conversations:", error);
+      const message = error?.message || "";
+      const isTooEarly =
+        message.includes("Conversation can only be started 30 minutes") ||
+        message.includes("Please wait");
+      if (isTooEarly) {
+        showError(message, "Chat not available");
+        navigation.goBack();
+        return;
+      }
       showError(
         "Unable to load messages. Please check your connection and try again."
       );
@@ -533,6 +550,41 @@ export default function ChatPage({ navigation, route }) {
     navigation.navigate("VideoCall", { doctor });
   };
 
+  const handleMarkComplete = async () => {
+    if (!bookingId || actionLoading.complete) return;
+    setActionLoading((prev) => ({ ...prev, complete: true }));
+    try {
+      await markBookingCompleted(bookingId, {
+        confirmed: true,
+        reason: "Appointment completed by patient",
+      });
+      showSuccess("Appointment marked as completed.");
+      navigation.goBack();
+    } catch (err) {
+      const msg =
+        err?.data?.message || err?.message || "Could not mark as completed.";
+      showError(msg, "Error");
+    } finally {
+      setActionLoading((prev) => ({ ...prev, complete: false }));
+    }
+  };
+
+  const handleMarkNoShow = async () => {
+    if (!bookingId || actionLoading.noShow) return;
+    setActionLoading((prev) => ({ ...prev, noShow: true }));
+    try {
+      await markBookingNoShow(bookingId);
+      showSuccess("Appointment marked as no-show.");
+      navigation.goBack();
+    } catch (err) {
+      const msg =
+        err?.data?.message || err?.message || "Could not mark as no-show.";
+      showError(msg, "Error");
+    } finally {
+      setActionLoading((prev) => ({ ...prev, noShow: false }));
+    }
+  };
+
   // Typing Indicator Component with Animated Dots
   const TypingIndicator = () => {
     const dot1 = useRef(new Animated.Value(0)).current;
@@ -647,6 +699,54 @@ export default function ChatPage({ navigation, route }) {
           </TouchableOpacity> */}
         </View>
       </View>
+
+      {bookingStatus === "pending_confirmation" && (
+        <View style={styles.pendingBanner}>
+          <Ionicons name="information-circle" size={20} color={Colors.white} />
+          <Text style={styles.pendingBannerText}>
+            Please confirm your appointment with the consultant when the session is done.
+          </Text>
+        </View>
+      )}
+
+      {bookingId && (
+        <View style={styles.appointmentActions}>
+          <TouchableOpacity
+            style={[styles.appointmentActionBtn, styles.noShowBtn]}
+            onPress={handleMarkNoShow}
+            disabled={actionLoading.noShow}
+          >
+            {actionLoading.noShow ? (
+              <ActivityIndicator size="small" color={Colors.error} />
+            ) : (
+              <>
+                <Ionicons name="close-circle-outline" size={18} color={Colors.error} />
+                <Text style={[styles.appointmentActionText, styles.noShowText]}>
+                  No show
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
+          {consultantConfirmed && (
+            <TouchableOpacity
+              style={[styles.appointmentActionBtn, styles.completeBtn]}
+              onPress={handleMarkComplete}
+              disabled={actionLoading.complete}
+            >
+              {actionLoading.complete ? (
+                <ActivityIndicator size="small" color={Colors.white} />
+              ) : (
+                <>
+                  <Ionicons name="checkmark-circle-outline" size={18} color={Colors.white} />
+                  <Text style={[styles.appointmentActionText, styles.completeText]}>
+                    Mark complete
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
 
       <ScrollView
         ref={scrollViewRef}
@@ -995,5 +1095,56 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: Colors.grey,
     marginHorizontal: 2,
+  },
+  pendingBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: Colors.warning,
+    paddingVertical: Sizes.sm,
+    paddingHorizontal: Sizes.md,
+    gap: Sizes.sm,
+  },
+  pendingBannerText: {
+    flex: 1,
+    fontSize: 13,
+    fontFamily: "Poppins-Medium",
+    color: Colors.white,
+  },
+  appointmentActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    gap: Sizes.sm,
+    paddingHorizontal: Sizes.md,
+    paddingVertical: Sizes.sm,
+    backgroundColor: "#F5F5F5",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E0E0E0",
+  },
+  appointmentActionBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: Sizes.sm,
+    paddingHorizontal: Sizes.md,
+    borderRadius: 20,
+    gap: Sizes.xs,
+  },
+  noShowBtn: {
+    backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: Colors.error,
+  },
+  completeBtn: {
+    backgroundColor: Colors.primary,
+  },
+  appointmentActionText: {
+    fontSize: 14,
+    fontFamily: "Poppins-Medium",
+  },
+  noShowText: {
+    color: Colors.error,
+  },
+  completeText: {
+    color: Colors.white,
   },
 });

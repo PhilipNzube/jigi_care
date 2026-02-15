@@ -1,12 +1,22 @@
 /**
  * Toast Utility
- * Provides easy-to-use functions for showing success and error messages
+ * Bottom-position toasts that stay longer and show full messages (Flutter-style)
  */
 
 import Toast from "react-native-toast-message";
 
+const BOTTOM_CONFIG = {
+  position: "bottom",
+  visibilityTime: 5500,
+  topOffset: 0,
+  bottomOffset: 60,
+  // Show full message without cutting off or ellipsis
+  text1NumberOfLines: 0,
+  text2NumberOfLines: 0,
+};
+
 /**
- * Show success toast
+ * Show success toast (bottom, long enough to read)
  * @param {string} message - Success message to display
  * @param {string} title - Optional title (defaults to "Success")
  */
@@ -15,14 +25,14 @@ export const showSuccess = (message, title = "Success") => {
     type: "success",
     text1: title,
     text2: message,
-    position: "top",
-    visibilityTime: 3000,
+    ...BOTTOM_CONFIG,
+    visibilityTime: 4000,
   });
 };
 
 /**
- * Show error toast
- * @param {string} message - Error message to display
+ * Show error toast (bottom, full message, catches attention)
+ * @param {string} message - Error message to display (full message shown)
  * @param {string} title - Optional title (defaults to "Error")
  */
 export const showError = (message, title = "Error") => {
@@ -30,8 +40,8 @@ export const showError = (message, title = "Error") => {
     type: "error",
     text1: title,
     text2: message,
-    position: "top",
-    visibilityTime: 4000,
+    ...BOTTOM_CONFIG,
+    visibilityTime: 6000,
   });
 };
 
@@ -45,8 +55,8 @@ export const showInfo = (message, title = "Info") => {
     type: "info",
     text1: title,
     text2: message,
-    position: "top",
-    visibilityTime: 3000,
+    ...BOTTOM_CONFIG,
+    visibilityTime: 4000,
   });
 };
 
@@ -60,8 +70,8 @@ export const showWarning = (message, title = "Warning") => {
     type: "info",
     text1: title,
     text2: message,
-    position: "bottom",
-    visibilityTime: 2000,
+    ...BOTTOM_CONFIG,
+    visibilityTime: 4000,
   });
 };
 

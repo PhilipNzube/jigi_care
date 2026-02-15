@@ -15,6 +15,7 @@ import ProfileScreen from "../../features/profile/screens/ProfileScreen";
 import DoctorProfileScreen from "../../features/consult/screens/DoctorProfileScreen";
 import BookConsultationScreen from "../../features/consult/screens/BookConsultationScreen";
 import ChatPage from "../../features/consult/screens/ChatPage";
+import AppointmentsScreen from "../../features/consult/screens/AppointmentsScreen";
 import VoiceCallPage from "../../features/consult/screens/VoiceCallPage";
 import VideoCallPage from "../../features/consult/screens/VideoCallPage";
 import ConsultationSummaryPage from "../../features/consult/screens/ConsultationSummaryPage";
@@ -93,6 +94,13 @@ function BottomTabNavigator({ navigation, route }) {
       icon: Images.consultIcon,
       activeIcon: Images.consultIconActive,
       component: ConsultScreen,
+    },
+    {
+      id: "appointments",
+      label: "Appointments",
+      icon: Images.booking,
+      activeIcon: Images.booking,
+      component: AppointmentsScreen,
     },
     {
       id: "medication",

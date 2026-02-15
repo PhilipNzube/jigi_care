@@ -3,10 +3,11 @@
  * Handles booking-related API calls
  */
 
-import { get, post } from "../../../shared/services/api";
+import { get, post, patch } from "../../../shared/services/api";
 
 /**
- * Get upcoming appointments for patient
+ * Get upcoming appointments for patient (status: upcoming)
+ * Response shape: { fullName, bookingId, speciality, date, status, consultantId, rating }
  * @returns {Promise<object>} - Response with upcoming appointments
  */
 export const getUpcomingAppointments = async () => {
@@ -16,9 +17,6 @@ export const getUpcomingAppointments = async () => {
     const response = await get("/booking/patient/upcoming");
 
     console.log("✅ [BOOKING SERVICE] Upcoming appointments fetched successfully!");
-    console.log("✅ [BOOKING SERVICE] Response:", JSON.stringify(response, null, 2));
-
-    // Handle response format - response.data contains the array
     const appointments = response.data || [];
     console.log("✅ [BOOKING SERVICE] Appointments found:", appointments.length);
 
@@ -28,6 +26,23 @@ export const getUpcomingAppointments = async () => {
     };
   } catch (error) {
     console.error("❌ [BOOKING SERVICE] Error fetching upcoming appointments:", error);
+    throw error;
+  }
+};
+
+/**
+ * Get all patient appointments (all statuses) for the Appointments screen
+ * Uses same endpoint as upcoming; backend may return all or filter by query
+ * @returns {Promise<object>} - { success, data: appointments[] }
+ */
+export const getPatientAppointments = async () => {
+  console.log("📅 [BOOKING SERVICE] Fetching patient appointments...");
+  try {
+    const response = await get("/booking/patient/upcoming");
+    const appointments = response.data || [];
+    return { success: true, data: appointments };
+  } catch (error) {
+    console.error("❌ [BOOKING SERVICE] Error fetching patient appointments:", error);
     throw error;
   }
 };
@@ -53,6 +68,47 @@ export const getAvailableSlots = async (consultantId, date) => {
     return response;
   } catch (error) {
     console.error("❌ [BOOKING SERVICE] Error fetching available slots:", error);
+    throw error;
+  }
+};
+
+/**
+ * Mark booking as completed by patient (confirm completion)
+ * @param {string} bookingId - Booking ID
+ * @param {object} body - { confirmed: boolean, reason?: string }
+ * @returns {Promise<object>}
+ */
+export const markBookingCompleted = async (bookingId, body) => {
+  console.log("📅 [BOOKING SERVICE] Marking booking completed:", bookingId);
+  try {
+    const response = await patch(
+      `/booking/${bookingId}/patient/completed`,
+      body
+    );
+    console.log("✅ [BOOKING SERVICE] Booking marked completed");
+    return response;
+  } catch (error) {
+    console.error("❌ [BOOKING SERVICE] Error marking completed:", error);
+    throw error;
+  }
+};
+
+/**
+ * Mark booking as no-show (consultant did not show up)
+ * @param {string} bookingId - Booking ID
+ * @returns {Promise<object>}
+ */
+export const markBookingNoShow = async (bookingId) => {
+  console.log("📅 [BOOKING SERVICE] Marking booking no-show:", bookingId);
+  try {
+    const response = await patch(
+      `/booking/${bookingId}/patient/mark-no-show`,
+      {}
+    );
+    console.log("✅ [BOOKING SERVICE] Booking marked no-show");
+    return response;
+  } catch (error) {
+    console.error("❌ [BOOKING SERVICE] Error marking no-show:", error);
     throw error;
   }
 };
@@ -85,7 +141,10 @@ export const createBooking = async (bookingData) => {
 
 export default {
   getUpcomingAppointments,
+  getPatientAppointments,
   getAvailableSlots,
   createBooking,
+  markBookingCompleted,
+  markBookingNoShow,
 };
 

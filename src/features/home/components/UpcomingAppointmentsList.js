@@ -36,24 +36,24 @@ export default function UpcomingAppointmentsList({ navigation, refreshKey }) {
       
       const result = await getUpcomingAppointments();
       
-      // Map API response to appointment format
-      const mappedAppointments = (result.data || []).map((appointment, index) => {
+      // Home shows only upcoming; API returns new shape with status
+      const list = (result.data || []).filter((a) => a.status === "upcoming");
+      const mappedAppointments = list.map((appointment, index) => {
         const appointmentDate = parseISO(appointment.date);
         return {
-          id: appointment.id || `appointment-${index}-${appointment.date}`,
+          id: appointment.bookingId || appointment.id || `appointment-${index}-${appointment.date}`,
           date: format(appointmentDate, "MMM d, yyyy"),
           time: format(appointmentDate, "h:mm a"),
           doctor: {
             name: appointment.fullName || "Dr. Unknown",
             specialty: appointment.speciality || "General Practitioner",
-            rating: appointment.rating !== null && appointment.rating !== undefined 
-              ? parseFloat(appointment.rating) 
-              : null,
+            rating: appointment.rating != null ? parseFloat(appointment.rating) : null,
             consultantId: appointment.consultantId,
             bookingId: appointment.bookingId,
           },
           appointmentData: appointment,
           bookingId: appointment.bookingId,
+          status: appointment.status,
         };
       });
 
@@ -81,9 +81,11 @@ export default function UpcomingAppointmentsList({ navigation, refreshKey }) {
     // After 3 seconds, hide connecting modal and navigate to ChatPage
     setTimeout(() => {
       setShowConnectingModal(false);
-      navigation.navigate("ChatPage", { 
+      navigation.navigate("ChatPage", {
         doctor: appointment.doctor,
         bookingId: appointment.bookingId,
+        appointmentData: appointment.appointmentData || { status: appointment.status },
+        bookingStatus: appointment.status,
       });
     }, 3000);
   };
