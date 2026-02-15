@@ -148,7 +148,9 @@ export default function AppointmentsScreen({ navigation }) {
   if (isLoading && appointments.length === 0) {
     return (
       <View style={[styles.container, { paddingTop: insets.top }]}>
-        <Text style={styles.pageTitle}>Appointments</Text>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Appointments</Text>
+        </View>
         <View style={styles.content}>
           <AppointmentCardSkeleton />
           <AppointmentCardSkeleton />
@@ -164,8 +166,9 @@ export default function AppointmentsScreen({ navigation }) {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <Text style={styles.pageTitle}>Appointments</Text>
-
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Appointments</Text>
+      </View>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -310,12 +313,15 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#F5F5F5",
   },
-  pageTitle: {
-    fontSize: 20,
-    fontFamily: "Poppins-SemiBold",
-    color: Colors.textPrimary,
-    marginHorizontal: Sizes.lg,
-    marginBottom: Sizes.md,
+  header: {
+    paddingHorizontal: Sizes.lg,
+    paddingVertical: Sizes.md,
+    alignItems: "center",
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontFamily: "Poppins-Bold",
+    color: Colors.black,
   },
   filtersScroll: {
     maxHeight: 44,
