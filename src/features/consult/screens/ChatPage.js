@@ -700,7 +700,7 @@ export default function ChatPage({ navigation, route }) {
         </View>
       </View>
 
-      {bookingStatus === "pending_confirmation" && (
+      {!isLoading && bookingStatus === "pending_confirmation" && (
         <View style={styles.pendingBanner}>
           <Ionicons name="information-circle" size={20} color={Colors.white} />
           <Text style={styles.pendingBannerText}>
@@ -709,7 +709,7 @@ export default function ChatPage({ navigation, route }) {
         </View>
       )}
 
-      {bookingId && (
+      {!isLoading && bookingId && (
         <View style={styles.appointmentActions}>
           <TouchableOpacity
             style={[styles.appointmentActionBtn, styles.noShowBtn]}

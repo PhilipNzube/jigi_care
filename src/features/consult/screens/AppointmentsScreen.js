@@ -169,33 +169,35 @@ export default function AppointmentsScreen({ navigation }) {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Appointments</Text>
       </View>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.filtersScroll}
-        contentContainerStyle={styles.filtersContent}
-      >
-        {filters.map((key) => (
-          <TouchableOpacity
-            key={key}
-            style={[
-              styles.filterChip,
-              filter === key && styles.filterChipActive,
-            ]}
-            onPress={() => setFilter(key)}
-          >
-            <Text
+      {appointments.length > 0 && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.filtersScroll}
+          contentContainerStyle={styles.filtersContent}
+        >
+          {filters.map((key) => (
+            <TouchableOpacity
+              key={key}
               style={[
-                styles.filterChipText,
-                filter === key && styles.filterChipTextActive,
+                styles.filterChip,
+                filter === key && styles.filterChipActive,
               ]}
-              numberOfLines={1}
+              onPress={() => setFilter(key)}
             >
-              {filterLabel(key)}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+              <Text
+                style={[
+                  styles.filterChipText,
+                  filter === key && styles.filterChipTextActive,
+                ]}
+                numberOfLines={1}
+              >
+                {filterLabel(key)}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      )}
 
       <ScrollView
         style={styles.content}
