@@ -1,48 +1,266 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, Sizes } from "../../../shared/constants";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import EndCallModal from "../components/EndCallModal";
-import { getSocket, endCall } from "../services/chatService";
+import {
+  getSocket,
+  endCall,
+} from "../services/chatService";
+import {
+  setupWebRTCConnection,
+  handleOffer,
+  handleAnswer,
+  handleIceCandidate,
+  cleanupWebRTC,
+  toggleAudioTrack,
+  toggleVideoTrack,
+} from "../services/webrtcService";
+import { Audio } from "expo-av";
+import { RTCView } from "react-native-webrtc";
 
 export default function VideoCallPage({ navigation, route }) {
   const insets = useSafeAreaInsets();
-  const { doctor, otherUserId } = route.params || {};
+  const { doctor, otherUserId, conversationId, callType, isInitiator = true } = route.params || {};
   const [showEndModal, setShowEndModal] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isSpeakerOn, setIsSpeakerOn] = useState(false);
-  const [isVideoOn, setIsVideoOn] = useState(false);
-  const [callStatus, setCallStatus] = useState("ringing"); // 'ringing' | 'connected'
+  const [isVideoOn, setIsVideoOn] = useState(true);
+  const [callStatus, setCallStatus] = useState("ringing"); // 'ringing' | 'connecting' | 'connected'
+  const [callDuration, setCallDuration] = useState(0);
+  const [localStream, setLocalStream] = useState(null);
+  const [remoteStream, setRemoteStream] = useState(null);
+
+  const peerConnectionRef = useRef(null);
+  const localStreamRef = useRef(null);
+  const ringingSoundRef = useRef(null);
+  const callTimerRef = useRef(null);
+  const webrtcSetupRef = useRef(false);
 
   useEffect(() => {
     const socket = getSocket();
-    if (!socket) return;
-    const onAccepted = () => setCallStatus("connected");
-    const onEnded = () => {
-      setShowEndModal(false);
-      navigation.goBack();
+    if (!socket || !otherUserId) return;
+
+    const setupWebRTC = async () => {
+      if (webrtcSetupRef.current) return;
+      webrtcSetupRef.current = true;
+
+      try {
+        const { peerConnection, localStream: stream } =
+          await setupWebRTCConnection({
+            otherUserId,
+            isInitiator,
+            isVideo: true,
+            onLocalStream: (stream) => {
+              setLocalStream(stream);
+              localStreamRef.current = stream;
+            },
+            onRemoteStream: (stream) => {
+              setRemoteStream(stream);
+              setCallStatus("connected");
+              stopRingingSound();
+            },
+            onConnectionStateChange: (state) => {
+              if (state === "connected") {
+                setCallStatus("connected");
+                stopRingingSound();
+              } else if (state === "disconnected" || state === "failed") {
+                handleEndCall();
+              }
+            },
+          });
+
+        peerConnectionRef.current = peerConnection;
+      } catch (error) {
+        console.error("❌ [VIDEO CALL] Error setting up WebRTC:", error);
+        webrtcSetupRef.current = false;
+      }
     };
-    socket.on("call:accepted", onAccepted);
-    socket.on("call:ended", onEnded);
-    socket.on("call:rejected", onEnded);
-    socket.on("call:no-answer", onEnded);
+
+    const initializeCall = async () => {
+      try {
+        await playRingingSound();
+
+        // If initiator, set up WebRTC immediately
+        // If recipient, wait for call:accepted
+        if (isInitiator) {
+          await setupWebRTC();
+        }
+      } catch (error) {
+        console.error("❌ [VIDEO CALL] Error initializing call:", error);
+        navigation.goBack();
+      }
+    };
+
+    const onWebRTCOffer = async (data) => {
+      if (data.fromUserId === otherUserId && peerConnectionRef.current) {
+        try {
+          await handleOffer({
+            peerConnection: peerConnectionRef.current,
+            offer: data.offer,
+            otherUserId,
+            isVideo: true,
+          });
+        } catch (error) {
+          console.error("❌ [VIDEO CALL] Error handling offer:", error);
+        }
+      }
+    };
+
+    const onWebRTCAnswer = async (data) => {
+      if (data.fromUserId === otherUserId && peerConnectionRef.current) {
+        try {
+          await handleAnswer({
+            peerConnection: peerConnectionRef.current,
+            answer: data.answer,
+          });
+        } catch (error) {
+          console.error("❌ [VIDEO CALL] Error handling answer:", error);
+        }
+      }
+    };
+
+    const onWebRTCIceCandidate = async (data) => {
+      if (data.fromUserId === otherUserId && peerConnectionRef.current) {
+        try {
+          await handleIceCandidate({
+            peerConnection: peerConnectionRef.current,
+            candidate: data.candidate,
+          });
+        } catch (error) {
+          console.error("❌ [VIDEO CALL] Error handling ICE candidate:", error);
+        }
+      }
+    };
+
+    const onCallAccepted = async () => {
+      setCallStatus("connecting");
+      stopRingingSound();
+      // If recipient, set up WebRTC now that call is accepted
+      if (!isInitiator && !webrtcSetupRef.current) {
+        await setupWebRTC();
+      }
+    };
+
+    const onCallConnected = () => {
+      setCallStatus("connected");
+      stopRingingSound();
+    };
+
+    const onCallRejected = () => {
+      stopRingingSound();
+      handleEndCall();
+    };
+
+    const onCallNoAnswer = () => {
+      stopRingingSound();
+      handleEndCall();
+    };
+
+    const onCallEnded = () => {
+      stopRingingSound();
+      handleEndCall();
+    };
+
+    const onCallStopRinging = () => {
+      stopRingingSound();
+    };
+
+    socket.on("call:accepted", onCallAccepted);
+    socket.on("call:connected", onCallConnected);
+    socket.on("call:rejected", onCallRejected);
+    socket.on("call:no-answer", onCallNoAnswer);
+    socket.on("call:ended", onCallEnded);
+    socket.on("call:stop-ringing", onCallStopRinging);
+    socket.on("webrtc:offer", onWebRTCOffer);
+    socket.on("webrtc:answer", onWebRTCAnswer);
+    socket.on("webrtc:ice-candidate", onWebRTCIceCandidate);
+
+    initializeCall();
+
     return () => {
-      socket.off("call:accepted", onAccepted);
-      socket.off("call:ended", onEnded);
-      socket.off("call:rejected", onEnded);
-      socket.off("call:no-answer", onEnded);
+      socket.off("call:accepted", onCallAccepted);
+      socket.off("call:connected", onCallConnected);
+      socket.off("call:rejected", onCallRejected);
+      socket.off("call:no-answer", onCallNoAnswer);
+      socket.off("call:ended", onCallEnded);
+      socket.off("call:stop-ringing", onCallStopRinging);
+      socket.off("webrtc:offer", onWebRTCOffer);
+      socket.off("webrtc:answer", onWebRTCAnswer);
+      socket.off("webrtc:ice-candidate", onWebRTCIceCandidate);
+      stopRingingSound();
+      cleanupWebRTC(peerConnectionRef.current, localStreamRef.current);
     };
-  }, [navigation]);
+  }, [otherUserId, navigation]);
+
+  useEffect(() => {
+    if (callStatus === "connected") {
+      callTimerRef.current = setInterval(() => {
+        setCallDuration((prev) => prev + 1);
+      }, 1000);
+    } else {
+      if (callTimerRef.current) {
+        clearInterval(callTimerRef.current);
+        callTimerRef.current = null;
+      }
+    }
+    return () => {
+      if (callTimerRef.current) {
+        clearInterval(callTimerRef.current);
+      }
+    };
+  }, [callStatus]);
+
+  const playRingingSound = async () => {
+    try {
+      await Audio.setAudioModeAsync({
+        playsInSilentModeIOS: true,
+        staysActiveInBackground: true,
+      });
+      try {
+        const { sound } = await Audio.Sound.createAsync(
+          { uri: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" },
+          { shouldPlay: true, isLooping: true, volume: 0.5 }
+        );
+        ringingSoundRef.current = sound;
+      } catch (loadError) {
+        console.warn("⚠️ [VIDEO CALL] Ringtone file not available, skipping sound");
+      }
+    } catch (error) {
+      console.warn("⚠️ [VIDEO CALL] Could not play ringing sound:", error);
+    }
+  };
+
+  const stopRingingSound = async () => {
+    try {
+      if (ringingSoundRef.current) {
+        await ringingSoundRef.current.stopAsync();
+        await ringingSoundRef.current.unloadAsync();
+        ringingSoundRef.current = null;
+      }
+    } catch (error) {
+      console.warn("⚠️ [VIDEO CALL] Error stopping ringing sound:", error);
+    }
+  };
 
   const handleEndCall = () => {
+    stopRingingSound();
+    if (otherUserId) {
+      endCall(otherUserId);
+    }
+    cleanupWebRTC(peerConnectionRef.current, localStreamRef.current);
+    setCallDuration(0);
+    navigation.goBack();
+  };
+
+  const handleEndCallPress = () => {
     setShowEndModal(true);
   };
 
   const handleConfirmEnd = () => {
     setShowEndModal(false);
-    if (otherUserId) endCall(otherUserId);
-    navigation.goBack();
+    handleEndCall();
   };
 
   const handleContinueCall = () => {
@@ -50,15 +268,29 @@ export default function VideoCallPage({ navigation, route }) {
   };
 
   const toggleMute = () => {
-    setIsMuted(!isMuted);
+    const newMuted = !isMuted;
+    setIsMuted(newMuted);
+    if (localStreamRef.current) {
+      toggleAudioTrack(localStreamRef.current, !newMuted);
+    }
+  };
+
+  const toggleVideo = () => {
+    const newVideoOn = !isVideoOn;
+    setIsVideoOn(newVideoOn);
+    if (localStreamRef.current) {
+      toggleVideoTrack(localStreamRef.current, newVideoOn);
+    }
   };
 
   const toggleSpeaker = () => {
     setIsSpeakerOn(!isSpeakerOn);
   };
 
-  const toggleVideo = () => {
-    setIsVideoOn(!isVideoOn);
+  const formatCallDuration = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
   return (
@@ -66,7 +298,7 @@ export default function VideoCallPage({ navigation, route }) {
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => navigation.goBack()}
+          onPress={handleEndCallPress}
         >
           <Ionicons name="chevron-back" size={24} color={Colors.grey} />
         </TouchableOpacity>
@@ -76,31 +308,55 @@ export default function VideoCallPage({ navigation, route }) {
             <Ionicons name="person" size={16} color={Colors.primary} />
           </View>
           <Text style={styles.doctorName}>
-            {doctor?.name || "Dr. Sarah Olukoya"}
+            {doctor?.name || "Consultant"}
           </Text>
         </View>
 
         <View style={styles.statusButton}>
           <Text style={styles.statusText}>
-            {callStatus === "connected" ? "Connected" : "Ringing..."}
+            {callStatus === "connected"
+              ? formatCallDuration(callDuration)
+              : callStatus === "connecting"
+              ? "Connecting..."
+              : "Ringing..."}
           </Text>
         </View>
       </View>
 
       <View style={styles.videoContainer}>
-        {/* Main video feed - Doctor's video */}
-        <View style={styles.mainVideo}>
-          <View style={styles.doctorVideoPlaceholder}>
-            <Ionicons name="person" size={100} color={Colors.white} />
+        {/* Remote video feed */}
+        {remoteStream ? (
+          <RTCView
+            streamURL={remoteStream.toURL()}
+            style={styles.mainVideo}
+            objectFit="cover"
+            mirror={false}
+          />
+        ) : (
+          <View style={styles.mainVideo}>
+            <View style={styles.doctorVideoPlaceholder}>
+              <Ionicons name="person" size={100} color={Colors.white} />
+            </View>
           </View>
-        </View>
+        )}
 
-        {/* Picture-in-picture - User's video */}
-        <View style={styles.userVideoContainer}>
-          <View style={styles.userVideoPlaceholder}>
-            <Ionicons name="person" size={40} color={Colors.white} />
+        {/* Local video feed - Picture-in-picture */}
+        {localStream && isVideoOn ? (
+          <View style={styles.userVideoContainer}>
+            <RTCView
+              streamURL={localStream.toURL()}
+              style={styles.userVideo}
+              objectFit="cover"
+              mirror={true}
+            />
           </View>
-        </View>
+        ) : localStream ? (
+          <View style={styles.userVideoContainer}>
+            <View style={styles.userVideoPlaceholder}>
+              <Ionicons name="person" size={40} color={Colors.white} />
+            </View>
+          </View>
+        ) : null}
       </View>
 
       <View
@@ -109,7 +365,10 @@ export default function VideoCallPage({ navigation, route }) {
           { paddingBottom: insets.bottom + Sizes.lg },
         ]}
       >
-        <TouchableOpacity style={styles.controlButton} onPress={toggleSpeaker}>
+        <TouchableOpacity
+          style={styles.controlButton}
+          onPress={toggleSpeaker}
+        >
           <Ionicons
             name={isSpeakerOn ? "volume-high" : "volume-low"}
             size={24}
@@ -130,7 +389,7 @@ export default function VideoCallPage({ navigation, route }) {
 
         <TouchableOpacity
           style={[styles.controlButton, styles.endCallButton]}
-          onPress={handleEndCall}
+          onPress={handleEndCallPress}
         >
           <Ionicons name="call" size={24} color={Colors.white} />
         </TouchableOpacity>
@@ -141,10 +400,6 @@ export default function VideoCallPage({ navigation, route }) {
             size={24}
             color={Colors.black}
           />
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.controlButton}>
-          <Ionicons name="grid" size={24} color={Colors.black} />
         </TouchableOpacity>
       </View>
 
@@ -230,6 +485,12 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     overflow: "hidden",
     backgroundColor: "#000000",
+    borderWidth: 2,
+    borderColor: Colors.white,
+  },
+  userVideo: {
+    width: "100%",
+    height: "100%",
   },
   userVideoPlaceholder: {
     width: "100%",
@@ -240,16 +501,17 @@ const styles = StyleSheet.create({
   },
   controlsContainer: {
     flexDirection: "row",
-    justifyContent: "space-around",
+    justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: Sizes.xl,
     paddingVertical: Sizes.xl,
     backgroundColor: "rgba(0, 0, 0, 0.3)",
+    gap: Sizes.lg,
   },
   controlButton: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: Colors.white,
     justifyContent: "center",
     alignItems: "center",
@@ -264,5 +526,8 @@ const styles = StyleSheet.create({
   },
   endCallButton: {
     backgroundColor: "#F44336",
+    width: 64,
+    height: 64,
+    borderRadius: 32,
   },
 });

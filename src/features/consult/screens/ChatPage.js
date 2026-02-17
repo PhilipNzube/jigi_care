@@ -212,8 +212,62 @@ export default function ChatPage({ navigation, route }) {
   };
 
   // Mark messages as read when screen comes into focus
+  /**
+   * Silently refresh messages (no loading shimmer)
+   */
+  const refreshMessagesSilently = async () => {
+    if (!conversationId) return;
+    try {
+      const messagesResponse = await getMessages(conversationId, 50, 0);
+      const conversationMessages = messagesResponse.messages || [];
+
+      const mappedMessages = conversationMessages.map((msg) => {
+        const messageDate = parseISO(msg.createdAt);
+        const isUserMessage = msg.senderType === "patient";
+
+        return {
+          id: msg.id,
+          text: msg.content,
+          sender: isUserMessage ? "user" : "doctor",
+          time: format(messageDate, "h:mm a").toLowerCase(),
+          status: msg.isRead ? "read" : "sent",
+          createdAt: msg.createdAt,
+        };
+      });
+
+      mappedMessages.sort((a, b) => {
+        const dateA = new Date(a.createdAt || 0);
+        const dateB = new Date(b.createdAt || 0);
+        return dateA - dateB;
+      });
+
+      setMessages(mappedMessages);
+
+      // Mark new unread messages as read
+      const unreadMessageIds = mappedMessages
+        .filter((msg) => msg.sender === "doctor" && msg.status !== "read")
+        .map((msg) => msg.id);
+
+      if (unreadMessageIds.length > 0) {
+        markMessagesAsReadViaSocket(conversationId, unreadMessageIds);
+        setMessages((prev) =>
+          prev.map((msg) =>
+            unreadMessageIds.includes(msg.id) ? { ...msg, status: "read" } : msg
+          )
+        );
+      }
+    } catch (error) {
+      console.error("❌ [CHAT PAGE] Error silently refreshing messages:", error);
+    }
+  };
+
   useFocusEffect(
     React.useCallback(() => {
+      // Silently refresh messages when returning to chat (e.g., from call)
+      if (conversationId) {
+        refreshMessagesSilently();
+      }
+
       if (conversationId && messages.length > 0) {
         // Get all unread doctor messages
         const unreadMessageIds = messages
@@ -232,7 +286,7 @@ export default function ChatPage({ navigation, route }) {
           );
         }
       }
-    }, [conversationId, messages])
+    }, [conversationId])
   );
 
   /**
@@ -597,6 +651,7 @@ export default function ChatPage({ navigation, route }) {
       conversationId,
       callType: "audio",
       otherUserId: consultantId,
+      isInitiator: true,
     });
   };
 
@@ -611,6 +666,7 @@ export default function ChatPage({ navigation, route }) {
       conversationId,
       callType: "video",
       otherUserId: consultantId,
+      isInitiator: true,
     });
   };
 
@@ -626,6 +682,7 @@ export default function ChatPage({ navigation, route }) {
         conversationId: convId,
         callType,
         otherUserId: fromUserId,
+        isInitiator: false,
       });
     } else {
       navigation.navigate("VoiceCall", {
@@ -633,6 +690,7 @@ export default function ChatPage({ navigation, route }) {
         conversationId: convId,
         callType,
         otherUserId: fromUserId,
+        isInitiator: false,
       });
     }
   };
@@ -803,7 +861,7 @@ export default function ChatPage({ navigation, route }) {
           </View>
           <View style={styles.doctorDetails}>
             <Text style={styles.doctorName}>
-              {doctor?.name || "Dr. Sarah Olukoya"}
+              {doctor?.name || "Consultant"}
             </Text>
             {/* Online status - commented out */}
             {/* <Text style={styles.doctorStatus}>Online</Text> */}
