@@ -31,18 +31,43 @@ export const getUpcomingAppointments = async () => {
 };
 
 /**
- * Get all patient appointments (all statuses) for the Appointments screen
- * Uses same endpoint as upcoming; backend may return all or filter by query
- * @returns {Promise<object>} - { success, data: appointments[] }
+ * Get patient booking list by status (for Appointments screen)
+ * @param {string} patientId - User ID of the patient
+ * @param {object} params - { status?: string, page?: number, limit?: number }
+ * @param {string} [params.status] - One of: completed, upcoming, in_progress, cancelled, no_show, disputed, pending_confirmation. Omit or empty for "all".
+ * @param {number} [params.page=1]
+ * @param {number} [params.limit=10]
+ * @returns {Promise<{ success: boolean, data: object[], total?: number }>}
  */
-export const getPatientAppointments = async () => {
-  console.log("📅 [BOOKING SERVICE] Fetching patient appointments...");
+export const getPatientBookingList = async (
+  patientId,
+  { status, page = 1, limit = 10 }
+) => {
+  console.log("📅 [BOOKING SERVICE] Fetching patient booking list:", {
+    patientId,
+    status: status || "(all)",
+    page,
+    limit,
+  });
   try {
-    const response = await get("/booking/patient/upcoming");
-    const appointments = response.data || [];
-    return { success: true, data: appointments };
+    const params = new URLSearchParams({
+      page: String(page),
+      limit: String(limit),
+    });
+    if (status && status.trim() !== "") {
+      params.set("status", status);
+    }
+    const response = await get(
+      `/booking/patient/${patientId}/list?${params.toString()}`
+    );
+    const data = response.data || [];
+    const total = response.total ?? response.data?.length ?? 0;
+    return { success: true, data, total };
   } catch (error) {
-    console.error("❌ [BOOKING SERVICE] Error fetching patient appointments:", error);
+    console.error(
+      "❌ [BOOKING SERVICE] Error fetching patient booking list:",
+      error
+    );
     throw error;
   }
 };
@@ -76,7 +101,7 @@ export const getAvailableSlots = async (consultantId, date) => {
  * Mark booking as completed by patient (confirm completion)
  * @param {string} bookingId - Booking ID
  * @param {object} body - { confirmed: boolean, reason?: string }
- * @returns {Promise<object>}
+ * @returns {Promise<{ success: boolean, data: object }>} Success response: { success: true, data: { id, consultantId, patientId, date, duration, symptoms, status: "completed", paymentStatus, actualStart, actualEnd, consultantCompletedAt, patientCompletedAt, consultantMarkedNoShow, consultantConfirmed, patientConfirmed, patientMarkedNoShow, consultationNotes, disputeReason, createdAt, updatedAt } }
  */
 export const markBookingCompleted = async (bookingId, body) => {
   console.log("📅 [BOOKING SERVICE] Marking booking completed:", bookingId);
@@ -141,7 +166,7 @@ export const createBooking = async (bookingData) => {
 
 export default {
   getUpcomingAppointments,
-  getPatientAppointments,
+  getPatientBookingList,
   getAvailableSlots,
   createBooking,
   markBookingCompleted,

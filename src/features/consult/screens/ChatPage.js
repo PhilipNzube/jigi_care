@@ -12,6 +12,7 @@ import {
   Keyboard,
   ActivityIndicator,
   Animated,
+  Modal,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, Sizes } from "../../../shared/constants";
@@ -30,6 +31,9 @@ import {
   getMessages,
   sendMessage,
   markMessagesAsReadViaSocket,
+  initiateCall,
+  acceptCall,
+  rejectCall,
 } from "../services/chatService";
 import {
   markBookingCompleted,
@@ -65,6 +69,7 @@ export default function ChatPage({ navigation, route }) {
   const bookingStatus = appointmentData?.status || route.params?.bookingStatus || "";
   const consultantConfirmed = appointmentData?.consultantConfirmed === true;
   const [actionLoading, setActionLoading] = useState({ complete: false, noShow: false });
+  const [incomingCall, setIncomingCall] = useState(null);
 
   useEffect(() => {
     const keyboardDidShowListener = Keyboard.addListener(
@@ -132,6 +137,31 @@ export default function ChatPage({ navigation, route }) {
       onMessagesRead: (data) => {
         console.log("✅ [CHAT PAGE] Messages read:", data);
         handleMessagesRead(data);
+      },
+      onCallIncoming: (data) => {
+        setIncomingCall({
+          fromUserId: data.fromUserId,
+          conversationId: data.conversationId,
+          callType: data.callType || "audio",
+        });
+      },
+      onCallRinging: () => {},
+      onCallAccepted: () => {},
+      onCallRejected: (data) => {
+        setIncomingCall(null);
+        showError(data?.reason || "Call declined", "Call declined");
+      },
+      onCallNoAnswer: () => {
+        setIncomingCall(null);
+        showError("No answer", "Call ended");
+      },
+      onCallMissed: () => {
+        setIncomingCall(null);
+      },
+      onCallStopRinging: () => {},
+      onCallConnected: () => {},
+      onCallEnded: () => {
+        setIncomingCall(null);
       },
     });
 
@@ -283,8 +313,22 @@ export default function ChatPage({ navigation, route }) {
       const isTooEarly =
         message.includes("Conversation can only be started 30 minutes") ||
         message.includes("Please wait");
+      const isExpired =
+        message.includes("conversation window has expired") ||
+        message.includes("appointment timeframe");
       if (isTooEarly) {
         showError(message, "Chat not available");
+        setConversationId(null);
+        setMessages([]);
+        setIsLoading(false);
+        navigation.goBack();
+        return;
+      }
+      if (isExpired) {
+        showError(message, "Chat not available");
+        setConversationId(null);
+        setMessages([]);
+        setIsLoading(false);
         navigation.goBack();
         return;
       }
@@ -543,11 +587,61 @@ export default function ChatPage({ navigation, route }) {
   };
 
   const handleVoiceCall = () => {
-    navigation.navigate("VoiceCall", { doctor });
+    if (!conversationId || !consultantId) {
+      showError("Conversation not ready. Please wait.", "Cannot call");
+      return;
+    }
+    initiateCall(consultantId, conversationId, "audio");
+    navigation.navigate("VoiceCall", {
+      doctor,
+      conversationId,
+      callType: "audio",
+      otherUserId: consultantId,
+    });
   };
 
   const handleVideoCall = () => {
-    navigation.navigate("VideoCall", { doctor });
+    if (!conversationId || !consultantId) {
+      showError("Conversation not ready. Please wait.", "Cannot call");
+      return;
+    }
+    initiateCall(consultantId, conversationId, "video");
+    navigation.navigate("VideoCall", {
+      doctor,
+      conversationId,
+      callType: "video",
+      otherUserId: consultantId,
+    });
+  };
+
+  const handleAcceptIncomingCall = () => {
+    if (!incomingCall) return;
+    const { fromUserId, conversationId: convId, callType } = incomingCall;
+    acceptCall(fromUserId);
+    const minimalDoctor = { name: "Consultant", consultantId: fromUserId, ...doctor };
+    setIncomingCall(null);
+    if (callType === "video") {
+      navigation.navigate("VideoCall", {
+        doctor: minimalDoctor,
+        conversationId: convId,
+        callType,
+        otherUserId: fromUserId,
+      });
+    } else {
+      navigation.navigate("VoiceCall", {
+        doctor: minimalDoctor,
+        conversationId: convId,
+        callType,
+        otherUserId: fromUserId,
+      });
+    }
+  };
+
+  const handleRejectIncomingCall = () => {
+    if (incomingCall) {
+      rejectCall(incomingCall.fromUserId, "Declined");
+      setIncomingCall(null);
+    }
   };
 
   const handleMarkComplete = async () => {
@@ -661,6 +755,40 @@ export default function ChatPage({ navigation, route }) {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
     >
+      <Modal
+        visible={!!incomingCall}
+        transparent
+        animationType="fade"
+        onRequestClose={handleRejectIncomingCall}
+      >
+        <View style={styles.incomingCallOverlay}>
+          <View style={styles.incomingCallCard}>
+            <Text style={styles.incomingCallTitle}>
+              Incoming {incomingCall?.callType === "video" ? "video" : "audio"} call
+            </Text>
+            <Text style={styles.incomingCallSubtitle}>
+              {doctor?.name || "Consultant"}
+            </Text>
+            <View style={styles.incomingCallActions}>
+              <TouchableOpacity
+                style={[styles.incomingCallBtn, styles.declineBtn]}
+                onPress={handleRejectIncomingCall}
+              >
+                <Ionicons name="call" size={28} color={Colors.white} />
+                <Text style={styles.declineBtnText}>Decline</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.incomingCallBtn, styles.acceptBtn]}
+                onPress={handleAcceptIncomingCall}
+              >
+                <Ionicons name="call" size={28} color={Colors.white} />
+                <Text style={styles.acceptBtnText}>Accept</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity
           style={styles.backButton}
@@ -683,20 +811,18 @@ export default function ChatPage({ navigation, route }) {
         </View>
 
         <View style={styles.headerActions}>
-          {/* Voice call icon - commented out */}
-          {/* <TouchableOpacity
+          <TouchableOpacity
             style={styles.actionButton}
             onPress={handleVoiceCall}
           >
             <Ionicons name="call" size={24} color={Colors.black} />
-          </TouchableOpacity> */}
-          {/* Video call icon - commented out */}
-          {/* <TouchableOpacity
+          </TouchableOpacity>
+          <TouchableOpacity
             style={styles.actionButton}
             onPress={handleVideoCall}
           >
             <Ionicons name="videocam" size={24} color={Colors.black} />
-          </TouchableOpacity> */}
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -1145,6 +1271,61 @@ const styles = StyleSheet.create({
     color: Colors.error,
   },
   completeText: {
+    color: Colors.white,
+  },
+  incomingCallOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: Sizes.lg,
+  },
+  incomingCallCard: {
+    backgroundColor: Colors.white,
+    borderRadius: 16,
+    padding: Sizes.xl,
+    width: "100%",
+    maxWidth: 320,
+    alignItems: "center",
+  },
+  incomingCallTitle: {
+    fontSize: 18,
+    fontFamily: "Poppins-SemiBold",
+    color: Colors.black,
+    marginBottom: Sizes.xs,
+  },
+  incomingCallSubtitle: {
+    fontSize: 14,
+    fontFamily: "Poppins-Regular",
+    color: Colors.grey,
+    marginBottom: Sizes.xl,
+  },
+  incomingCallActions: {
+    flexDirection: "row",
+    gap: Sizes.md,
+  },
+  incomingCallBtn: {
+    flex: 1,
+    paddingVertical: Sizes.md,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: Sizes.xs,
+  },
+  declineBtn: {
+    backgroundColor: Colors.error,
+  },
+  acceptBtn: {
+    backgroundColor: "#4CAF50",
+  },
+  declineBtnText: {
+    fontSize: 14,
+    fontFamily: "Poppins-SemiBold",
+    color: Colors.white,
+  },
+  acceptBtnText: {
+    fontSize: 14,
+    fontFamily: "Poppins-SemiBold",
     color: Colors.white,
   },
 });

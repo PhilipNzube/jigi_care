@@ -22,11 +22,15 @@ export default function ProfileSettingsScreen({ navigation }) {
   };
 
   const handlePrivacyPreferences = () => {
-    // Navigate to privacy preferences
+    navigation.navigate("PrivacyPreferences");
   };
 
-  const handleHelpSupport = () => {
-    // Navigate to help & support
+  const handlePrivacyPolicy = () => {
+    navigation.navigate("PrivacyPolicy");
+  };
+
+  const handleContactUs = () => {
+    navigation.navigate("ContactUs");
   };
 
   return (
@@ -39,7 +43,8 @@ export default function ProfileSettingsScreen({ navigation }) {
         <SettingsSection
           onMedicalHistory={handleMedicalHistory}
           onPrivacyPreferences={handlePrivacyPreferences}
-          onHelpSupport={handleHelpSupport}
+          onPrivacyPolicy={handlePrivacyPolicy}
+          onContactUs={handleContactUs}
         />
 
         <RecentActivitySection />

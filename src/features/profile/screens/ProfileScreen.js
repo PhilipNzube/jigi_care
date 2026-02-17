@@ -123,8 +123,12 @@ export default function ProfileScreen({ navigation, route }) {
     navigation.navigate("PrivacyPreferences");
   };
 
-  const handleHelpSupport = () => {
-    navigation.navigate("HelpSupport");
+  const handlePrivacyPolicy = () => {
+    navigation.navigate("PrivacyPolicy");
+  };
+
+  const handleContactUs = () => {
+    navigation.navigate("ContactUs");
   };
 
   const onRefresh = React.useCallback(async () => {
@@ -164,7 +168,8 @@ export default function ProfileScreen({ navigation, route }) {
           <SettingsSection
             onMedicalHistory={handleMedicalHistory}
             onPrivacyPreferences={handlePrivacyPreferences}
-            onHelpSupport={handleHelpSupport}
+            onPrivacyPolicy={handlePrivacyPolicy}
+            onContactUs={handleContactUs}
           />
           <RecentActivitySection />
           <EmergencyContactsSection />

@@ -6,12 +6,15 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
+  BackHandler,
+  Platform,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
-import { getPatientAppointments } from "../services/bookingService";
+import { getPatientBookingList } from "../services/bookingService";
+import { useAuth } from "../../../shared/context/AuthContext";
 import { format, parseISO } from "date-fns";
 import ShimmerLoader from "../../../shared/components/ShimmerLoader";
 import EmptyState from "../../../shared/components/EmptyState";
@@ -73,117 +76,216 @@ function AppointmentCardSkeleton() {
   );
 }
 
+const LIST_PAGE_SIZE = 20;
+const FILTER_OPTIONS = ["all", ...SECTION_ORDER];
+
 export default function AppointmentsScreen({ navigation }) {
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
+  const patientId = user?.id;
   const [appointments, setAppointments] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
 
-  const fetchAppointments = useCallback(async (silent = false) => {
-    if (!silent) setIsLoading(true);
-    try {
-      const result = await getPatientAppointments();
-      setAppointments(result.data || []);
-    } catch (error) {
-      console.error("AppointmentsScreen fetch error:", error);
-      setAppointments([]);
-    } finally {
-      setIsLoading(false);
-      setRefreshing(false);
-    }
-  }, []);
+  const totalPages = Math.max(1, Math.ceil(totalItems / LIST_PAGE_SIZE));
+
+  const fetchAppointments = useCallback(
+    async (page = 1, silent = false) => {
+      if (!patientId) {
+        setAppointments([]);
+        setIsLoading(false);
+        setRefreshing(false);
+        return;
+      }
+      if (!silent) setIsLoading(true);
+      try {
+        const statusParam = filter === "all" ? undefined : filter;
+        const result = await getPatientBookingList(patientId, {
+          status: statusParam,
+          page,
+          limit: LIST_PAGE_SIZE,
+        });
+        setAppointments(result.data || []);
+        setTotalItems(result.total ?? result.data?.length ?? 0);
+      } catch (error) {
+        console.error("AppointmentsScreen fetch error:", error);
+        setAppointments([]);
+      } finally {
+        setIsLoading(false);
+        setRefreshing(false);
+      }
+    },
+    [patientId, filter]
+  );
 
   useEffect(() => {
-    fetchAppointments();
-  }, [fetchAppointments]);
+    fetchAppointments(currentPage);
+  }, [filter, currentPage]);
 
   useFocusEffect(
     useCallback(() => {
-      if (appointments.length > 0) fetchAppointments(true);
-      else fetchAppointments(false);
-    }, [appointments.length, fetchAppointments]),
+      if (patientId) fetchAppointments(currentPage, true);
+    }, [patientId, currentPage, filter])
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        if (Platform.OS === "android") {
+          navigation.navigate("BottomTabs", { screen: "home" });
+          return true;
+        }
+        return false;
+      };
+      const sub = BackHandler.addEventListener("hardwareBackPress", onBackPress);
+      return () => sub.remove();
+    }, [navigation])
   );
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    fetchAppointments(true);
-  }, [fetchAppointments]);
+    fetchAppointments(currentPage, true);
+  }, [currentPage, filter, patientId]);
 
-  const statusesInData = React.useMemo(() => {
-    const set = new Set(appointments.map((a) => a.status).filter(Boolean));
-    return SECTION_ORDER.filter((s) => set.has(s));
-  }, [appointments]);
+  const handlePageChange = (page) => {
+    if (page >= 1 && page <= totalPages) setCurrentPage(page);
+  };
 
-  const filteredByStatus = React.useMemo(() => {
-    if (filter === "all") return appointments;
-    return appointments.filter((a) => a.status === filter);
-  }, [appointments, filter]);
-
-  const groupedBySection = React.useMemo(() => {
-    const groups = {};
-    SECTION_ORDER.forEach((status) => {
-      const list = filteredByStatus.filter((a) => a.status === status);
-      if (list.length > 0) {
-        groups[status] = list;
-      }
-    });
-    return groups;
-  }, [filteredByStatus]);
+  const filterLabel = (key) =>
+    key === "all" ? "All" : STATUS_LABELS[key] || key;
 
   const openChat = (item) => {
     const doctor = {
-      name: item.fullName || "Dr. Unknown",
+      name: item.fullName || "Consultant",
       consultantId: item.consultantId,
-      bookingId: item.bookingId,
+      bookingId: item.id,
     };
     navigation.navigate("ChatPage", {
       doctor,
-      bookingId: item.bookingId,
+      bookingId: item.id,
       appointmentData: item,
       bookingStatus: item.status,
     });
   };
 
-  if (isLoading && appointments.length === 0) {
+  const renderPagination = () => {
+    if (totalPages <= 1) return null;
+    const maxVisible = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+    if (endPage - startPage < maxVisible - 1) {
+      startPage = Math.max(1, endPage - maxVisible + 1);
+    }
+    const pages = [];
+    for (let i = startPage; i <= endPage; i++) pages.push(i);
+
+    return (
+      <View style={styles.paginationContainer}>
+        <TouchableOpacity
+          style={[
+            styles.paginationButton,
+            currentPage === 1 && styles.paginationButtonDisabled,
+          ]}
+          onPress={() => handlePageChange(currentPage - 1)}
+          disabled={currentPage === 1}
+        >
+          <Ionicons
+            name="chevron-back"
+            size={20}
+            color={currentPage === 1 ? Colors.gray : Colors.primary}
+          />
+        </TouchableOpacity>
+        {startPage > 1 && (
+          <>
+            <TouchableOpacity
+              style={styles.paginationButton}
+              onPress={() => handlePageChange(1)}
+            >
+              <Text style={styles.paginationText}>1</Text>
+            </TouchableOpacity>
+            {startPage > 2 && (
+              <Text style={styles.paginationEllipsis}>...</Text>
+            )}
+          </>
+        )}
+        {pages.map((page) => (
+          <TouchableOpacity
+            key={page}
+            style={[
+              styles.paginationButton,
+              currentPage === page && styles.paginationButtonActive,
+            ]}
+            onPress={() => handlePageChange(page)}
+          >
+            <Text
+              style={[
+                styles.paginationText,
+                currentPage === page && styles.paginationTextActive,
+              ]}
+            >
+              {page}
+            </Text>
+          </TouchableOpacity>
+        ))}
+        {endPage < totalPages && (
+          <>
+            {endPage < totalPages - 1 && (
+              <Text style={styles.paginationEllipsis}>...</Text>
+            )}
+            <TouchableOpacity
+              style={styles.paginationButton}
+              onPress={() => handlePageChange(totalPages)}
+            >
+              <Text style={styles.paginationText}>{totalPages}</Text>
+            </TouchableOpacity>
+          </>
+        )}
+        <TouchableOpacity
+          style={[
+            styles.paginationButton,
+            currentPage === totalPages && styles.paginationButtonDisabled,
+          ]}
+          onPress={() => handlePageChange(currentPage + 1)}
+          disabled={currentPage === totalPages}
+        >
+          <Ionicons
+            name="chevron-forward"
+            size={20}
+            color={
+              currentPage === totalPages ? Colors.gray : Colors.primary
+            }
+          />
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
+  if (isLoading && appointments.length === 0 && !refreshing) {
     return (
       <View style={[styles.container, { paddingTop: insets.top }]}>
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Appointments</Text>
         </View>
-        <View style={styles.content}>
-          <AppointmentCardSkeleton />
-          <AppointmentCardSkeleton />
-          <AppointmentCardSkeleton />
-        </View>
-      </View>
-    );
-  }
-
-  const filters = ["all", ...statusesInData];
-  const filterLabel = (key) =>
-    key === "all" ? "All" : STATUS_LABELS[key] || key;
-
-  return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Appointments</Text>
-      </View>
-      {appointments.length > 0 && (
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           style={styles.filtersScroll}
           contentContainerStyle={styles.filtersContent}
         >
-          {filters.map((key) => (
+          {FILTER_OPTIONS.map((key) => (
             <TouchableOpacity
               key={key}
               style={[
                 styles.filterChip,
                 filter === key && styles.filterChipActive,
               ]}
-              onPress={() => setFilter(key)}
+              onPress={() => {
+                if (filter !== key) setCurrentPage(1);
+                setFilter(key);
+              }}
             >
               <Text
                 style={[
@@ -197,7 +299,47 @@ export default function AppointmentsScreen({ navigation }) {
             </TouchableOpacity>
           ))}
         </ScrollView>
-      )}
+        <View style={styles.content}>
+          <AppointmentCardSkeleton />
+          <AppointmentCardSkeleton />
+          <AppointmentCardSkeleton />
+        </View>
+      </View>
+    );
+  }
+
+  return (
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Appointments</Text>
+      </View>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.filtersScroll}
+        contentContainerStyle={styles.filtersContent}
+      >
+        {FILTER_OPTIONS.map((key) => (
+          <TouchableOpacity
+            key={key}
+            style={[styles.filterChip, filter === key && styles.filterChipActive]}
+            onPress={() => {
+              if (filter !== key) setCurrentPage(1);
+              setFilter(key);
+            }}
+          >
+            <Text
+              style={[
+                styles.filterChipText,
+                filter === key && styles.filterChipTextActive,
+              ]}
+              numberOfLines={1}
+            >
+              {filterLabel(key)}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
 
       <ScrollView
         style={styles.content}
@@ -211,99 +353,85 @@ export default function AppointmentsScreen({ navigation }) {
           <EmptyState
             icon="calendar-outline"
             title="No appointments"
-            message="You don't have any appointments yet."
+            message={
+              filter === "all"
+                ? "You don't have any appointments yet."
+                : `No ${filterLabel(filter)} appointments.`
+            }
           />
         ) : (
-          SECTION_ORDER.map((status) => {
-            const list = groupedBySection[status];
-            if (!list || list.length === 0) return null;
-            const label = STATUS_LABELS[status] || status;
-            return (
-              <View key={status} style={styles.section}>
-                <Text style={styles.sectionTitle}>{label}</Text>
-                {list.map((item) => {
-                  const date = parseISO(item.date);
-                  const canOpenChat = [
-                    "pending_confirmation",
-                    "upcoming",
-                    "in_progress",
-                  ].includes(item.status);
-                  const badgeStyle = getStatusBadgeStyle(item.status);
-                  return (
-                    <TouchableOpacity
-                      key={item.bookingId || item.id}
-                      style={styles.card}
-                      onPress={() => canOpenChat && openChat(item)}
-                      activeOpacity={canOpenChat ? 0.7 : 1}
-                      disabled={!canOpenChat}
-                    >
-                      <View style={styles.cardTopRow}>
-                        <Text style={styles.cardDateTime}>
-                          {format(date, "MMM d, yyyy")} •{" "}
-                          {format(date, "h:mm a")}
+          <View style={styles.section}>
+            {appointments.map((item) => {
+              const date = parseISO(item.date);
+              const canOpenChat = [
+                "pending_confirmation",
+                "upcoming",
+                "in_progress",
+              ].includes(item.status);
+              const badgeStyle = getStatusBadgeStyle(item.status);
+              return (
+                <TouchableOpacity
+                  key={item.id}
+                  style={styles.card}
+                  onPress={() => canOpenChat && openChat(item)}
+                  activeOpacity={canOpenChat ? 0.7 : 1}
+                  disabled={!canOpenChat}
+                >
+                  <View style={styles.cardTopRow}>
+                    <Text style={styles.cardDateTime}>
+                      {format(date, "MMM d, yyyy")} • {format(date, "h:mm a")}
+                    </Text>
+                    {item.status ? (
+                      <View
+                        style={[
+                          styles.statusBadge,
+                          { backgroundColor: badgeStyle.bg },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.statusBadgeText,
+                            { color: badgeStyle.text },
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {getStatusLabel(item.status)}
                         </Text>
-                        {item.status ? (
-                          <View
-                            style={[
-                              styles.statusBadge,
-                              {
-                                backgroundColor: badgeStyle.bg,
-                              },
-                            ]}
-                          >
-                            <Text
-                              style={[
-                                styles.statusBadgeText,
-                                { color: badgeStyle.text },
-                              ]}
-                              numberOfLines={1}
-                            >
-                              {getStatusLabel(item.status)}
-                            </Text>
-                          </View>
-                        ) : null}
                       </View>
-                      <View style={styles.doctorInfo}>
-                        <View style={styles.avatar}>
-                          <Ionicons
-                            name="person"
-                            size={24}
-                            color={Colors.primary}
-                          />
-                        </View>
-                        <View style={styles.doctorDetails}>
-                          <Text style={styles.doctorName}>
-                            {item.fullName || "Dr. Unknown"}
-                          </Text>
-                          <Text style={styles.doctorSpecialty}>
-                            {item.speciality || "General Practitioner"}
-                          </Text>
-                        </View>
-                        {item.rating != null && (
-                          <View style={styles.ratingRow}>
-                            <Ionicons name="star" size={14} color="#FFD700" />
-                            <Text style={styles.ratingText}>
-                              {parseFloat(item.rating)}
-                            </Text>
-                          </View>
-                        )}
-                      </View>
-                      {canOpenChat && (
-                        <View style={styles.chatHint}>
-                          <Ionicons
-                            name="chatbubble-outline"
-                            size={16}
-                            color={Colors.primary}
-                          />
-                          <Text style={styles.chatHintText}>Open chat</Text>
-                        </View>
-                      )}
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            );
-          })
+                    ) : null}
+                  </View>
+                  <View style={styles.doctorInfo}>
+                    <View style={styles.avatar}>
+                      <Ionicons
+                        name="person"
+                        size={24}
+                        color={Colors.primary}
+                      />
+                    </View>
+                    <View style={styles.doctorDetails}>
+                      <Text style={styles.doctorName}>
+                        {item.fullName || "Consultant"}
+                      </Text>
+                      <Text style={styles.doctorSpecialty} numberOfLines={2}>
+                        {item.symptoms || "Consultation"}
+                      </Text>
+                    </View>
+                  </View>
+                  {canOpenChat && (
+                    <View style={styles.chatHint}>
+                      <Ionicons
+                        name="chatbubble-outline"
+                        size={16}
+                        color={Colors.primary}
+                      />
+                      <Text style={styles.chatHintText}>Open chat</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+            {totalPages > 1 && renderPagination()}
+          </View>
         )}
       </ScrollView>
     </View>
@@ -363,6 +491,45 @@ const styles = StyleSheet.create({
   contentContainer: {
     paddingHorizontal: Sizes.lg,
     paddingBottom: Sizes.xl * 2,
+  },
+  paginationContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: Sizes.xl,
+    marginBottom: Sizes.lg,
+  },
+  paginationButton: {
+    minWidth: 40,
+    height: 40,
+    justifyContent: "center",
+    alignItems: "center",
+    marginHorizontal: 4,
+    borderRadius: 8,
+    backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  paginationButtonActive: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  paginationButtonDisabled: {
+    opacity: 0.5,
+  },
+  paginationText: {
+    fontSize: 14,
+    fontFamily: "Poppins-Medium",
+    color: Colors.textPrimary,
+  },
+  paginationTextActive: {
+    color: Colors.white,
+  },
+  paginationEllipsis: {
+    fontSize: 14,
+    fontFamily: "Poppins-Regular",
+    color: Colors.textSecondary,
+    marginHorizontal: 4,
   },
   section: {
     marginBottom: Sizes.xl,

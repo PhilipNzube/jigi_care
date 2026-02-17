@@ -134,6 +134,51 @@ export const connectSocket = (userId, userType, callbacks = {}) => {
     }
   });
 
+  // ----- Call events (audio/video) -----
+  socketInstance.on("call:ringing", (data) => {
+    console.log("📞 [CHAT SERVICE] Call ringing:", data);
+    if (callbacks.onCallRinging) callbacks.onCallRinging(data);
+  });
+  socketInstance.on("call:incoming", (data) => {
+    console.log("📞 [CHAT SERVICE] Incoming call:", data);
+    if (callbacks.onCallIncoming) callbacks.onCallIncoming(data);
+  });
+  socketInstance.on("call:accepted", (data) => {
+    console.log("📞 [CHAT SERVICE] Call accepted:", data);
+    if (callbacks.onCallAccepted) callbacks.onCallAccepted(data);
+  });
+  socketInstance.on("call:rejected", (data) => {
+    console.log("📞 [CHAT SERVICE] Call rejected:", data);
+    if (callbacks.onCallRejected) callbacks.onCallRejected(data);
+  });
+  socketInstance.on("call:no-answer", (data) => {
+    console.log("📞 [CHAT SERVICE] No answer:", data);
+    if (callbacks.onCallNoAnswer) callbacks.onCallNoAnswer(data);
+  });
+  socketInstance.on("call:missed", (data) => {
+    console.log("📞 [CHAT SERVICE] Missed call:", data);
+    if (callbacks.onCallMissed) callbacks.onCallMissed(data);
+  });
+  socketInstance.on("call:stop-ringing", () => {
+    if (callbacks.onCallStopRinging) callbacks.onCallStopRinging();
+  });
+  socketInstance.on("call:connected", () => {
+    if (callbacks.onCallConnected) callbacks.onCallConnected();
+  });
+  socketInstance.on("call:ended", (data) => {
+    console.log("📞 [CHAT SERVICE] Call ended:", data);
+    if (callbacks.onCallEnded) callbacks.onCallEnded(data);
+  });
+  socketInstance.on("webrtc:offer", (data) => {
+    if (callbacks.onWebRTCOffer) callbacks.onWebRTCOffer(data);
+  });
+  socketInstance.on("webrtc:answer", (data) => {
+    if (callbacks.onWebRTCAnswer) callbacks.onWebRTCAnswer(data);
+  });
+  socketInstance.on("webrtc:ice-candidate", (data) => {
+    if (callbacks.onWebRTCIceCandidate) callbacks.onWebRTCIceCandidate(data);
+  });
+
   return socketInstance;
 };
 
@@ -275,6 +320,84 @@ export const markMessagesAsReadViaSocket = (conversationId, messageIds) => {
     conversationId,
     messageIds,
   });
+};
+
+// ==================== CALL (AUDIO/VIDEO) ====================
+
+/**
+ * Initiate a call (audio or video)
+ * @param {string} toUserId - Recipient user ID (consultant or patient)
+ * @param {string} conversationId - Conversation ID
+ * @param {'video'|'audio'} callType - Call type
+ */
+export const initiateCall = (toUserId, conversationId, callType) => {
+  if (!socketInstance || !socketInstance.connected) {
+    console.warn("⚠️ [CHAT SERVICE] Socket not connected, cannot initiate call");
+    return;
+  }
+  socketInstance.emit("call:initiate", {
+    toUserId,
+    conversationId,
+    callType,
+  });
+};
+
+/**
+ * Accept an incoming call
+ * @param {string} toUserId - Caller user ID
+ */
+export const acceptCall = (toUserId) => {
+  if (!socketInstance || !socketInstance.connected) return;
+  socketInstance.emit("call:accept", { toUserId });
+};
+
+/**
+ * Reject an incoming call
+ * @param {string} toUserId - Caller user ID
+ * @param {string} reason - Optional reason (e.g. 'Busy', 'Declined')
+ */
+export const rejectCall = (toUserId, reason = "Declined") => {
+  if (!socketInstance || !socketInstance.connected) return;
+  socketInstance.emit("call:reject", { toUserId, reason });
+};
+
+/**
+ * End an active call
+ * @param {string} toUserId - Other party user ID
+ */
+export const endCall = (toUserId) => {
+  if (!socketInstance || !socketInstance.connected) return;
+  socketInstance.emit("call:end", { toUserId });
+};
+
+/**
+ * Send WebRTC offer
+ * @param {string} toUserId - Other user ID
+ * @param {RTCSessionDescriptionInit} offer - SDP offer
+ */
+export const sendWebRTCOffer = (toUserId, offer) => {
+  if (!socketInstance || !socketInstance.connected) return;
+  socketInstance.emit("webrtc:offer", { toUserId, offer });
+};
+
+/**
+ * Send WebRTC answer
+ * @param {string} toUserId - Other user ID
+ * @param {RTCSessionDescriptionInit} answer - SDP answer
+ */
+export const sendWebRTCAnswer = (toUserId, answer) => {
+  if (!socketInstance || !socketInstance.connected) return;
+  socketInstance.emit("webrtc:answer", { toUserId, answer });
+};
+
+/**
+ * Send WebRTC ICE candidate
+ * @param {string} toUserId - Other user ID
+ * @param {RTCIceCandidateInit} candidate - ICE candidate
+ */
+export const sendWebRTCIceCandidate = (toUserId, candidate) => {
+  if (!socketInstance || !socketInstance.connected) return;
+  socketInstance.emit("webrtc:ice-candidate", { toUserId, candidate });
 };
 
 // ==================== REST API ENDPOINTS ====================

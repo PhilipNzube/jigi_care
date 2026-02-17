@@ -6,14 +6,10 @@ import { Colors, Sizes } from "../../../shared/constants";
 export default function SettingsSection({
   onMedicalHistory,
   onPrivacyPreferences,
-  onHelpSupport,
+  onPrivacyPolicy,
+  onContactUs,
 }) {
   const settings = [
-    // {
-    //   id: 1,
-    //   title: "Medical History",
-    //   onPress: onMedicalHistory,
-    // },
     {
       id: 2,
       title: "Privacy Preferences",
@@ -21,8 +17,13 @@ export default function SettingsSection({
     },
     {
       id: 3,
-      title: "Help & Support",
-      onPress: onHelpSupport,
+      title: "Privacy Policy",
+      onPress: onPrivacyPolicy,
+    },
+    {
+      id: 4,
+      title: "Contact Us",
+      onPress: onContactUs,
     },
   ];
 

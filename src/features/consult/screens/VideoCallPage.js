@@ -1,17 +1,39 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, Sizes } from "../../../shared/constants";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import EndCallModal from "../components/EndCallModal";
+import { getSocket, endCall } from "../services/chatService";
 
 export default function VideoCallPage({ navigation, route }) {
   const insets = useSafeAreaInsets();
-  const { doctor } = route.params || {};
+  const { doctor, otherUserId } = route.params || {};
   const [showEndModal, setShowEndModal] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isSpeakerOn, setIsSpeakerOn] = useState(false);
   const [isVideoOn, setIsVideoOn] = useState(false);
+  const [callStatus, setCallStatus] = useState("ringing"); // 'ringing' | 'connected'
+
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return;
+    const onAccepted = () => setCallStatus("connected");
+    const onEnded = () => {
+      setShowEndModal(false);
+      navigation.goBack();
+    };
+    socket.on("call:accepted", onAccepted);
+    socket.on("call:ended", onEnded);
+    socket.on("call:rejected", onEnded);
+    socket.on("call:no-answer", onEnded);
+    return () => {
+      socket.off("call:accepted", onAccepted);
+      socket.off("call:ended", onEnded);
+      socket.off("call:rejected", onEnded);
+      socket.off("call:no-answer", onEnded);
+    };
+  }, [navigation]);
 
   const handleEndCall = () => {
     setShowEndModal(true);
@@ -19,7 +41,8 @@ export default function VideoCallPage({ navigation, route }) {
 
   const handleConfirmEnd = () => {
     setShowEndModal(false);
-    navigation.navigate("ConsultationSummary", { doctor });
+    if (otherUserId) endCall(otherUserId);
+    navigation.goBack();
   };
 
   const handleContinueCall = () => {
@@ -58,7 +81,9 @@ export default function VideoCallPage({ navigation, route }) {
         </View>
 
         <View style={styles.statusButton}>
-          <Text style={styles.statusText}>Ringing...</Text>
+          <Text style={styles.statusText}>
+            {callStatus === "connected" ? "Connected" : "Ringing..."}
+          </Text>
         </View>
       </View>
 

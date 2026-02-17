@@ -29,7 +29,7 @@ import ShippingAddressScreen from "../../features/medications/screens/ShippingAd
 import OrderDetailsModal from "../../features/medications/modals/OrderDetailsModal";
 import EditProfileScreen from "../../features/profile/screens/EditProfileScreen";
 import ProfileSettingsScreen from "../../features/profile/screens/ProfileSettingsScreen";
-import HelpSupportScreen from "../../features/profile/screens/HelpSupportScreen";
+import ContactUsScreen from "../../features/profile/screens/ContactUsScreen";
 import PrivacyPreferencesScreen from "../../features/profile/screens/PrivacyPreferencesScreen";
 import ReportProblemScreen from "../../features/profile/screens/ReportProblemScreen";
 import PrivacyPolicyScreen from "../../features/profile/screens/PrivacyPolicyScreen";
@@ -216,7 +216,7 @@ export default function MainAppNavigator() {
       <Stack.Screen name="OrderDetails" component={OrderDetailsModal} />
       <Stack.Screen name="EditProfile" component={EditProfileScreen} />
       <Stack.Screen name="ProfileSettings" component={ProfileSettingsScreen} />
-      <Stack.Screen name="HelpSupport" component={HelpSupportScreen} />
+      <Stack.Screen name="ContactUs" component={ContactUsScreen} />
       <Stack.Screen
         name="PrivacyPreferences"
         component={PrivacyPreferencesScreen}
