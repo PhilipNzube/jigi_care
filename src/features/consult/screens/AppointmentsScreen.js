@@ -18,6 +18,7 @@ import { useAuth } from "../../../shared/context/AuthContext";
 import { format, parseISO } from "date-fns";
 import ShimmerLoader from "../../../shared/components/ShimmerLoader";
 import EmptyState from "../../../shared/components/EmptyState";
+import ConnectingModal from "../../home/components/ConnectingModal";
 
 const STATUS_LABELS = {
   pending_confirmation: "Pending confirmation",
@@ -89,6 +90,8 @@ export default function AppointmentsScreen({ navigation }) {
   const [filter, setFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
+  const [showConnectingModal, setShowConnectingModal] = useState(false);
+  const [selectedDoctorName, setSelectedDoctorName] = useState("");
 
   const totalPages = Math.max(1, Math.ceil(totalItems / LIST_PAGE_SIZE));
 
@@ -159,16 +162,21 @@ export default function AppointmentsScreen({ navigation }) {
 
   const openChat = (item) => {
     const doctor = {
-      name: item.fullName || "Consultant",
+      name: item.fullName || item.consultantName || "Consultant",
       consultantId: item.consultantId,
-      bookingId: item.id,
+      bookingId: item.bookingId || item.id,
     };
-    navigation.navigate("ChatPage", {
-      doctor,
-      bookingId: item.id,
-      appointmentData: item,
-      bookingStatus: item.status,
-    });
+    setSelectedDoctorName(doctor.name);
+    setShowConnectingModal(true);
+    setTimeout(() => {
+      setShowConnectingModal(false);
+      navigation.navigate("ChatPage", {
+        doctor,
+        bookingId: item.bookingId || item.id,
+        appointmentData: item,
+        bookingStatus: item.status,
+      });
+    }, 3000);
   };
 
   const renderPagination = () => {
@@ -369,9 +377,11 @@ export default function AppointmentsScreen({ navigation }) {
                 "in_progress",
               ].includes(item.status);
               const badgeStyle = getStatusBadgeStyle(item.status);
+              const rating =
+                item.rating != null ? parseFloat(item.rating) : null;
               return (
                 <TouchableOpacity
-                  key={item.id}
+                  key={item.bookingId || item.id}
                   style={styles.card}
                   onPress={() => canOpenChat && openChat(item)}
                   activeOpacity={canOpenChat ? 0.7 : 1}
@@ -401,21 +411,27 @@ export default function AppointmentsScreen({ navigation }) {
                     ) : null}
                   </View>
                   <View style={styles.doctorInfo}>
-                    <View style={styles.avatar}>
+                    <View style={styles.doctorProfileImageContainer}>
                       <Ionicons
                         name="person"
-                        size={24}
+                        size={25}
                         color={Colors.primary}
                       />
                     </View>
                     <View style={styles.doctorDetails}>
                       <Text style={styles.doctorName}>
-                        {item.fullName || "Consultant"}
+                        {item.fullName || item.consultantName || "Consultant"}
                       </Text>
                       <Text style={styles.doctorSpecialty} numberOfLines={2}>
-                        {item.symptoms || "Consultation"}
+                        {item.speciality || "Consultation"}
                       </Text>
                     </View>
+                    {rating !== null && (
+                      <View style={styles.ratingContainer}>
+                        <Ionicons name="star" size={16} color="#FFD700" />
+                        <Text style={styles.ratingText}>{rating}</Text>
+                      </View>
+                    )}
                   </View>
                   {canOpenChat && (
                     <View style={styles.chatHint}>
@@ -434,6 +450,10 @@ export default function AppointmentsScreen({ navigation }) {
           </View>
         )}
       </ScrollView>
+      <ConnectingModal
+        visible={showConnectingModal}
+        doctorName={selectedDoctorName || "Consultant"}
+      />
     </View>
   );
 }
@@ -543,7 +563,8 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: Colors.white,
     borderRadius: 12,
-    padding: Sizes.md,
+    paddingTop: Sizes.lg,
+    paddingHorizontal: Sizes.sm,
     marginBottom: Sizes.md,
     borderWidth: 1,
     borderColor: "#E0E0E0",
@@ -568,6 +589,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: "Poppins-Regular",
     color: Colors.textSecondary,
+    paddingHorizontal: Sizes.lg,
   },
   statusBadge: {
     paddingHorizontal: Sizes.sm,
@@ -584,12 +606,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#F2F2F2",
     borderRadius: 8,
-    padding: Sizes.sm,
+    marginBottom: Sizes.sm,
+    padding: Sizes.md,
   },
-  avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+  doctorProfileImageContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     backgroundColor: "#E3F2FD",
     justifyContent: "center",
     alignItems: "center",
@@ -609,7 +632,7 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins-Regular",
     color: Colors.textSecondary,
   },
-  ratingRow: {
+  ratingContainer: {
     flexDirection: "row",
     alignItems: "center",
   },
