@@ -26,11 +26,18 @@ import {
   cleanupWebRTC,
   toggleAudioTrack,
 } from "../services/webrtcService";
-import { Audio } from "expo-av";
+import { useAudioPlayer } from "expo-audio";
+import { showError } from "../../../shared/utils/toast";
 
 export default function VoiceCallPage({ navigation, route }) {
   const insets = useSafeAreaInsets();
-  const { doctor, otherUserId, conversationId, callType, isInitiator = true } = route.params || {};
+  const {
+    doctor,
+    otherUserId,
+    conversationId,
+    callType,
+    isInitiator = true,
+  } = route.params || {};
   const [showEndModal, setShowEndModal] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isSpeakerOn, setIsSpeakerOn] = useState(false);
@@ -41,9 +48,18 @@ export default function VoiceCallPage({ navigation, route }) {
 
   const peerConnectionRef = useRef(null);
   const localStreamRef = useRef(null);
-  const ringingSoundRef = useRef(null);
   const callTimerRef = useRef(null);
   const webrtcSetupRef = useRef(false);
+
+  // Use expo-audio player for ringtone
+  // Different tones for caller (ringback) vs recipient (incoming)
+  const ringbackToneURI =
+    "https://assets.mixkit.co/sfx/preview/mixkit-phone-ring-1060.mp3"; // Ringback for caller
+  const incomingRingtoneURI =
+    "https://assets.mixkit.co/sfx/preview/mixkit-phone-ring-1060.mp3"; // Incoming for recipient
+  const ringtonePlayer = useAudioPlayer(
+    isInitiator ? ringbackToneURI : incomingRingtoneURI,
+  );
 
   // Setup socket listeners and WebRTC
   useEffect(() => {
@@ -83,13 +99,31 @@ export default function VoiceCallPage({ navigation, route }) {
       } catch (error) {
         console.error("❌ [VOICE CALL] Error setting up WebRTC:", error);
         webrtcSetupRef.current = false;
+        const errorMessage = error?.message || "Failed to start call";
+        if (
+          errorMessage.includes("permission") ||
+          errorMessage.includes("Permission")
+        ) {
+          showError(
+            "Microphone permission is required for voice calls. Please grant permission in settings.",
+            "Permission Required",
+          );
+        } else {
+          showError(errorMessage, "Call Error");
+        }
+        setTimeout(() => {
+          navigation.goBack();
+        }, 2000);
       }
     };
 
     const initializeCall = async () => {
       try {
-        // Play ringing sound
-        await playRingingSound();
+        // If recipient (incoming call), play incoming ringtone immediately
+        // If initiator (outgoing call), wait for call:ringing event to play ringback
+        if (!isInitiator) {
+          playRingingSound();
+        }
 
         // If initiator, set up WebRTC immediately
         // If recipient, wait for call:accepted
@@ -174,11 +208,22 @@ export default function VoiceCallPage({ navigation, route }) {
       handleEndCall();
     };
 
+    const onCallRinging = () => {
+      // Caller receives this - start ringback tone
+      if (isInitiator) {
+        playRingingSound();
+      }
+    };
+
     const onCallStopRinging = () => {
-      stopRingingSound();
+      // Caller receives this when recipient answers - stop ringback
+      if (isInitiator) {
+        stopRingingSound();
+      }
     };
 
     // Register socket listeners
+    socket.on("call:ringing", onCallRinging);
     socket.on("call:accepted", onCallAccepted);
     socket.on("call:connected", onCallConnected);
     socket.on("call:rejected", onCallRejected);
@@ -193,6 +238,7 @@ export default function VoiceCallPage({ navigation, route }) {
     initializeCall();
 
     return () => {
+      socket.off("call:ringing", onCallRinging);
       socket.off("call:accepted", onCallAccepted);
       socket.off("call:connected", onCallConnected);
       socket.off("call:rejected", onCallRejected);
@@ -226,38 +272,79 @@ export default function VoiceCallPage({ navigation, route }) {
     };
   }, [callStatus]);
 
-  const playRingingSound = async () => {
-    try {
-      await Audio.setAudioModeAsync({
-        playsInSilentModeIOS: true,
-        staysActiveInBackground: true,
-      });
-      // Simple beep pattern for ringing - in production, use actual ringtone file
-      // For now, we'll use a simple tone generator or skip if file not available
-      try {
-        // Try to load a ringtone if available, otherwise skip
-        const { sound } = await Audio.Sound.createAsync(
-          { uri: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" },
-          { shouldPlay: true, isLooping: true, volume: 0.5 }
-        );
-        ringingSoundRef.current = sound;
-      } catch (loadError) {
-        console.warn("⚠️ [VOICE CALL] Ringtone file not available, skipping sound");
+  // Handle ringtone looping
+  const ringtoneLoopRef = useRef(null);
+  const isRingingRef = useRef(false);
+
+  useEffect(() => {
+    if (callStatus === "ringing" && !isRingingRef.current) {
+      isRingingRef.current = true;
+      // Check if ringtone finished and loop it
+      const checkAndLoop = () => {
+        try {
+          if (ringtonePlayer && ringtonePlayer.status?.isLoaded) {
+            // Check if playback finished and restart
+            if (
+              ringtonePlayer.status.didJustFinish ||
+              (ringtonePlayer.status.duration &&
+                ringtonePlayer.status.currentTime >=
+                  ringtonePlayer.status.duration - 0.1)
+            ) {
+              ringtonePlayer.seekTo(0);
+              ringtonePlayer.play();
+            }
+          }
+        } catch (error) {
+          // Player might be released, stop looping
+          if (ringtoneLoopRef.current) {
+            clearInterval(ringtoneLoopRef.current);
+            ringtoneLoopRef.current = null;
+          }
+        }
+      };
+
+      ringtoneLoopRef.current = setInterval(checkAndLoop, 200);
+    } else if (callStatus !== "ringing") {
+      isRingingRef.current = false;
+      if (ringtoneLoopRef.current) {
+        clearInterval(ringtoneLoopRef.current);
+        ringtoneLoopRef.current = null;
       }
+    }
+
+    return () => {
+      if (ringtoneLoopRef.current) {
+        clearInterval(ringtoneLoopRef.current);
+        ringtoneLoopRef.current = null;
+      }
+    };
+  }, [callStatus, ringtonePlayer]);
+
+  const playRingingSound = () => {
+    try {
+      if (!ringtonePlayer) return;
+      // Use expo-audio player - proper phone ringtone
+      ringtonePlayer.seekTo(0); // Reset to start
+      ringtonePlayer.play(); // Start playing (will loop via useEffect)
     } catch (error) {
       console.warn("⚠️ [VOICE CALL] Could not play ringing sound:", error);
     }
   };
 
-  const stopRingingSound = async () => {
+  const stopRingingSound = () => {
     try {
-      if (ringingSoundRef.current) {
-        await ringingSoundRef.current.stopAsync();
-        await ringingSoundRef.current.unloadAsync();
-        ringingSoundRef.current = null;
+      if (!ringtonePlayer) return;
+      // Check if player is still valid before pausing
+      if (ringtonePlayer.status?.isLoaded) {
+        ringtonePlayer.pause();
+        ringtonePlayer.seekTo(0);
       }
     } catch (error) {
-      console.warn("⚠️ [VOICE CALL] Error stopping ringing sound:", error);
+      // Player already released, ignore
+      console.warn(
+        "⚠️ [VOICE CALL] Error stopping ringing sound (player may be released):",
+        error.message,
+      );
     }
   };
 
@@ -317,9 +404,7 @@ export default function VoiceCallPage({ navigation, route }) {
           <View style={styles.doctorAvatar}>
             <Ionicons name="person" size={16} color={Colors.primary} />
           </View>
-          <Text style={styles.doctorName}>
-            {doctor?.name || "Consultant"}
-          </Text>
+          <Text style={styles.doctorName}>{doctor?.name || "Consultant"}</Text>
         </View>
 
         <View style={styles.statusButton}>
@@ -327,8 +412,8 @@ export default function VoiceCallPage({ navigation, route }) {
             {callStatus === "connected"
               ? "Connected"
               : callStatus === "connecting"
-              ? "Connecting..."
-              : "Ringing..."}
+                ? "Connecting..."
+                : "Ringing..."}
           </Text>
         </View>
       </SafeAreaView>
@@ -353,10 +438,7 @@ export default function VoiceCallPage({ navigation, route }) {
           { paddingBottom: insets.bottom + Sizes.lg },
         ]}
       >
-        <TouchableOpacity
-          style={styles.controlButton}
-          onPress={toggleSpeaker}
-        >
+        <TouchableOpacity style={styles.controlButton} onPress={toggleSpeaker}>
           <Ionicons
             name={isSpeakerOn ? "volume-high" : "volume-low"}
             size={24}

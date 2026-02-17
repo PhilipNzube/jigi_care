@@ -17,8 +17,9 @@ import {
   toggleAudioTrack,
   toggleVideoTrack,
 } from "../services/webrtcService";
-import { Audio } from "expo-av";
+import { useAudioPlayer } from "expo-audio";
 import { RTCView } from "react-native-webrtc";
+import { showError } from "../../../shared/utils/toast";
 
 export default function VideoCallPage({ navigation, route }) {
   const insets = useSafeAreaInsets();
@@ -34,9 +35,14 @@ export default function VideoCallPage({ navigation, route }) {
 
   const peerConnectionRef = useRef(null);
   const localStreamRef = useRef(null);
-  const ringingSoundRef = useRef(null);
   const callTimerRef = useRef(null);
   const webrtcSetupRef = useRef(false);
+  
+  // Use expo-audio player for ringtone
+  // Different tones for caller (ringback) vs recipient (incoming)
+  const ringbackToneURI = "https://assets.mixkit.co/sfx/preview/mixkit-phone-ring-1060.mp3"; // Ringback for caller
+  const incomingRingtoneURI = "https://assets.mixkit.co/sfx/preview/mixkit-phone-ring-1060.mp3"; // Incoming for recipient
+  const ringtonePlayer = useAudioPlayer(isInitiator ? ringbackToneURI : incomingRingtoneURI);
 
   useEffect(() => {
     const socket = getSocket();
@@ -75,12 +81,33 @@ export default function VideoCallPage({ navigation, route }) {
       } catch (error) {
         console.error("❌ [VIDEO CALL] Error setting up WebRTC:", error);
         webrtcSetupRef.current = false;
+        const errorMessage = error?.message || "Failed to start call";
+        if (errorMessage.includes("permission") || errorMessage.includes("Permission")) {
+          const isVideo = errorMessage.includes("Camera") || errorMessage.includes("camera");
+          const isAudio = errorMessage.includes("Audio") || errorMessage.includes("microphone");
+          if (isVideo && isAudio) {
+            showError("Camera and microphone permissions are required for video calls. Please grant permissions in settings.", "Permissions Required");
+          } else if (isVideo) {
+            showError("Camera permission is required for video calls. Please grant permission in settings.", "Permission Required");
+          } else {
+            showError("Microphone permission is required for video calls. Please grant permission in settings.", "Permission Required");
+          }
+        } else {
+          showError(errorMessage, "Call Error");
+        }
+        setTimeout(() => {
+          navigation.goBack();
+        }, 2000);
       }
     };
 
     const initializeCall = async () => {
       try {
-        await playRingingSound();
+        // If recipient (incoming call), play incoming ringtone immediately
+        // If initiator (outgoing call), wait for call:ringing event to play ringback
+        if (!isInitiator) {
+          playRingingSound();
+        }
 
         // If initiator, set up WebRTC immediately
         // If recipient, wait for call:accepted
@@ -163,10 +190,21 @@ export default function VideoCallPage({ navigation, route }) {
       handleEndCall();
     };
 
-    const onCallStopRinging = () => {
-      stopRingingSound();
+    const onCallRinging = () => {
+      // Caller receives this - start ringback tone
+      if (isInitiator) {
+        playRingingSound();
+      }
     };
 
+    const onCallStopRinging = () => {
+      // Caller receives this when recipient answers - stop ringback
+      if (isInitiator) {
+        stopRingingSound();
+      }
+    };
+
+    socket.on("call:ringing", onCallRinging);
     socket.on("call:accepted", onCallAccepted);
     socket.on("call:connected", onCallConnected);
     socket.on("call:rejected", onCallRejected);
@@ -180,6 +218,7 @@ export default function VideoCallPage({ navigation, route }) {
     initializeCall();
 
     return () => {
+      socket.off("call:ringing", onCallRinging);
       socket.off("call:accepted", onCallAccepted);
       socket.off("call:connected", onCallConnected);
       socket.off("call:rejected", onCallRejected);
@@ -212,35 +251,73 @@ export default function VideoCallPage({ navigation, route }) {
     };
   }, [callStatus]);
 
-  const playRingingSound = async () => {
-    try {
-      await Audio.setAudioModeAsync({
-        playsInSilentModeIOS: true,
-        staysActiveInBackground: true,
-      });
-      try {
-        const { sound } = await Audio.Sound.createAsync(
-          { uri: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" },
-          { shouldPlay: true, isLooping: true, volume: 0.5 }
-        );
-        ringingSoundRef.current = sound;
-      } catch (loadError) {
-        console.warn("⚠️ [VIDEO CALL] Ringtone file not available, skipping sound");
+  // Handle ringtone looping
+  const ringtoneLoopRef = useRef(null);
+  const isRingingRef = useRef(false);
+  
+  useEffect(() => {
+    if (callStatus === "ringing" && !isRingingRef.current) {
+      isRingingRef.current = true;
+      // Check if ringtone finished and loop it
+      const checkAndLoop = () => {
+        try {
+          if (ringtonePlayer && ringtonePlayer.status?.isLoaded) {
+            // Check if playback finished and restart
+            if (ringtonePlayer.status.didJustFinish || 
+                (ringtonePlayer.status.duration && 
+                 ringtonePlayer.status.currentTime >= ringtonePlayer.status.duration - 0.1)) {
+              ringtonePlayer.seekTo(0);
+              ringtonePlayer.play();
+            }
+          }
+        } catch (error) {
+          // Player might be released, stop looping
+          if (ringtoneLoopRef.current) {
+            clearInterval(ringtoneLoopRef.current);
+            ringtoneLoopRef.current = null;
+          }
+        }
+      };
+      
+      ringtoneLoopRef.current = setInterval(checkAndLoop, 200);
+    } else if (callStatus !== "ringing") {
+      isRingingRef.current = false;
+      if (ringtoneLoopRef.current) {
+        clearInterval(ringtoneLoopRef.current);
+        ringtoneLoopRef.current = null;
       }
+    }
+    
+    return () => {
+      if (ringtoneLoopRef.current) {
+        clearInterval(ringtoneLoopRef.current);
+        ringtoneLoopRef.current = null;
+      }
+    };
+  }, [callStatus, ringtonePlayer]);
+
+  const playRingingSound = () => {
+    try {
+      if (!ringtonePlayer) return;
+      // Use expo-audio player - proper phone ringtone
+      ringtonePlayer.seekTo(0); // Reset to start
+      ringtonePlayer.play(); // Start playing (will loop via useEffect)
     } catch (error) {
       console.warn("⚠️ [VIDEO CALL] Could not play ringing sound:", error);
     }
   };
 
-  const stopRingingSound = async () => {
+  const stopRingingSound = () => {
     try {
-      if (ringingSoundRef.current) {
-        await ringingSoundRef.current.stopAsync();
-        await ringingSoundRef.current.unloadAsync();
-        ringingSoundRef.current = null;
+      if (!ringtonePlayer) return;
+      // Check if player is still valid before pausing
+      if (ringtonePlayer.status?.isLoaded) {
+        ringtonePlayer.pause();
+        ringtonePlayer.seekTo(0);
       }
     } catch (error) {
-      console.warn("⚠️ [VIDEO CALL] Error stopping ringing sound:", error);
+      // Player already released, ignore
+      console.warn("⚠️ [VIDEO CALL] Error stopping ringing sound (player may be released):", error.message);
     }
   };
 
@@ -342,7 +419,7 @@ export default function VideoCallPage({ navigation, route }) {
 
         {/* Local video feed - Picture-in-picture */}
         {localStream && isVideoOn ? (
-          <View style={styles.userVideoContainer}>
+          <View style={[styles.userVideoContainer, { top: insets.top + 60 }]}>
             <RTCView
               streamURL={localStream.toURL()}
               style={styles.userVideo}
@@ -351,7 +428,7 @@ export default function VideoCallPage({ navigation, route }) {
             />
           </View>
         ) : localStream ? (
-          <View style={styles.userVideoContainer}>
+          <View style={[styles.userVideoContainer, { top: insets.top + 60 }]}>
             <View style={styles.userVideoPlaceholder}>
               <Ionicons name="person" size={40} color={Colors.white} />
             </View>
@@ -478,7 +555,6 @@ const styles = StyleSheet.create({
   },
   userVideoContainer: {
     position: "absolute",
-    top: 20,
     right: 20,
     width: 120,
     height: 160,
@@ -487,6 +563,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#000000",
     borderWidth: 2,
     borderColor: Colors.white,
+    // top is set dynamically in component to account for header height
   },
   userVideo: {
     width: "100%",

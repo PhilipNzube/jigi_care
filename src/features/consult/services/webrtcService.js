@@ -9,7 +9,13 @@ import {
   RTCIceCandidate,
   mediaDevices,
 } from "react-native-webrtc";
-import { getSocket, sendWebRTCOffer, sendWebRTCAnswer, sendWebRTCIceCandidate } from "./chatService";
+import {
+  getSocket,
+  sendWebRTCOffer,
+  sendWebRTCAnswer,
+  sendWebRTCIceCandidate,
+} from "./chatService";
+import { Audio } from "expo-av";
 
 const ICE_SERVERS = [
   { urls: "stun:stun.l.google.com:19302" },
@@ -28,6 +34,55 @@ export const createPeerConnection = () => {
 };
 
 /**
+ * Request permissions for media access
+ * @param {boolean} video - Whether video permission is needed
+ * @param {boolean} audio - Whether audio permission is needed
+ * @returns {Promise<{audio: boolean, video: boolean}>}
+ */
+const requestMediaPermissions = async (video = false, audio = true) => {
+  const permissions = { audio: false, video: false };
+
+  try {
+    // Request audio permission
+    if (audio) {
+      try {
+        // Check current permission status first
+        const currentAudioPermission = await Audio.getPermissionsAsync();
+        if (currentAudioPermission.status === "granted") {
+          permissions.audio = true;
+        } else {
+          // Request permission if not granted
+          const audioPermission = await Audio.requestPermissionsAsync();
+          permissions.audio = audioPermission.status === "granted";
+          if (!permissions.audio) {
+            console.warn("⚠️ [WEBRTC] Audio permission denied");
+          }
+        }
+      } catch (error) {
+        console.warn("⚠️ [WEBRTC] Error requesting audio permission:", error);
+        // Try to proceed anyway - some platforms might handle permissions differently
+        permissions.audio = true;
+      }
+    }
+
+    // Request camera permission
+    // Note: react-native-webrtc handles camera permissions natively
+    // We'll let it request permissions when getUserMedia is called
+    if (video) {
+      // Assume permission will be requested by react-native-webrtc
+      // If it fails, the getUserMedia call will throw an error
+      permissions.video = true;
+    }
+
+    return permissions;
+  } catch (error) {
+    console.error("❌ [WEBRTC] Error requesting permissions:", error);
+    // If permission check fails, assume granted (for platforms that handle it differently)
+    return { audio: audio, video: video };
+  }
+};
+
+/**
  * Get user media (audio/video)
  * @param {boolean} video - Whether to request video
  * @param {boolean} audio - Whether to request audio
@@ -35,21 +90,50 @@ export const createPeerConnection = () => {
  */
 export const getUserMedia = async (video = false, audio = true) => {
   try {
+    // Request permissions first
+    const permissions = await requestMediaPermissions(video, audio);
+
+    if (audio && !permissions.audio) {
+      throw new Error(
+        "Audio permission denied. Please grant microphone access.",
+      );
+    }
+
+    if (video && !permissions.video) {
+      throw new Error("Camera permission denied. Please grant camera access.");
+    }
+
+    // Set audio mode for better call quality
+    if (audio) {
+      try {
+        await Audio.setAudioModeAsync({
+          allowsRecordingIOS: true,
+          playsInSilentModeIOS: true,
+          staysActiveInBackground: true,
+          shouldDuckAndroid: false,
+        });
+      } catch (error) {
+        console.warn("⚠️ [WEBRTC] Could not set audio mode:", error);
+      }
+    }
+
     const stream = await mediaDevices.getUserMedia({
-      video: video
-        ? {
-            facingMode: "user",
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-          }
-        : false,
-      audio: audio
-        ? {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true,
-          }
-        : false,
+      video:
+        video && permissions.video
+          ? {
+              facingMode: "user",
+              width: { ideal: 1280 },
+              height: { ideal: 720 },
+            }
+          : false,
+      audio:
+        audio && permissions.audio
+          ? {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true,
+            }
+          : false,
     });
     return stream;
   } catch (error) {
@@ -151,7 +235,12 @@ export const setupWebRTCConnection = async ({
  * @param {string} params.otherUserId - Caller's user ID
  * @param {boolean} params.isVideo - Whether this is a video call
  */
-export const handleOffer = async ({ peerConnection, offer, otherUserId, isVideo }) => {
+export const handleOffer = async ({
+  peerConnection,
+  offer,
+  otherUserId,
+  isVideo,
+}) => {
   try {
     await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
     const answer = await peerConnection.createAnswer({
@@ -175,7 +264,9 @@ export const handleOffer = async ({ peerConnection, offer, otherUserId, isVideo 
  */
 export const handleAnswer = async ({ peerConnection, answer }) => {
   try {
-    await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+    await peerConnection.setRemoteDescription(
+      new RTCSessionDescription(answer),
+    );
     console.log("✅ [WEBRTC] Answer received and set");
   } catch (error) {
     console.error("❌ [WEBRTC] Error handling answer:", error);
