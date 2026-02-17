@@ -146,7 +146,10 @@ export default function ChatPage({ navigation, route }) {
         });
       },
       onCallRinging: () => {},
-      onCallAccepted: () => {},
+      onCallAccepted: () => {
+        // Clear incoming call state when call is accepted
+        setIncomingCall(null);
+      },
       onCallRejected: (data) => {
         setIncomingCall(null);
         showError(data?.reason || "Call declined", "Call declined");

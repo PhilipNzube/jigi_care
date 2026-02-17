@@ -96,7 +96,10 @@ export default function VideoCallPage({ navigation, route }) {
               // Log peer connection stats when remote stream arrives
               setTimeout(async () => {
                 if (peerConnectionRef.current) {
-                  await logPeerConnectionStats(peerConnectionRef.current, "VideoCall");
+                  await logPeerConnectionStats(
+                    peerConnectionRef.current,
+                    "VideoCall",
+                  );
                 }
               }, 2000);
             },
@@ -111,18 +114,18 @@ export default function VideoCallPage({ navigation, route }) {
           });
 
         peerConnectionRef.current = peerConnection;
-        
+
         // Debug: Monitor peer connection
         monitorPeerConnection(peerConnection, "VideoCall");
-        
+
         // Debug: Log peer connection stats after a delay
         setTimeout(async () => {
           await logPeerConnectionStats(peerConnection, "VideoCall");
         }, 3000);
-        
+
         // Debug: Monitor peer connection
         monitorPeerConnection(peerConnection, "VideoCall");
-        
+
         // Debug: Start periodic stats monitoring (every 5 seconds)
         // Uncomment to enable:
         // const statsCleanup = startStatsMonitoring(
@@ -325,7 +328,7 @@ export default function VideoCallPage({ navigation, route }) {
       const statusInterval = setInterval(() => {
         const localStatus = checkStreamingStatus(localStream);
         const remoteStatus = checkStreamingStatus(remoteStream);
-        
+
         setStreamStatus({
           localAudio: localStatus.hasAudio,
           localVideo: localStatus.hasVideo,
@@ -491,33 +494,12 @@ export default function VideoCallPage({ navigation, route }) {
             {callStatus === "connected"
               ? formatCallDuration(callDuration)
               : callStatus === "connecting"
-              ? "Connecting..."
-              : "Ringing..."}
+                ? "Connecting..."
+                : "Ringing..."}
           </Text>
         </View>
       </View>
 
-      {/* Debug indicators - Remove in production */}
-      {__DEV__ && callStatus === "connected" && (
-        <View style={styles.debugIndicator}>
-          <View style={styles.debugRow}>
-            <View style={[styles.debugDot, streamStatus.localAudio && styles.debugDotActive]} />
-            <Text style={styles.debugText}>Local Audio</Text>
-          </View>
-          <View style={styles.debugRow}>
-            <View style={[styles.debugDot, streamStatus.localVideo && styles.debugDotActive]} />
-            <Text style={styles.debugText}>Local Video</Text>
-          </View>
-          <View style={styles.debugRow}>
-            <View style={[styles.debugDot, streamStatus.remoteAudio && styles.debugDotActive]} />
-            <Text style={styles.debugText}>Remote Audio</Text>
-          </View>
-          <View style={styles.debugRow}>
-            <View style={[styles.debugDot, streamStatus.remoteVideo && styles.debugDotActive]} />
-            <Text style={styles.debugText}>Remote Video</Text>
-          </View>
-        </View>
-      )}
 
       <View style={styles.videoContainer}>
         {/* Remote video feed */}
@@ -722,34 +704,5 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-  },
-  debugIndicator: {
-    position: "absolute",
-    top: 80,
-    left: 20,
-    backgroundColor: "rgba(0, 0, 0, 0.7)",
-    padding: Sizes.sm,
-    borderRadius: 8,
-    zIndex: 100,
-  },
-  debugRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginVertical: 2,
-  },
-  debugDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "#FF0000",
-    marginRight: Sizes.xs,
-  },
-  debugDotActive: {
-    backgroundColor: "#00FF00",
-  },
-  debugText: {
-    fontSize: 10,
-    fontFamily: "Poppins-Regular",
-    color: Colors.white,
   },
 });
