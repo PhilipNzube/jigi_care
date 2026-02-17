@@ -28,6 +28,13 @@ import {
 } from "../services/webrtcService";
 import { useAudioPlayer } from "expo-audio";
 import { showError } from "../../../shared/utils/toast";
+import {
+  logStreamInfo,
+  monitorStreamTracks,
+  logPeerConnectionStats,
+  monitorPeerConnection,
+  checkStreamingStatus,
+} from "../utils/webrtcDebug";
 
 export default function VoiceCallPage({ navigation, route }) {
   const insets = useSafeAreaInsets();
@@ -79,11 +86,23 @@ export default function VoiceCallPage({ navigation, route }) {
             onLocalStream: (stream) => {
               setLocalStream(stream);
               localStreamRef.current = stream;
+              // Debug: Log local stream info
+              logStreamInfo(stream, "Local");
+              monitorStreamTracks(stream, "Local");
             },
             onRemoteStream: (stream) => {
               setRemoteStream(stream);
               setCallStatus("connected");
               stopRingingSound();
+              // Debug: Log remote stream info
+              logStreamInfo(stream, "Remote");
+              monitorStreamTracks(stream, "Remote");
+              // Log peer connection stats when remote stream arrives
+              setTimeout(async () => {
+                if (peerConnectionRef.current) {
+                  await logPeerConnectionStats(peerConnectionRef.current, "VoiceCall");
+                }
+              }, 2000);
             },
             onConnectionStateChange: (state) => {
               if (state === "connected") {
@@ -96,6 +115,22 @@ export default function VoiceCallPage({ navigation, route }) {
           });
 
         peerConnectionRef.current = peerConnection;
+        
+        // Debug: Monitor peer connection
+        monitorPeerConnection(peerConnection, "VoiceCall");
+        
+        // Debug: Log peer connection stats after a delay
+        setTimeout(async () => {
+          await logPeerConnectionStats(peerConnection, "VoiceCall");
+        }, 3000);
+        
+        // Debug: Monitor peer connection
+        monitorPeerConnection(peerConnection, "VoiceCall");
+        
+        // Debug: Log peer connection stats after a delay
+        setTimeout(async () => {
+          await logPeerConnectionStats(peerConnection, "VoiceCall");
+        }, 3000);
       } catch (error) {
         console.error("❌ [VOICE CALL] Error setting up WebRTC:", error);
         webrtcSetupRef.current = false;
@@ -271,6 +306,26 @@ export default function VoiceCallPage({ navigation, route }) {
       }
     };
   }, [callStatus]);
+
+  // Monitor stream status for debugging
+  useEffect(() => {
+    if (callStatus === "connected") {
+      const statusInterval = setInterval(() => {
+        const localStatus = checkStreamingStatus(localStream);
+        const remoteStatus = checkStreamingStatus(remoteStream);
+        
+        // Log to console for debugging
+        console.log("📊 [VOICE CALL] Stream Status:", {
+          local: localStatus,
+          remote: remoteStatus,
+          peerConnectionState: peerConnectionRef.current?.connectionState,
+          iceConnectionState: peerConnectionRef.current?.iceConnectionState,
+        });
+      }, 3000);
+
+      return () => clearInterval(statusInterval);
+    }
+  }, [callStatus, localStream, remoteStream]);
 
   // Handle ringtone looping
   const ringtoneLoopRef = useRef(null);

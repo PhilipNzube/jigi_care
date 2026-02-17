@@ -4,10 +4,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, Sizes } from "../../../shared/constants";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import EndCallModal from "../components/EndCallModal";
-import {
-  getSocket,
-  endCall,
-} from "../services/chatService";
+import { getSocket, endCall } from "../services/chatService";
 import {
   setupWebRTCConnection,
   handleOffer,
@@ -20,10 +17,24 @@ import {
 import { useAudioPlayer } from "expo-audio";
 import { RTCView } from "react-native-webrtc";
 import { showError } from "../../../shared/utils/toast";
+import {
+  logStreamInfo,
+  monitorStreamTracks,
+  logPeerConnectionStats,
+  monitorPeerConnection,
+  checkStreamingStatus,
+  startStatsMonitoring,
+} from "../utils/webrtcDebug";
 
 export default function VideoCallPage({ navigation, route }) {
   const insets = useSafeAreaInsets();
-  const { doctor, otherUserId, conversationId, callType, isInitiator = true } = route.params || {};
+  const {
+    doctor,
+    otherUserId,
+    conversationId,
+    callType,
+    isInitiator = true,
+  } = route.params || {};
   const [showEndModal, setShowEndModal] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isSpeakerOn, setIsSpeakerOn] = useState(false);
@@ -32,17 +43,27 @@ export default function VideoCallPage({ navigation, route }) {
   const [callDuration, setCallDuration] = useState(0);
   const [localStream, setLocalStream] = useState(null);
   const [remoteStream, setRemoteStream] = useState(null);
+  const [streamStatus, setStreamStatus] = useState({
+    localAudio: false,
+    localVideo: false,
+    remoteAudio: false,
+    remoteVideo: false,
+  });
 
   const peerConnectionRef = useRef(null);
   const localStreamRef = useRef(null);
   const callTimerRef = useRef(null);
   const webrtcSetupRef = useRef(false);
-  
+
   // Use expo-audio player for ringtone
   // Different tones for caller (ringback) vs recipient (incoming)
-  const ringbackToneURI = "https://assets.mixkit.co/sfx/preview/mixkit-phone-ring-1060.mp3"; // Ringback for caller
-  const incomingRingtoneURI = "https://assets.mixkit.co/sfx/preview/mixkit-phone-ring-1060.mp3"; // Incoming for recipient
-  const ringtonePlayer = useAudioPlayer(isInitiator ? ringbackToneURI : incomingRingtoneURI);
+  const ringbackToneURI =
+    "https://assets.mixkit.co/sfx/preview/mixkit-phone-ring-1060.mp3"; // Ringback for caller
+  const incomingRingtoneURI =
+    "https://assets.mixkit.co/sfx/preview/mixkit-phone-ring-1060.mp3"; // Incoming for recipient
+  const ringtonePlayer = useAudioPlayer(
+    isInitiator ? ringbackToneURI : incomingRingtoneURI,
+  );
 
   useEffect(() => {
     const socket = getSocket();
@@ -61,11 +82,23 @@ export default function VideoCallPage({ navigation, route }) {
             onLocalStream: (stream) => {
               setLocalStream(stream);
               localStreamRef.current = stream;
+              // Debug: Log local stream info
+              logStreamInfo(stream, "Local");
+              monitorStreamTracks(stream, "Local");
             },
             onRemoteStream: (stream) => {
               setRemoteStream(stream);
               setCallStatus("connected");
               stopRingingSound();
+              // Debug: Log remote stream info
+              logStreamInfo(stream, "Remote");
+              monitorStreamTracks(stream, "Remote");
+              // Log peer connection stats when remote stream arrives
+              setTimeout(async () => {
+                if (peerConnectionRef.current) {
+                  await logPeerConnectionStats(peerConnectionRef.current, "VideoCall");
+                }
+              }, 2000);
             },
             onConnectionStateChange: (state) => {
               if (state === "connected") {
@@ -78,19 +111,54 @@ export default function VideoCallPage({ navigation, route }) {
           });
 
         peerConnectionRef.current = peerConnection;
+        
+        // Debug: Monitor peer connection
+        monitorPeerConnection(peerConnection, "VideoCall");
+        
+        // Debug: Log peer connection stats after a delay
+        setTimeout(async () => {
+          await logPeerConnectionStats(peerConnection, "VideoCall");
+        }, 3000);
+        
+        // Debug: Monitor peer connection
+        monitorPeerConnection(peerConnection, "VideoCall");
+        
+        // Debug: Start periodic stats monitoring (every 5 seconds)
+        // Uncomment to enable:
+        // const statsCleanup = startStatsMonitoring(
+        //   peerConnection,
+        //   localStreamRef.current,
+        //   null,
+        //   5000
+        // );
       } catch (error) {
         console.error("❌ [VIDEO CALL] Error setting up WebRTC:", error);
         webrtcSetupRef.current = false;
         const errorMessage = error?.message || "Failed to start call";
-        if (errorMessage.includes("permission") || errorMessage.includes("Permission")) {
-          const isVideo = errorMessage.includes("Camera") || errorMessage.includes("camera");
-          const isAudio = errorMessage.includes("Audio") || errorMessage.includes("microphone");
+        if (
+          errorMessage.includes("permission") ||
+          errorMessage.includes("Permission")
+        ) {
+          const isVideo =
+            errorMessage.includes("Camera") || errorMessage.includes("camera");
+          const isAudio =
+            errorMessage.includes("Audio") ||
+            errorMessage.includes("microphone");
           if (isVideo && isAudio) {
-            showError("Camera and microphone permissions are required for video calls. Please grant permissions in settings.", "Permissions Required");
+            showError(
+              "Camera and microphone permissions are required for video calls. Please grant permissions in settings.",
+              "Permissions Required",
+            );
           } else if (isVideo) {
-            showError("Camera permission is required for video calls. Please grant permission in settings.", "Permission Required");
+            showError(
+              "Camera permission is required for video calls. Please grant permission in settings.",
+              "Permission Required",
+            );
           } else {
-            showError("Microphone permission is required for video calls. Please grant permission in settings.", "Permission Required");
+            showError(
+              "Microphone permission is required for video calls. Please grant permission in settings.",
+              "Permission Required",
+            );
           }
         } else {
           showError(errorMessage, "Call Error");
@@ -251,10 +319,35 @@ export default function VideoCallPage({ navigation, route }) {
     };
   }, [callStatus]);
 
+  // Monitor stream status for debugging
+  useEffect(() => {
+    if (callStatus === "connected") {
+      const statusInterval = setInterval(() => {
+        const localStatus = checkStreamingStatus(localStream);
+        const remoteStatus = checkStreamingStatus(remoteStream);
+        
+        setStreamStatus({
+          localAudio: localStatus.hasAudio,
+          localVideo: localStatus.hasVideo,
+          remoteAudio: remoteStatus.hasAudio,
+          remoteVideo: remoteStatus.hasVideo,
+        });
+
+        // Log to console for debugging
+        console.log("📊 [VIDEO CALL] Stream Status:", {
+          local: localStatus,
+          remote: remoteStatus,
+        });
+      }, 2000);
+
+      return () => clearInterval(statusInterval);
+    }
+  }, [callStatus, localStream, remoteStream]);
+
   // Handle ringtone looping
   const ringtoneLoopRef = useRef(null);
   const isRingingRef = useRef(false);
-  
+
   useEffect(() => {
     if (callStatus === "ringing" && !isRingingRef.current) {
       isRingingRef.current = true;
@@ -263,9 +356,12 @@ export default function VideoCallPage({ navigation, route }) {
         try {
           if (ringtonePlayer && ringtonePlayer.status?.isLoaded) {
             // Check if playback finished and restart
-            if (ringtonePlayer.status.didJustFinish || 
-                (ringtonePlayer.status.duration && 
-                 ringtonePlayer.status.currentTime >= ringtonePlayer.status.duration - 0.1)) {
+            if (
+              ringtonePlayer.status.didJustFinish ||
+              (ringtonePlayer.status.duration &&
+                ringtonePlayer.status.currentTime >=
+                  ringtonePlayer.status.duration - 0.1)
+            ) {
               ringtonePlayer.seekTo(0);
               ringtonePlayer.play();
             }
@@ -278,7 +374,7 @@ export default function VideoCallPage({ navigation, route }) {
           }
         }
       };
-      
+
       ringtoneLoopRef.current = setInterval(checkAndLoop, 200);
     } else if (callStatus !== "ringing") {
       isRingingRef.current = false;
@@ -287,7 +383,7 @@ export default function VideoCallPage({ navigation, route }) {
         ringtoneLoopRef.current = null;
       }
     }
-    
+
     return () => {
       if (ringtoneLoopRef.current) {
         clearInterval(ringtoneLoopRef.current);
@@ -317,7 +413,10 @@ export default function VideoCallPage({ navigation, route }) {
       }
     } catch (error) {
       // Player already released, ignore
-      console.warn("⚠️ [VIDEO CALL] Error stopping ringing sound (player may be released):", error.message);
+      console.warn(
+        "⚠️ [VIDEO CALL] Error stopping ringing sound (player may be released):",
+        error.message,
+      );
     }
   };
 
@@ -384,9 +483,7 @@ export default function VideoCallPage({ navigation, route }) {
           <View style={styles.doctorAvatar}>
             <Ionicons name="person" size={16} color={Colors.primary} />
           </View>
-          <Text style={styles.doctorName}>
-            {doctor?.name || "Consultant"}
-          </Text>
+          <Text style={styles.doctorName}>{doctor?.name || "Consultant"}</Text>
         </View>
 
         <View style={styles.statusButton}>
@@ -399,6 +496,28 @@ export default function VideoCallPage({ navigation, route }) {
           </Text>
         </View>
       </View>
+
+      {/* Debug indicators - Remove in production */}
+      {__DEV__ && callStatus === "connected" && (
+        <View style={styles.debugIndicator}>
+          <View style={styles.debugRow}>
+            <View style={[styles.debugDot, streamStatus.localAudio && styles.debugDotActive]} />
+            <Text style={styles.debugText}>Local Audio</Text>
+          </View>
+          <View style={styles.debugRow}>
+            <View style={[styles.debugDot, streamStatus.localVideo && styles.debugDotActive]} />
+            <Text style={styles.debugText}>Local Video</Text>
+          </View>
+          <View style={styles.debugRow}>
+            <View style={[styles.debugDot, streamStatus.remoteAudio && styles.debugDotActive]} />
+            <Text style={styles.debugText}>Remote Audio</Text>
+          </View>
+          <View style={styles.debugRow}>
+            <View style={[styles.debugDot, streamStatus.remoteVideo && styles.debugDotActive]} />
+            <Text style={styles.debugText}>Remote Video</Text>
+          </View>
+        </View>
+      )}
 
       <View style={styles.videoContainer}>
         {/* Remote video feed */}
@@ -442,10 +561,7 @@ export default function VideoCallPage({ navigation, route }) {
           { paddingBottom: insets.bottom + Sizes.lg },
         ]}
       >
-        <TouchableOpacity
-          style={styles.controlButton}
-          onPress={toggleSpeaker}
-        >
+        <TouchableOpacity style={styles.controlButton} onPress={toggleSpeaker}>
           <Ionicons
             name={isSpeakerOn ? "volume-high" : "volume-low"}
             size={24}
@@ -606,5 +722,34 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
+  },
+  debugIndicator: {
+    position: "absolute",
+    top: 80,
+    left: 20,
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    padding: Sizes.sm,
+    borderRadius: 8,
+    zIndex: 100,
+  },
+  debugRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 2,
+  },
+  debugDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#FF0000",
+    marginRight: Sizes.xs,
+  },
+  debugDotActive: {
+    backgroundColor: "#00FF00",
+  },
+  debugText: {
+    fontSize: 10,
+    fontFamily: "Poppins-Regular",
+    color: Colors.white,
   },
 });

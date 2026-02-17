@@ -20,6 +20,29 @@ import { Audio } from "expo-av";
 const ICE_SERVERS = [
   { urls: "stun:stun.l.google.com:19302" },
   { urls: "stun:stun1.l.google.com:19302" },
+  {
+    urls: "stun:stun.relay.metered.ca:80",
+  },
+  {
+    urls: "turn:global.relay.metered.ca:80",
+    username: "f028920364fa5752581b1db3",
+    credential: "ZNTb85d97N7Ygqct",
+  },
+  {
+    urls: "turn:global.relay.metered.ca:80?transport=tcp",
+    username: "f028920364fa5752581b1db3",
+    credential: "ZNTb85d97N7Ygqct",
+  },
+  {
+    urls: "turn:global.relay.metered.ca:443",
+    username: "f028920364fa5752581b1db3",
+    credential: "ZNTb85d97N7Ygqct",
+  },
+  {
+    urls: "turns:global.relay.metered.ca:443?transport=tcp",
+    username: "f028920364fa5752581b1db3",
+    credential: "ZNTb85d97N7Ygqct",
+  },
 ];
 
 /**
