@@ -1,57 +1,77 @@
 /**
- * Ringtone utility
- * Provides proper phone ringtone sounds for calls
+ * Ringtone utility – plays HTTPS ringtone with looping.
+ * Uses react-native-sound-player (works with remote URLs).
  */
 
-import { AudioPlayer, useAudioPlayer } from "expo-audio";
+let SoundPlayer;
+try {
+  SoundPlayer = require("react-native-sound-player").default;
+} catch (e) {
+  console.warn("⚠️ [RINGTONE] react-native-sound-player not available:", e?.message);
+  SoundPlayer = null;
+}
 
-/**
- * Get a proper phone ringtone URL
- * Uses a classic phone ringtone pattern
- */
-export const getRingtoneURI = () => {
-  // Using a proper phone ringtone from a reliable source
-  // This is a classic phone ringtone (dual-tone pattern)
-  return "https://www.soundjay.com/misc/sounds/phone-ring-01.wav";
-  
-  // Alternative ringtone URLs if the above doesn't work:
-  // return "https://assets.mixkit.co/sfx/preview/mixkit-phone-ring-1060.mp3";
-  // return "https://www.zapsplat.com/wp-content/uploads/2015/sound-effects-one/phone_ring_old_telephone.mp3";
-};
+const DEFAULT_RINGTONE_URL =
+  "https://assets.mixkit.co/sfx/preview/mixkit-phone-call-ringing-1002.mp3";
+
+let _shouldLoop = false;
+let _finishedSubscription = null;
 
 /**
- * Create and play a ringtone using expo-audio
- * @returns {Promise<AudioPlayer>}
+ * Get the default ringtone URL (caller ringback / incoming ring).
  */
-export const createRingtonePlayer = async () => {
+export const getRingtoneURI = () => DEFAULT_RINGTONE_URL;
+
+/**
+ * Start playing ringtone from URL. Loops until stopRingtone() is called.
+ * @param {string} [url] - HTTPS URL of the ringtone (default: Mixkit phone ring).
+ */
+export const startRingtone = (url = DEFAULT_RINGTONE_URL) => {
+  if (!SoundPlayer) {
+    console.warn("⚠️ [RINGTONE] SoundPlayer not available");
+    return;
+  }
   try {
-    const player = new AudioPlayer(getRingtoneURI(), {
-      shouldPlay: true,
-      isLooping: true,
-      volume: 0.7,
+    _shouldLoop = true;
+
+    const loopAgain = () => {
+      if (_shouldLoop) {
+        try {
+          SoundPlayer.playUrl(url);
+        } catch (err) {
+          console.warn("⚠️ [RINGTONE] Loop play failed:", err);
+        }
+      }
+    };
+
+    if (_finishedSubscription) {
+      _finishedSubscription.remove();
+      _finishedSubscription = null;
+    }
+    _finishedSubscription = SoundPlayer.addEventListener("FinishedPlaying", ({ success }) => {
+      if (success && _shouldLoop) loopAgain();
     });
-    
-    await player.load();
-    await player.play();
-    
-    return player;
+
+    SoundPlayer.playUrl(url);
   } catch (error) {
-    console.warn("⚠️ [RINGTONE] Could not create ringtone player:", error);
-    throw error;
+    console.warn("⚠️ [RINGTONE] startRingtone failed:", error);
+    _shouldLoop = false;
   }
 };
 
 /**
- * Stop and cleanup ringtone player
- * @param {AudioPlayer} player
+ * Stop the ringtone and remove the loop listener.
  */
-export const stopRingtonePlayer = async (player) => {
+export const stopRingtone = () => {
+  _shouldLoop = false;
+  if (!SoundPlayer) return;
   try {
-    if (player) {
-      await player.pause();
-      await player.unload();
+    if (_finishedSubscription) {
+      _finishedSubscription.remove();
+      _finishedSubscription = null;
     }
+    SoundPlayer.stop();
   } catch (error) {
-    console.warn("⚠️ [RINGTONE] Error stopping ringtone:", error);
+    console.warn("⚠️ [RINGTONE] stopRingtone error:", error?.message);
   }
 };

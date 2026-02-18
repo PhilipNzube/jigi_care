@@ -16,6 +16,14 @@ import {
   sendWebRTCIceCandidate,
 } from "./chatService";
 import { Audio } from "expo-av";
+import { Platform } from "react-native";
+
+let InCallManager = null;
+try {
+  InCallManager = require("react-native-incall-manager").default;
+} catch (e) {
+  console.warn("⚠️ [WEBRTC] react-native-incall-manager not available:", e?.message);
+}
 
 const ICE_SERVERS = [
   { urls: "stun:stun.l.google.com:19302" },
@@ -230,6 +238,19 @@ export const setupWebRTCConnection = async ({
     peerConnection.oniceconnectionstatechange = () => {
       const state = peerConnection.iceConnectionState;
       console.log("🧊 [WEBRTC] ICE connection state:", state);
+      // ICE connection state is a better indicator of actual connection
+      // When ICE is "connected", the connection is established
+      if (state === "connected" || state === "completed") {
+        console.log("✅ [WEBRTC] ICE connection established");
+        if (onConnectionStateChange) {
+          onConnectionStateChange("connected");
+        }
+      } else if (state === "failed" || state === "disconnected") {
+        console.log("❌ [WEBRTC] ICE connection failed/disconnected");
+        if (onConnectionStateChange) {
+          onConnectionStateChange("failed");
+        }
+      }
     };
 
     // If initiator, create and send offer
@@ -356,5 +377,62 @@ export const toggleVideoTrack = (stream, enabled) => {
     stream.getVideoTracks().forEach((track) => {
       track.enabled = enabled;
     });
+  }
+};
+
+/**
+ * Set audio route for call: speaker (loud) vs earpiece (phone to ear).
+ * Uses react-native-incall-manager when available; falls back to expo-av.
+ * @param {boolean} useSpeaker - true = loudspeaker, false = earpiece
+ */
+export const setAudioRoute = async (useSpeaker) => {
+  if (InCallManager) {
+    try {
+      InCallManager.setSpeakerphoneOn(useSpeaker);
+      if (Platform.OS === "ios") {
+        InCallManager.setForceSpeakerphoneOn(useSpeaker);
+      }
+    } catch (error) {
+      console.warn("⚠️ [WEBRTC] InCallManager set audio route failed:", error);
+    }
+    return;
+  }
+  try {
+    await Audio.setAudioModeAsync({
+      allowsRecordingIOS: !useSpeaker,
+      playsInSilentModeIOS: true,
+      staysActiveInBackground: true,
+      shouldDuckAndroid: false,
+    });
+  } catch (error) {
+    console.warn("⚠️ [WEBRTC] Could not set audio route:", error);
+  }
+};
+
+/**
+ * Start in-call mode (enables speaker/earpiece control via InCallManager).
+ * Call when the call becomes connected.
+ * @param {'audio'|'video'} media - 'audio' for voice, 'video' for video call
+ */
+export const startInCall = (media = "audio") => {
+  if (InCallManager) {
+    try {
+      InCallManager.start({ media, auto: true });
+    } catch (error) {
+      console.warn("⚠️ [WEBRTC] InCallManager start failed:", error);
+    }
+  }
+};
+
+/**
+ * Stop in-call mode. Call when the call ends.
+ */
+export const stopInCall = () => {
+  if (InCallManager) {
+    try {
+      InCallManager.stop();
+    } catch (error) {
+      console.warn("⚠️ [WEBRTC] InCallManager stop failed:", error);
+    }
   }
 };

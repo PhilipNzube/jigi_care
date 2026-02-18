@@ -13,8 +13,10 @@ import {
   cleanupWebRTC,
   toggleAudioTrack,
   toggleVideoTrack,
+  setAudioRoute,
+  startInCall,
+  stopInCall,
 } from "../services/webrtcService";
-import { useAudioPlayer } from "expo-audio";
 import { RTCView } from "react-native-webrtc";
 import { showError } from "../../../shared/utils/toast";
 import {
@@ -25,6 +27,7 @@ import {
   checkStreamingStatus,
   startStatsMonitoring,
 } from "../utils/webrtcDebug";
+import { startRingtone, stopRingtone, getRingtoneURI } from "../utils/ringtone";
 
 export default function VideoCallPage({ navigation, route }) {
   const insets = useSafeAreaInsets();
@@ -49,21 +52,13 @@ export default function VideoCallPage({ navigation, route }) {
     remoteAudio: false,
     remoteVideo: false,
   });
+  const [videoRefreshKey, setVideoRefreshKey] = useState(0);
+  const [remoteVideoRefreshKey, setRemoteVideoRefreshKey] = useState(0);
 
   const peerConnectionRef = useRef(null);
   const localStreamRef = useRef(null);
   const callTimerRef = useRef(null);
   const webrtcSetupRef = useRef(false);
-
-  // Use expo-audio player for ringtone
-  // Different tones for caller (ringback) vs recipient (incoming)
-  const ringbackToneURI =
-    "https://assets.mixkit.co/sfx/preview/mixkit-phone-ring-1060.mp3"; // Ringback for caller
-  const incomingRingtoneURI =
-    "https://assets.mixkit.co/sfx/preview/mixkit-phone-ring-1060.mp3"; // Incoming for recipient
-  const ringtonePlayer = useAudioPlayer(
-    isInitiator ? ringbackToneURI : incomingRingtoneURI,
-  );
 
   useEffect(() => {
     const socket = getSocket();
@@ -90,6 +85,8 @@ export default function VideoCallPage({ navigation, route }) {
               setRemoteStream(stream);
               setCallStatus("connected");
               stopRingingSound();
+              setVideoRefreshKey((k) => k + 1);
+              setRemoteVideoRefreshKey((k) => k + 1);
               // Debug: Log remote stream info
               logStreamInfo(stream, "Remote");
               monitorStreamTracks(stream, "Remote");
@@ -102,6 +99,18 @@ export default function VideoCallPage({ navigation, route }) {
                   );
                 }
               }, 2000);
+              // When remote stream tracks change, refresh remote video view
+              stream.getTracks().forEach((track) => {
+                track.addEventListener("ended", () =>
+                  setRemoteVideoRefreshKey((k) => k + 1),
+                );
+                track.addEventListener("mute", () =>
+                  setRemoteVideoRefreshKey((k) => k + 1),
+                );
+                track.addEventListener("unmute", () =>
+                  setRemoteVideoRefreshKey((k) => k + 1),
+                );
+              });
             },
             onConnectionStateChange: (state) => {
               if (state === "connected") {
@@ -241,9 +250,13 @@ export default function VideoCallPage({ navigation, route }) {
       }
     };
 
-    const onCallConnected = () => {
+    const onCallConnected = async () => {
       setCallStatus("connected");
       stopRingingSound();
+      // Recipient gets call:connected (not call:accepted) — set up WebRTC here so local camera appears
+      if (!isInitiator && !webrtcSetupRef.current) {
+        await setupWebRTC();
+      }
     };
 
     const onCallRejected = () => {
@@ -300,9 +313,18 @@ export default function VideoCallPage({ navigation, route }) {
       socket.off("webrtc:answer", onWebRTCAnswer);
       socket.off("webrtc:ice-candidate", onWebRTCIceCandidate);
       stopRingingSound();
+      stopInCall();
       cleanupWebRTC(peerConnectionRef.current, localStreamRef.current);
     };
   }, [otherUserId, navigation]);
+
+  // Start InCallManager when connected so speaker/earpiece toggle works
+  useEffect(() => {
+    if (callStatus === "connected") {
+      startInCall("video");
+      setAudioRoute(isSpeakerOn);
+    }
+  }, [callStatus]);
 
   useEffect(() => {
     if (callStatus === "connected") {
@@ -347,84 +369,17 @@ export default function VideoCallPage({ navigation, route }) {
     }
   }, [callStatus, localStream, remoteStream]);
 
-  // Handle ringtone looping
-  const ringtoneLoopRef = useRef(null);
-  const isRingingRef = useRef(false);
-
-  useEffect(() => {
-    if (callStatus === "ringing" && !isRingingRef.current) {
-      isRingingRef.current = true;
-      // Check if ringtone finished and loop it
-      const checkAndLoop = () => {
-        try {
-          if (ringtonePlayer && ringtonePlayer.status?.isLoaded) {
-            // Check if playback finished and restart
-            if (
-              ringtonePlayer.status.didJustFinish ||
-              (ringtonePlayer.status.duration &&
-                ringtonePlayer.status.currentTime >=
-                  ringtonePlayer.status.duration - 0.1)
-            ) {
-              ringtonePlayer.seekTo(0);
-              ringtonePlayer.play();
-            }
-          }
-        } catch (error) {
-          // Player might be released, stop looping
-          if (ringtoneLoopRef.current) {
-            clearInterval(ringtoneLoopRef.current);
-            ringtoneLoopRef.current = null;
-          }
-        }
-      };
-
-      ringtoneLoopRef.current = setInterval(checkAndLoop, 200);
-    } else if (callStatus !== "ringing") {
-      isRingingRef.current = false;
-      if (ringtoneLoopRef.current) {
-        clearInterval(ringtoneLoopRef.current);
-        ringtoneLoopRef.current = null;
-      }
-    }
-
-    return () => {
-      if (ringtoneLoopRef.current) {
-        clearInterval(ringtoneLoopRef.current);
-        ringtoneLoopRef.current = null;
-      }
-    };
-  }, [callStatus, ringtonePlayer]);
-
   const playRingingSound = () => {
-    try {
-      if (!ringtonePlayer) return;
-      // Use expo-audio player - proper phone ringtone
-      ringtonePlayer.seekTo(0); // Reset to start
-      ringtonePlayer.play(); // Start playing (will loop via useEffect)
-    } catch (error) {
-      console.warn("⚠️ [VIDEO CALL] Could not play ringing sound:", error);
-    }
+    startRingtone(getRingtoneURI());
   };
 
   const stopRingingSound = () => {
-    try {
-      if (!ringtonePlayer) return;
-      // Check if player is still valid before pausing
-      if (ringtonePlayer.status?.isLoaded) {
-        ringtonePlayer.pause();
-        ringtonePlayer.seekTo(0);
-      }
-    } catch (error) {
-      // Player already released, ignore
-      console.warn(
-        "⚠️ [VIDEO CALL] Error stopping ringing sound (player may be released):",
-        error.message,
-      );
-    }
+    stopRingtone();
   };
 
   const handleEndCall = () => {
     stopRingingSound();
+    stopInCall();
     if (otherUserId) {
       endCall(otherUserId);
     }
@@ -462,9 +417,25 @@ export default function VideoCallPage({ navigation, route }) {
     }
   };
 
-  const toggleSpeaker = () => {
-    setIsSpeakerOn(!isSpeakerOn);
+  const toggleSpeaker = async () => {
+    const next = !isSpeakerOn;
+    setIsSpeakerOn(next);
+    await setAudioRoute(next);
   };
+
+  // Periodic refresh of local video view to avoid frozen frame
+  useEffect(() => {
+    if (callStatus !== "connected" || !localStream) return;
+    const t = setInterval(() => setVideoRefreshKey((k) => k + 1), 15000);
+    return () => clearInterval(t);
+  }, [callStatus, localStream]);
+
+  // More frequent refresh for remote (caller) video so their feed keeps updating on recipient's screen
+  useEffect(() => {
+    if (callStatus !== "connected" || !remoteStream) return;
+    const t = setInterval(() => setRemoteVideoRefreshKey((k) => k + 1), 2500);
+    return () => clearInterval(t);
+  }, [callStatus, remoteStream]);
 
   const formatCallDuration = (seconds) => {
     const mins = Math.floor(seconds / 60);
@@ -500,11 +471,11 @@ export default function VideoCallPage({ navigation, route }) {
         </View>
       </View>
 
-
       <View style={styles.videoContainer}>
-        {/* Remote video feed */}
+        {/* Remote video feed (caller) - key refreshes so their video keeps updating */}
         {remoteStream ? (
           <RTCView
+            key={`remote-${remoteVideoRefreshKey}-${videoRefreshKey}-${remoteStream.id}`}
             streamURL={remoteStream.toURL()}
             style={styles.mainVideo}
             objectFit="cover"
@@ -522,6 +493,7 @@ export default function VideoCallPage({ navigation, route }) {
         {localStream && isVideoOn ? (
           <View style={[styles.userVideoContainer, { top: insets.top + 60 }]}>
             <RTCView
+              key={`local-${videoRefreshKey}-${localStream.id}`}
               streamURL={localStream.toURL()}
               style={styles.userVideo}
               objectFit="cover"
@@ -545,7 +517,7 @@ export default function VideoCallPage({ navigation, route }) {
       >
         <TouchableOpacity style={styles.controlButton} onPress={toggleSpeaker}>
           <Ionicons
-            name={isSpeakerOn ? "volume-high" : "volume-low"}
+            name={isSpeakerOn ? "volume-high" : "phone-portrait-outline"}
             size={24}
             color={Colors.black}
           />

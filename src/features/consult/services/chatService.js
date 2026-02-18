@@ -169,6 +169,8 @@ export const connectSocket = (userId, userType, callbacks = {}) => {
     console.log("📞 [CHAT SERVICE] Call ended:", data);
     if (callbacks.onCallEnded) callbacks.onCallEnded(data);
   });
+  // WebRTC signaling: server forwards by fromUserId. We only apply signals from our peer.
+  // fromUserId = the other participant who sent the offer/answer/ICE (we validate data.fromUserId === otherUserId).
   socketInstance.on("webrtc:offer", (data) => {
     if (callbacks.onWebRTCOffer) callbacks.onWebRTCOffer(data);
   });
@@ -323,6 +325,9 @@ export const markMessagesAsReadViaSocket = (conversationId, messageIds) => {
 };
 
 // ==================== CALL (AUDIO/VIDEO) ====================
+// fromUserId: In socket events (webrtc:offer, webrtc:answer, webrtc:ice-candidate, call:incoming),
+// the server sends "fromUserId" = the user who sent the event. We use it to ensure we only
+// apply signaling from our peer (data.fromUserId === otherUserId) and to know who is calling (incomingCall.fromUserId).
 
 /**
  * Initiate a call (audio or video)

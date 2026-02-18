@@ -25,8 +25,10 @@ import {
   handleIceCandidate,
   cleanupWebRTC,
   toggleAudioTrack,
+  setAudioRoute,
+  startInCall,
+  stopInCall,
 } from "../services/webrtcService";
-import { useAudioPlayer } from "expo-audio";
 import { showError } from "../../../shared/utils/toast";
 import {
   logStreamInfo,
@@ -35,6 +37,7 @@ import {
   monitorPeerConnection,
   checkStreamingStatus,
 } from "../utils/webrtcDebug";
+import { startRingtone, stopRingtone, getRingtoneURI } from "../utils/ringtone";
 
 export default function VoiceCallPage({ navigation, route }) {
   const insets = useSafeAreaInsets();
@@ -58,32 +61,35 @@ export default function VoiceCallPage({ navigation, route }) {
   const callTimerRef = useRef(null);
   const webrtcSetupRef = useRef(false);
 
-  // Use expo-audio player for ringtone
-  // Different tones for caller (ringback) vs recipient (incoming)
-  const ringbackToneURI =
-    "https://assets.mixkit.co/sfx/preview/mixkit-phone-ring-1060.mp3"; // Ringback for caller
-  const incomingRingtoneURI =
-    "https://assets.mixkit.co/sfx/preview/mixkit-phone-ring-1060.mp3"; // Incoming for recipient
-  const ringtonePlayer = useAudioPlayer(
-    isInitiator ? ringbackToneURI : incomingRingtoneURI,
-  );
-
   // Setup socket listeners and WebRTC
   useEffect(() => {
     const socket = getSocket();
     if (!socket || !otherUserId) return;
 
     const setupWebRTC = async () => {
-      if (webrtcSetupRef.current) return;
+      if (webrtcSetupRef.current) {
+        console.log("⚠️ [VOICE CALL] WebRTC setup already in progress or completed");
+        return;
+      }
       webrtcSetupRef.current = true;
 
       try {
+        console.log("🔧 [VOICE CALL] Starting WebRTC setup...", {
+          isInitiator,
+          otherUserId,
+        });
+        
         const { peerConnection, localStream: stream } =
           await setupWebRTCConnection({
             otherUserId,
             isInitiator,
             isVideo: false,
             onLocalStream: (stream) => {
+              console.log("✅ [VOICE CALL] Local stream received:", {
+                streamId: stream?.id,
+                audioTracks: stream?.getAudioTracks()?.length || 0,
+                videoTracks: stream?.getVideoTracks()?.length || 0,
+              });
               setLocalStream(stream);
               localStreamRef.current = stream;
               // Debug: Log local stream info
@@ -91,7 +97,13 @@ export default function VoiceCallPage({ navigation, route }) {
               monitorStreamTracks(stream, "Local");
             },
             onRemoteStream: (stream) => {
+              console.log("✅ [VOICE CALL] Remote stream received:", {
+                streamId: stream?.id,
+                audioTracks: stream?.getAudioTracks()?.length || 0,
+                videoTracks: stream?.getVideoTracks()?.length || 0,
+              });
               setRemoteStream(stream);
+              console.log("✅ [VOICE CALL] Setting status to 'connected' - remote stream arrived");
               setCallStatus("connected");
               stopRingingSound();
               // Debug: Log remote stream info
@@ -105,15 +117,28 @@ export default function VoiceCallPage({ navigation, route }) {
               }, 2000);
             },
             onConnectionStateChange: (state) => {
+              console.log("🔄 [VOICE CALL] Connection state changed:", state);
               if (state === "connected") {
+                console.log("✅ [VOICE CALL] Peer connection connected - updating status");
                 setCallStatus("connected");
                 stopRingingSound();
+              } else if (state === "connecting") {
+                console.log("🔄 [VOICE CALL] Peer connection connecting...");
+                setCallStatus("connecting");
               } else if (state === "disconnected" || state === "failed") {
+                console.log("❌ [VOICE CALL] Peer connection failed/disconnected");
                 handleEndCall();
               }
             },
           });
 
+        console.log("✅ [VOICE CALL] WebRTC setup completed:", {
+          hasPeerConnection: !!peerConnection,
+          hasLocalStream: !!stream,
+          peerConnectionState: peerConnection?.connectionState,
+          iceConnectionState: peerConnection?.iceConnectionState,
+        });
+        
         peerConnectionRef.current = peerConnection;
         
         // Debug: Monitor peer connection
@@ -190,13 +215,23 @@ export default function VoiceCallPage({ navigation, route }) {
     const onWebRTCAnswer = async (data) => {
       if (data.fromUserId === otherUserId && peerConnectionRef.current) {
         try {
+          console.log("📥 [VOICE CALL] WebRTC answer received");
           await handleAnswer({
             peerConnection: peerConnectionRef.current,
             answer: data.answer,
           });
+          // For initiator, when answer is received, connection should be establishing
+          // Status will change to "connected" when remote stream arrives or connection state changes
+          console.log("✅ [VOICE CALL] Answer processed, waiting for connection...");
         } catch (error) {
           console.error("❌ [VOICE CALL] Error handling answer:", error);
         }
+      } else {
+        console.warn("⚠️ [VOICE CALL] Answer received but peer connection not ready:", {
+          hasPeerConnection: !!peerConnectionRef.current,
+          fromUserId: data.fromUserId,
+          otherUserId,
+        });
       }
     };
 
@@ -215,17 +250,26 @@ export default function VoiceCallPage({ navigation, route }) {
 
     // Call event handlers
     const onCallAccepted = async () => {
+      console.log("✅ [VOICE CALL] Call accepted - setting status to connecting");
       setCallStatus("connecting");
       stopRingingSound();
       // If recipient, set up WebRTC now that call is accepted
       if (!isInitiator && !webrtcSetupRef.current) {
         await setupWebRTC();
       }
+      // If initiator, the status will change to "connected" when:
+      // 1. Remote stream arrives (onRemoteStream callback)
+      // 2. Peer connection state changes to "connected" (onConnectionStateChange)
     };
 
-    const onCallConnected = () => {
+    const onCallConnected = async () => {
+      console.log("✅ [VOICE CALL] Call connected event received - updating status");
       setCallStatus("connected");
       stopRingingSound();
+      // Recipient gets call:connected (not call:accepted) — set up WebRTC here so mic works
+      if (!isInitiator && !webrtcSetupRef.current) {
+        await setupWebRTC();
+      }
     };
 
     const onCallRejected = () => {
@@ -284,9 +328,18 @@ export default function VoiceCallPage({ navigation, route }) {
       socket.off("webrtc:answer", onWebRTCAnswer);
       socket.off("webrtc:ice-candidate", onWebRTCIceCandidate);
       stopRingingSound();
+      stopInCall();
       cleanupWebRTC(peerConnectionRef.current, localStreamRef.current);
     };
   }, [otherUserId, navigation]);
+
+  // Start InCallManager when connected so speaker/earpiece toggle works
+  useEffect(() => {
+    if (callStatus === "connected") {
+      startInCall("audio");
+      setAudioRoute(isSpeakerOn);
+    }
+  }, [callStatus]);
 
   // Call duration timer
   useEffect(() => {
@@ -311,6 +364,7 @@ export default function VoiceCallPage({ navigation, route }) {
   useEffect(() => {
     if (callStatus === "connected") {
       const statusInterval = setInterval(() => {
+        const peerConnection = peerConnectionRef.current;
         const localStatus = checkStreamingStatus(localStream);
         const remoteStatus = checkStreamingStatus(remoteStream);
         
@@ -318,93 +372,42 @@ export default function VoiceCallPage({ navigation, route }) {
         console.log("📊 [VOICE CALL] Stream Status:", {
           local: localStatus,
           remote: remoteStatus,
-          peerConnectionState: peerConnectionRef.current?.connectionState,
-          iceConnectionState: peerConnectionRef.current?.iceConnectionState,
+          peerConnectionState: peerConnection?.connectionState || "not initialized",
+          iceConnectionState: peerConnection?.iceConnectionState || "not initialized",
+          signalingState: peerConnection?.signalingState || "not initialized",
+          iceGatheringState: peerConnection?.iceGatheringState || "not initialized",
+          hasPeerConnection: !!peerConnection,
+          hasLocalStream: !!localStream,
+          hasRemoteStream: !!remoteStream,
         });
+        
+        // Warn if critical components are missing
+        if (!peerConnection) {
+          console.warn("⚠️ [VOICE CALL] Peer connection not initialized!");
+        }
+        if (!localStream) {
+          console.warn("⚠️ [VOICE CALL] Local stream not available!");
+        }
+        if (localStream && localStatus.audioTracks === 0) {
+          console.warn("⚠️ [VOICE CALL] Local stream has no audio tracks!");
+        }
       }, 3000);
 
       return () => clearInterval(statusInterval);
     }
   }, [callStatus, localStream, remoteStream]);
 
-  // Handle ringtone looping
-  const ringtoneLoopRef = useRef(null);
-  const isRingingRef = useRef(false);
-
-  useEffect(() => {
-    if (callStatus === "ringing" && !isRingingRef.current) {
-      isRingingRef.current = true;
-      // Check if ringtone finished and loop it
-      const checkAndLoop = () => {
-        try {
-          if (ringtonePlayer && ringtonePlayer.status?.isLoaded) {
-            // Check if playback finished and restart
-            if (
-              ringtonePlayer.status.didJustFinish ||
-              (ringtonePlayer.status.duration &&
-                ringtonePlayer.status.currentTime >=
-                  ringtonePlayer.status.duration - 0.1)
-            ) {
-              ringtonePlayer.seekTo(0);
-              ringtonePlayer.play();
-            }
-          }
-        } catch (error) {
-          // Player might be released, stop looping
-          if (ringtoneLoopRef.current) {
-            clearInterval(ringtoneLoopRef.current);
-            ringtoneLoopRef.current = null;
-          }
-        }
-      };
-
-      ringtoneLoopRef.current = setInterval(checkAndLoop, 200);
-    } else if (callStatus !== "ringing") {
-      isRingingRef.current = false;
-      if (ringtoneLoopRef.current) {
-        clearInterval(ringtoneLoopRef.current);
-        ringtoneLoopRef.current = null;
-      }
-    }
-
-    return () => {
-      if (ringtoneLoopRef.current) {
-        clearInterval(ringtoneLoopRef.current);
-        ringtoneLoopRef.current = null;
-      }
-    };
-  }, [callStatus, ringtonePlayer]);
-
   const playRingingSound = () => {
-    try {
-      if (!ringtonePlayer) return;
-      // Use expo-audio player - proper phone ringtone
-      ringtonePlayer.seekTo(0); // Reset to start
-      ringtonePlayer.play(); // Start playing (will loop via useEffect)
-    } catch (error) {
-      console.warn("⚠️ [VOICE CALL] Could not play ringing sound:", error);
-    }
+    startRingtone(getRingtoneURI());
   };
 
   const stopRingingSound = () => {
-    try {
-      if (!ringtonePlayer) return;
-      // Check if player is still valid before pausing
-      if (ringtonePlayer.status?.isLoaded) {
-        ringtonePlayer.pause();
-        ringtonePlayer.seekTo(0);
-      }
-    } catch (error) {
-      // Player already released, ignore
-      console.warn(
-        "⚠️ [VOICE CALL] Error stopping ringing sound (player may be released):",
-        error.message,
-      );
-    }
+    stopRingtone();
   };
 
   const handleEndCall = () => {
     stopRingingSound();
+    stopInCall();
     if (otherUserId) {
       endCall(otherUserId);
     }
@@ -434,9 +437,10 @@ export default function VoiceCallPage({ navigation, route }) {
     }
   };
 
-  const toggleSpeaker = () => {
-    setIsSpeakerOn(!isSpeakerOn);
-    // Note: Speaker control would need additional native module or expo-av audio routing
+  const toggleSpeaker = async () => {
+    const next = !isSpeakerOn;
+    setIsSpeakerOn(next);
+    await setAudioRoute(next);
   };
 
   const formatCallDuration = (seconds) => {
@@ -495,7 +499,7 @@ export default function VoiceCallPage({ navigation, route }) {
       >
         <TouchableOpacity style={styles.controlButton} onPress={toggleSpeaker}>
           <Ionicons
-            name={isSpeakerOn ? "volume-high" : "volume-low"}
+            name={isSpeakerOn ? "volume-high" : "phone-portrait-outline"}
             size={24}
             color={Colors.black}
           />
