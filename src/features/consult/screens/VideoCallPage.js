@@ -191,10 +191,9 @@ export default function VideoCallPage({ navigation, route }) {
 
     const initializeCall = async () => {
       try {
-        // If recipient (incoming call), play incoming ringtone immediately
-        // If initiator (outgoing call), wait for call:ringing event to play ringback
+        // If recipient: ringtone already started on ChatPage when incoming UI appeared; don't start again.
+        // If initiator: wait for call:ringing event to play ringback (see onCallRinging).
         if (!isInitiator) {
-          playRingingSound();
           console.log(`🏁 [VIDEO RACE] ${t()} Recipient: initializeCall done. NOT calling setupWebRTC – waiting for call:connected. peerConnectionRef.current=${!!peerConnectionRef.current}`);
         }
 

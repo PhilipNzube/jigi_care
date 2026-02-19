@@ -39,6 +39,7 @@ import {
   markBookingCompleted,
   markBookingNoShow,
 } from "../services/bookingService";
+import { startRingtone, stopRingtone, getRingtoneURI } from "../utils/ringtone";
 import { format, parseISO } from "date-fns";
 import { showError, showSuccess } from "../../../shared/utils/toast";
 import ShimmerLoader from "../../../shared/components/ShimmerLoader";
@@ -145,6 +146,7 @@ export default function ChatPage({ navigation, route }) {
           conversationId: data.conversationId,
           callType: data.callType || "audio",
         });
+        startRingtone(getRingtoneURI("incoming"));
       },
       onCallRinging: () => {},
       onCallAccepted: () => {
@@ -152,19 +154,23 @@ export default function ChatPage({ navigation, route }) {
         setIncomingCall(null);
       },
       onCallRejected: (data) => {
+        stopRingtone();
         setIncomingCall(null);
         showError(data?.reason || "Call declined", "Call declined");
       },
       onCallNoAnswer: () => {
+        stopRingtone();
         setIncomingCall(null);
         showError("No answer", "Call ended");
       },
       onCallMissed: () => {
+        stopRingtone();
         setIncomingCall(null);
       },
       onCallStopRinging: () => {},
       onCallConnected: () => {},
       onCallEnded: () => {
+        stopRingtone();
         setIncomingCall(null);
       },
     });
@@ -676,6 +682,7 @@ export default function ChatPage({ navigation, route }) {
 
   const handleAcceptIncomingCall = () => {
     if (!incomingCall) return;
+    stopRingtone();
     const { fromUserId, conversationId: convId, callType } = incomingCall;
     console.log("📞 [CHAT PAGE] Answering call – fromUserId (caller):", fromUserId, "conversationId:", convId, "callType:", callType);
     acceptCall(fromUserId);
@@ -702,6 +709,7 @@ export default function ChatPage({ navigation, route }) {
 
   const handleRejectIncomingCall = () => {
     if (incomingCall) {
+      stopRingtone();
       rejectCall(incomingCall.fromUserId, "Declined");
       setIncomingCall(null);
     }
