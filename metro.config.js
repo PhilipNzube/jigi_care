@@ -6,9 +6,15 @@ const path = require('path');
 const config = getDefaultConfig(__dirname);
 
 // Ensure PNG and other image assets are recognized
-if (!config.resolver.assetExts.includes('png')) {
-  config.resolver.assetExts.push('png', 'jpg', 'jpeg', 'gif', 'webp', 'svg');
+if (!config.resolver.assetExts.includes("png")) {
+  config.resolver.assetExts.push("png", "jpg", "jpeg", "gif", "webp", "svg");
 }
+// Audio assets for ringtones (WAV, MP3, etc.)
+["wav", "mp3", "m4a", "ogg"].forEach((ext) => {
+  if (!config.resolver.assetExts.includes(ext)) {
+    config.resolver.assetExts.push(ext);
+  }
+});
 
 // Ensure TypeScript files can be resolved from node_modules
 config.resolver.sourceExts = [...config.resolver.sourceExts, 'ts', 'tsx'];

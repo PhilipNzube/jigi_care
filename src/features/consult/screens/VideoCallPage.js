@@ -419,7 +419,8 @@ export default function VideoCallPage({ navigation, route }) {
   }, [callStatus, localStream, remoteStream]);
 
   const playRingingSound = () => {
-    startRingtone(getRingtoneURI());
+    const type = isInitiator ? "outgoing" : "incoming";
+    startRingtone(getRingtoneURI(type));
   };
 
   const stopRingingSound = () => {
