@@ -139,6 +139,7 @@ export default function ChatPage({ navigation, route }) {
         handleMessagesRead(data);
       },
       onCallIncoming: (data) => {
+        console.log("📞 [CHAT PAGE] Incoming call – fromUserId:", data?.fromUserId, "conversationId:", data?.conversationId, "callType:", data?.callType || "audio");
         setIncomingCall({
           fromUserId: data.fromUserId,
           conversationId: data.conversationId,
@@ -676,6 +677,7 @@ export default function ChatPage({ navigation, route }) {
   const handleAcceptIncomingCall = () => {
     if (!incomingCall) return;
     const { fromUserId, conversationId: convId, callType } = incomingCall;
+    console.log("📞 [CHAT PAGE] Answering call – fromUserId (caller):", fromUserId, "conversationId:", convId, "callType:", callType);
     acceptCall(fromUserId);
     const minimalDoctor = { name: "Consultant", consultantId: fromUserId, ...doctor };
     setIncomingCall(null);

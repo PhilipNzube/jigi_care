@@ -4,7 +4,12 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, Sizes } from "../../../shared/constants";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import EndCallModal from "../components/EndCallModal";
-import { getSocket, endCall } from "../services/chatService";
+import {
+  getSocket,
+  endCall,
+  getAndClearPendingOffer,
+  getAndClearPendingIceCandidates,
+} from "../services/chatService";
 import {
   setupWebRTCConnection,
   handleOffer,
@@ -59,6 +64,7 @@ export default function VideoCallPage({ navigation, route }) {
   const localStreamRef = useRef(null);
   const callTimerRef = useRef(null);
   const webrtcSetupRef = useRef(false);
+  const hasEndedCallRef = useRef(false);
 
   useEffect(() => {
     const socket = getSocket();
@@ -181,12 +187,15 @@ export default function VideoCallPage({ navigation, route }) {
       }
     };
 
+    const t = () => `[t=${Date.now()}]`;
+
     const initializeCall = async () => {
       try {
         // If recipient (incoming call), play incoming ringtone immediately
         // If initiator (outgoing call), wait for call:ringing event to play ringback
         if (!isInitiator) {
           playRingingSound();
+          console.log(`🏁 [VIDEO RACE] ${t()} Recipient: initializeCall done. NOT calling setupWebRTC – waiting for call:connected. peerConnectionRef.current=${!!peerConnectionRef.current}`);
         }
 
         // If initiator, set up WebRTC immediately
@@ -201,8 +210,12 @@ export default function VideoCallPage({ navigation, route }) {
     };
 
     const onWebRTCOffer = async (data) => {
+      const hasPc = !!peerConnectionRef.current;
+      const fromMatch = data.fromUserId === otherUserId;
+      console.log(`🏁 [VIDEO RACE] ${t()} webrtc:offer received. fromUserId=${data?.fromUserId} otherUserId=${otherUserId} fromMatch=${fromMatch} hasPeerConnection=${hasPc}`);
       if (data.fromUserId === otherUserId && peerConnectionRef.current) {
         try {
+          console.log(`🏁 [VIDEO RACE] ${t()} Handling offer (peer connection ready)`);
           await handleOffer({
             peerConnection: peerConnectionRef.current,
             offer: data.offer,
@@ -212,10 +225,14 @@ export default function VideoCallPage({ navigation, route }) {
         } catch (error) {
           console.error("❌ [VIDEO CALL] Error handling offer:", error);
         }
+      } else if (!hasPc) {
+        console.warn(`🏁 [VIDEO RACE] ${t()} RACE? Skipping offer – peerConnectionRef is null (call:connected/setupWebRTC not done yet)`);
       }
     };
 
     const onWebRTCAnswer = async (data) => {
+      const hasPc = !!peerConnectionRef.current;
+      console.log(`🏁 [VIDEO RACE] ${t()} webrtc:answer received. hasPeerConnection=${hasPc}`);
       if (data.fromUserId === otherUserId && peerConnectionRef.current) {
         try {
           await handleAnswer({
@@ -225,10 +242,16 @@ export default function VideoCallPage({ navigation, route }) {
         } catch (error) {
           console.error("❌ [VIDEO CALL] Error handling answer:", error);
         }
+      } else if (!hasPc) {
+        console.warn(`🏁 [VIDEO RACE] ${t()} RACE? Skipping answer – peerConnectionRef is null`);
       }
     };
 
     const onWebRTCIceCandidate = async (data) => {
+      const hasPc = !!peerConnectionRef.current;
+      if (!hasPc && data.fromUserId === otherUserId) {
+        console.warn(`🏁 [VIDEO RACE] ${t()} webrtc:ice-candidate received but peerConnectionRef is null (skipping)`);
+      }
       if (data.fromUserId === otherUserId && peerConnectionRef.current) {
         try {
           await handleIceCandidate({
@@ -251,11 +274,37 @@ export default function VideoCallPage({ navigation, route }) {
     };
 
     const onCallConnected = async () => {
+      console.log(`🏁 [VIDEO RACE] ${t()} call:connected received (recipient). Will call setupWebRTC now. peerConnectionRef.current before=${!!peerConnectionRef.current}`);
+      console.log("✅ [VIDEO CALL] Call connected (you answered) – fromUserId (caller) = otherUserId:", otherUserId);
       setCallStatus("connected");
       stopRingingSound();
       // Recipient gets call:connected (not call:accepted) — set up WebRTC here so local camera appears
       if (!isInitiator && !webrtcSetupRef.current) {
+        console.log(`🏁 [VIDEO RACE] ${t()} setupWebRTC starting (async)...`);
         await setupWebRTC();
+        console.log(`🏁 [VIDEO RACE] ${t()} setupWebRTC finished. peerConnectionRef.current now=${!!peerConnectionRef.current}`);
+        // Apply offer that may have arrived before this screen mounted (e.g. while on ChatPage)
+        const pending = getAndClearPendingOffer(otherUserId);
+        if (pending?.offer && peerConnectionRef.current) {
+          try {
+            console.log("📥 [VIDEO CALL] Applying pending offer (received before call screen mounted)");
+            await handleOffer({
+              peerConnection: peerConnectionRef.current,
+              offer: pending.offer,
+              otherUserId,
+              isVideo: true,
+            });
+            const iceCandidates = getAndClearPendingIceCandidates(otherUserId);
+            for (const candidate of iceCandidates || []) {
+              await handleIceCandidate({
+                peerConnection: peerConnectionRef.current,
+                candidate,
+              });
+            }
+          } catch (e) {
+            console.error("❌ [VIDEO CALL] Error applying pending offer:", e);
+          }
+        }
       }
     };
 
@@ -378,6 +427,8 @@ export default function VideoCallPage({ navigation, route }) {
   };
 
   const handleEndCall = () => {
+    if (hasEndedCallRef.current) return;
+    hasEndedCallRef.current = true;
     stopRingingSound();
     stopInCall();
     if (otherUserId) {

@@ -13,6 +13,11 @@ const SOCKET_URL = `${BASE_URL}/chat`;
 // Store socket instance
 let socketInstance = null;
 
+// Pending WebRTC offer/ICE received before call screen mounted (e.g. while on ChatPage).
+// Keyed by fromUserId (caller). Recipient uses getAndClearPendingOffer(otherUserId) after setupWebRTC.
+const pendingOfferByFromUserId = {};
+const pendingIceCandidatesByFromUserId = {};
+
 /**
  * Initialize WebSocket connection
  * @param {string} userId - User ID
@@ -31,6 +36,10 @@ export const connectSocket = (userId, userType, callbacks = {}) => {
     console.log("🔌 [CHAT SERVICE] Disconnecting existing socket...");
     socketInstance.disconnect();
   }
+
+  // Clear pending WebRTC state on (re)connect so we don't use stale offers
+  Object.keys(pendingOfferByFromUserId).forEach((k) => delete pendingOfferByFromUserId[k]);
+  Object.keys(pendingIceCandidatesByFromUserId).forEach((k) => delete pendingIceCandidatesByFromUserId[k]);
 
   socketInstance = io(SOCKET_URL, {
     transports: ["websocket", "polling"],
@@ -140,11 +149,11 @@ export const connectSocket = (userId, userType, callbacks = {}) => {
     if (callbacks.onCallRinging) callbacks.onCallRinging(data);
   });
   socketInstance.on("call:incoming", (data) => {
-    console.log("📞 [CHAT SERVICE] Incoming call:", data);
+    console.log("📞 [CHAT SERVICE] Incoming call – fromUserId:", data?.fromUserId, "full payload:", JSON.stringify(data));
     if (callbacks.onCallIncoming) callbacks.onCallIncoming(data);
   });
   socketInstance.on("call:accepted", (data) => {
-    console.log("📞 [CHAT SERVICE] Call accepted:", data);
+    console.log("📞 [CHAT SERVICE] Call accepted – fromUserId:", data?.fromUserId, "full payload:", data ? JSON.stringify(data) : "(no payload)");
     if (callbacks.onCallAccepted) callbacks.onCallAccepted(data);
   });
   socketInstance.on("call:rejected", (data) => {
@@ -162,8 +171,9 @@ export const connectSocket = (userId, userType, callbacks = {}) => {
   socketInstance.on("call:stop-ringing", () => {
     if (callbacks.onCallStopRinging) callbacks.onCallStopRinging();
   });
-  socketInstance.on("call:connected", () => {
-    if (callbacks.onCallConnected) callbacks.onCallConnected();
+  socketInstance.on("call:connected", (data) => {
+    console.log(`🏁 [CHAT SERVICE RACE] [t=${Date.now()}] call:connected received (recipient answered) – fromUserId:`, data?.fromUserId);
+    if (callbacks.onCallConnected) callbacks.onCallConnected(data);
   });
   socketInstance.on("call:ended", (data) => {
     console.log("📞 [CHAT SERVICE] Call ended:", data);
@@ -172,12 +182,23 @@ export const connectSocket = (userId, userType, callbacks = {}) => {
   // WebRTC signaling: server forwards by fromUserId. We only apply signals from our peer.
   // fromUserId = the other participant who sent the offer/answer/ICE (we validate data.fromUserId === otherUserId).
   socketInstance.on("webrtc:offer", (data) => {
+    console.log(`🏁 [CHAT SERVICE RACE] [t=${Date.now()}] webrtc:offer received fromUserId=${data?.fromUserId}`);
+    const from = data?.fromUserId;
+    if (from) {
+      pendingOfferByFromUserId[from] = { offer: data.offer, fromUserId: from };
+    }
     if (callbacks.onWebRTCOffer) callbacks.onWebRTCOffer(data);
   });
   socketInstance.on("webrtc:answer", (data) => {
+    console.log(`🏁 [CHAT SERVICE RACE] [t=${Date.now()}] webrtc:answer received fromUserId=${data?.fromUserId}`);
     if (callbacks.onWebRTCAnswer) callbacks.onWebRTCAnswer(data);
   });
   socketInstance.on("webrtc:ice-candidate", (data) => {
+    const from = data?.fromUserId;
+    if (from && data.candidate != null) {
+      if (!pendingIceCandidatesByFromUserId[from]) pendingIceCandidatesByFromUserId[from] = [];
+      pendingIceCandidatesByFromUserId[from].push(data.candidate);
+    }
     if (callbacks.onWebRTCIceCandidate) callbacks.onWebRTCIceCandidate(data);
   });
 
@@ -201,6 +222,29 @@ export const disconnectSocket = () => {
  */
 export const getSocket = () => {
   return socketInstance;
+};
+
+/**
+ * Get and clear pending WebRTC offer for a caller (fromUserId).
+ * Used when the offer arrived before the call screen mounted (e.g. while on ChatPage).
+ * @param {string} fromUserId - Caller user ID (otherUserId on recipient)
+ * @returns {{ offer: object, fromUserId: string }|null}
+ */
+export const getAndClearPendingOffer = (fromUserId) => {
+  const pending = pendingOfferByFromUserId[fromUserId] || null;
+  delete pendingOfferByFromUserId[fromUserId];
+  return pending;
+};
+
+/**
+ * Get and clear pending ICE candidates for a caller (fromUserId).
+ * @param {string} fromUserId - Caller user ID (otherUserId on recipient)
+ * @returns {object[]}
+ */
+export const getAndClearPendingIceCandidates = (fromUserId) => {
+  const list = pendingIceCandidatesByFromUserId[fromUserId] || [];
+  delete pendingIceCandidatesByFromUserId[fromUserId];
+  return list;
 };
 
 /**
@@ -349,10 +393,11 @@ export const initiateCall = (toUserId, conversationId, callType) => {
 
 /**
  * Accept an incoming call
- * @param {string} toUserId - Caller user ID
+ * @param {string} toUserId - Caller user ID (same as fromUserId from call:incoming)
  */
 export const acceptCall = (toUserId) => {
   if (!socketInstance || !socketInstance.connected) return;
+  console.log("📞 [CHAT SERVICE] Emitting call:accept – toUserId (caller/fromUserId):", toUserId);
   socketInstance.emit("call:accept", { toUserId });
 };
 
