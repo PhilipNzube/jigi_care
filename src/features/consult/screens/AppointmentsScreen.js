@@ -8,17 +8,21 @@ import {
   RefreshControl,
   BackHandler,
   Platform,
+  ActivityIndicator,
+  Modal,
+  TextInput,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
-import { getPatientBookingList } from "../services/bookingService";
+import { getPatientBookingList, markBookingCompleted, markBookingNoShow } from "../services/bookingService";
 import { useAuth } from "../../../shared/context/AuthContext";
 import { format, parseISO } from "date-fns";
 import ShimmerLoader from "../../../shared/components/ShimmerLoader";
 import EmptyState from "../../../shared/components/EmptyState";
 import ConnectingModal from "../../home/components/ConnectingModal";
+import { showSuccess, showError } from "../../../shared/utils/toast";
 
 const STATUS_LABELS = {
   pending_confirmation: "Pending confirmation",
@@ -92,8 +96,67 @@ export default function AppointmentsScreen({ navigation }) {
   const [totalItems, setTotalItems] = useState(0);
   const [showConnectingModal, setShowConnectingModal] = useState(false);
   const [selectedDoctorName, setSelectedDoctorName] = useState("");
+  const [actionLoading, setActionLoading] = useState({});
+  const [confirmModalVisible, setConfirmModalVisible] = useState(false);
+  const [confirmReason, setConfirmReason] = useState("");
+  const [confirmBookingItem, setConfirmBookingItem] = useState(null);
 
   const totalPages = Math.max(1, Math.ceil(totalItems / LIST_PAGE_SIZE));
+
+  const setBookingActionLoading = (bookingId, action, loading) => {
+    setActionLoading((prev) => ({
+      ...prev,
+      [bookingId]: { ...(prev[bookingId] || {}), [action]: loading },
+    }));
+  };
+
+  const handleMarkNoShow = async (item) => {
+    const bid = item.bookingId || item.id;
+    if (!bid) return;
+    setBookingActionLoading(bid, "noShow", true);
+    try {
+      await markBookingNoShow(bid);
+      showSuccess("Appointment marked as no-show.");
+      await fetchAppointments(currentPage, true);
+    } catch (err) {
+      const msg = err?.data?.message || err?.message || "Could not mark as no-show.";
+      showError(msg, "Error");
+    } finally {
+      setBookingActionLoading(bid, "noShow", false);
+    }
+  };
+
+  const openConfirmModal = (item) => {
+    setConfirmBookingItem(item);
+    setConfirmReason("");
+    setConfirmModalVisible(true);
+  };
+
+  const closeConfirmModal = () => {
+    setConfirmModalVisible(false);
+    setConfirmReason("");
+    setConfirmBookingItem(null);
+  };
+
+  const handleSubmitConfirm = async () => {
+    const item = confirmBookingItem;
+    const reason = (confirmReason || "").trim() || "Appointment completed by patient";
+    if (!item) return;
+    const bid = item.bookingId || item.id;
+    if (!bid) return;
+    closeConfirmModal();
+    setBookingActionLoading(bid, "complete", true);
+    try {
+      await markBookingCompleted(bid, { confirmed: true, reason });
+      showSuccess("Appointment marked as completed.");
+      await fetchAppointments(currentPage, true);
+    } catch (err) {
+      const msg = err?.data?.message || err?.message || "Could not mark as completed.";
+      showError(msg, "Error");
+    } finally {
+      setBookingActionLoading(bid, "complete", false);
+    }
+  };
 
   const fetchAppointments = useCallback(
     async (page = 1, silent = false) => {
@@ -379,71 +442,109 @@ export default function AppointmentsScreen({ navigation }) {
               const badgeStyle = getStatusBadgeStyle(item.status);
               const rating =
                 item.rating != null ? parseFloat(item.rating) : null;
+              const bid = item.bookingId || item.id;
+              const loading = actionLoading[bid] || {};
+              const consultantConfirmed = item.consultantConfirmed === true;
               return (
-                <TouchableOpacity
-                  key={item.bookingId || item.id}
-                  style={styles.card}
-                  onPress={() => canOpenChat && openChat(item)}
-                  activeOpacity={canOpenChat ? 0.7 : 1}
-                  disabled={!canOpenChat}
-                >
-                  <View style={styles.cardTopRow}>
-                    <Text style={styles.cardDateTime}>
-                      {format(date, "MMM d, yyyy")} • {format(date, "h:mm a")}
-                    </Text>
-                    {item.status ? (
-                      <View
-                        style={[
-                          styles.statusBadge,
-                          { backgroundColor: badgeStyle.bg },
-                        ]}
-                      >
-                        <Text
+                <View key={bid} style={styles.card}>
+                  <TouchableOpacity
+                    onPress={() => canOpenChat && openChat(item)}
+                    activeOpacity={canOpenChat ? 0.7 : 1}
+                    disabled={!canOpenChat}
+                  >
+                    <View style={styles.cardTopRow}>
+                      <Text style={styles.cardDateTime}>
+                        {format(date, "MMM d, yyyy")} • {format(date, "h:mm a")}
+                      </Text>
+                      {item.status ? (
+                        <View
                           style={[
-                            styles.statusBadgeText,
-                            { color: badgeStyle.text },
+                            styles.statusBadge,
+                            { backgroundColor: badgeStyle.bg },
                           ]}
-                          numberOfLines={1}
                         >
-                          {getStatusLabel(item.status)}
+                          <Text
+                            style={[
+                              styles.statusBadgeText,
+                              { color: badgeStyle.text },
+                            ]}
+                            numberOfLines={1}
+                          >
+                            {getStatusLabel(item.status)}
+                          </Text>
+                        </View>
+                      ) : null}
+                    </View>
+                    <View style={styles.doctorInfo}>
+                      <View style={styles.doctorProfileImageContainer}>
+                        <Ionicons
+                          name="person"
+                          size={25}
+                          color={Colors.primary}
+                        />
+                      </View>
+                      <View style={styles.doctorDetails}>
+                        <Text style={styles.doctorName}>
+                          {item.fullName || item.consultantName || "Consultant"}
+                        </Text>
+                        <Text style={styles.doctorSpecialty} numberOfLines={2}>
+                          {item.speciality || "Consultation"}
                         </Text>
                       </View>
-                    ) : null}
-                  </View>
-                  <View style={styles.doctorInfo}>
-                    <View style={styles.doctorProfileImageContainer}>
-                      <Ionicons
-                        name="person"
-                        size={25}
-                        color={Colors.primary}
-                      />
+                      {rating !== null && (
+                        <View style={styles.ratingContainer}>
+                          <Ionicons name="star" size={16} color="#FFD700" />
+                          <Text style={styles.ratingText}>{rating}</Text>
+                        </View>
+                      )}
                     </View>
-                    <View style={styles.doctorDetails}>
-                      <Text style={styles.doctorName}>
-                        {item.fullName || item.consultantName || "Consultant"}
-                      </Text>
-                      <Text style={styles.doctorSpecialty} numberOfLines={2}>
-                        {item.speciality || "Consultation"}
-                      </Text>
-                    </View>
-                    {rating !== null && (
-                      <View style={styles.ratingContainer}>
-                        <Ionicons name="star" size={16} color="#FFD700" />
-                        <Text style={styles.ratingText}>{rating}</Text>
-                      </View>
-                    )}
-                  </View>
+                  </TouchableOpacity>
                   {canOpenChat && (
-                    <View style={styles.chatHint}>
-                      <Ionicons
-                        name="chatbubble-outline"
-                        size={16}
-                        color={Colors.primary}
-                      />
-                      <Text style={styles.chatHintText}>Open chat</Text>
+                    <View style={styles.actionRow}>
+                      <TouchableOpacity
+                        style={styles.actionBtn}
+                        onPress={() => openChat(item)}
+                      >
+                        <Ionicons name="chatbubble-outline" size={16} color={Colors.primary} />
+                        <Text style={[styles.actionBtnText, styles.actionBtnPrimary]}>Open chat</Text>
+                      </TouchableOpacity>
+                      <View style={styles.actionRowRight}>
+                        {consultantConfirmed && (
+                          <TouchableOpacity
+                            style={styles.actionBtn}
+                            onPress={() => openConfirmModal(item)}
+                            disabled={loading.complete}
+                          >
+                            {loading.complete ? (
+                              <ActivityIndicator size="small" color={Colors.primary} />
+                            ) : (
+                              <>
+                                <Ionicons name="checkmark-circle-outline" size={16} color={Colors.primary} />
+                                <Text style={[styles.actionBtnText, styles.actionBtnPrimary]}>Confirm</Text>
+                              </>
+                            )}
+                          </TouchableOpacity>
+                        )}
+                        {item.status === "upcoming" && (
+                          <TouchableOpacity
+                            style={styles.actionBtn}
+                            onPress={() => handleMarkNoShow(item)}
+                            disabled={loading.noShow}
+                          >
+                            {loading.noShow ? (
+                              <ActivityIndicator size="small" color={Colors.error} />
+                            ) : (
+                              <>
+                                <Ionicons name="close-circle-outline" size={16} color={Colors.error} />
+                                <Text style={[styles.actionBtnText, styles.actionBtnNoShow]}>No show</Text>
+                              </>
+                            )}
+                          </TouchableOpacity>
+                        )}
+                      </View>
                     </View>
                   )}
-                </TouchableOpacity>
+                </View>
               );
             })}
             {totalPages > 1 && renderPagination()}
@@ -454,6 +555,46 @@ export default function AppointmentsScreen({ navigation }) {
         visible={showConnectingModal}
         doctorName={selectedDoctorName || "Consultant"}
       />
+
+      <Modal
+        visible={confirmModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={closeConfirmModal}
+      >
+        <View style={styles.confirmModalOverlay}>
+          <View style={styles.confirmModalContent}>
+            <Text style={styles.confirmModalTitle}>Confirm appointment</Text>
+            <Text style={styles.confirmModalSubtitle}>
+              Add a reason for confirming (optional)
+            </Text>
+            <TextInput
+              style={styles.confirmModalInput}
+              placeholder="e.g. Session completed successfully"
+              placeholderTextColor={Colors.textSecondary}
+              value={confirmReason}
+              onChangeText={setConfirmReason}
+              multiline
+              numberOfLines={3}
+              textAlignVertical="top"
+            />
+            <View style={styles.confirmModalActions}>
+              <TouchableOpacity
+                style={[styles.confirmModalBtn, styles.confirmModalBtnCancel]}
+                onPress={closeConfirmModal}
+              >
+                <Text style={styles.confirmModalBtnCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.confirmModalBtn, styles.confirmModalBtnSubmit]}
+                onPress={handleSubmitConfirm}
+              >
+                <Text style={styles.confirmModalBtnSubmitText}>Confirm</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -652,6 +793,102 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: "Poppins-Medium",
     color: Colors.primary,
+  },
+  actionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: Sizes.sm,
+    paddingTop: Sizes.sm,
+    borderTopWidth: 1,
+    borderTopColor: "#EEEEEE",
+  },
+  actionRowRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Sizes.md,
+  },
+  actionBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Sizes.xs,
+    paddingVertical: Sizes.xs,
+    paddingHorizontal: Sizes.xs,
+    minHeight: 32,
+  },
+  actionBtnText: {
+    fontSize: 13,
+    fontFamily: "Poppins-Medium",
+  },
+  actionBtnPrimary: {
+    color: Colors.primary,
+  },
+  actionBtnNoShow: {
+    color: Colors.error,
+  },
+  confirmModalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: Sizes.lg,
+  },
+  confirmModalContent: {
+    backgroundColor: Colors.white,
+    borderRadius: 16,
+    padding: Sizes.xl,
+    width: "100%",
+    maxWidth: 400,
+  },
+  confirmModalTitle: {
+    fontSize: 18,
+    fontFamily: "Poppins-SemiBold",
+    color: Colors.textPrimary,
+    marginBottom: Sizes.xs,
+  },
+  confirmModalSubtitle: {
+    fontSize: 14,
+    fontFamily: "Poppins-Regular",
+    color: Colors.textSecondary,
+    marginBottom: Sizes.md,
+  },
+  confirmModalInput: {
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+    borderRadius: 12,
+    paddingHorizontal: Sizes.md,
+    paddingVertical: Sizes.sm,
+    fontSize: 14,
+    fontFamily: "Poppins-Regular",
+    color: Colors.textPrimary,
+    minHeight: 80,
+    marginBottom: Sizes.lg,
+  },
+  confirmModalActions: {
+    flexDirection: "row",
+    gap: Sizes.md,
+    justifyContent: "flex-end",
+  },
+  confirmModalBtn: {
+    paddingVertical: Sizes.sm,
+    paddingHorizontal: Sizes.lg,
+    borderRadius: 12,
+  },
+  confirmModalBtnCancel: {
+    backgroundColor: "#F5F5F5",
+  },
+  confirmModalBtnCancelText: {
+    fontSize: 14,
+    fontFamily: "Poppins-Medium",
+    color: Colors.textSecondary,
+  },
+  confirmModalBtnSubmit: {
+    backgroundColor: Colors.primary,
+  },
+  confirmModalBtnSubmitText: {
+    fontSize: 14,
+    fontFamily: "Poppins-Medium",
+    color: Colors.white,
   },
   skeletonLine: {
     height: 14,

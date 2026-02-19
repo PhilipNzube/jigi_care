@@ -71,6 +71,8 @@ export default function ChatPage({ navigation, route }) {
   const consultantConfirmed = appointmentData?.consultantConfirmed === true;
   const [actionLoading, setActionLoading] = useState({ complete: false, noShow: false });
   const [incomingCall, setIncomingCall] = useState(null);
+  const [completeModalVisible, setCompleteModalVisible] = useState(false);
+  const [completeReason, setCompleteReason] = useState("");
 
   useEffect(() => {
     const keyboardDidShowListener = Keyboard.addListener(
@@ -715,14 +717,23 @@ export default function ChatPage({ navigation, route }) {
     }
   };
 
-  const handleMarkComplete = async () => {
+  const openCompleteModal = () => {
+    setCompleteReason("");
+    setCompleteModalVisible(true);
+  };
+
+  const closeCompleteModal = () => {
+    setCompleteModalVisible(false);
+    setCompleteReason("");
+  };
+
+  const handleSubmitMarkComplete = async () => {
     if (!bookingId || actionLoading.complete) return;
+    const reason = (completeReason || "").trim() || "Appointment completed by patient";
+    closeCompleteModal();
     setActionLoading((prev) => ({ ...prev, complete: true }));
     try {
-      await markBookingCompleted(bookingId, {
-        confirmed: true,
-        reason: "Appointment completed by patient",
-      });
+      await markBookingCompleted(bookingId, { confirmed: true, reason });
       showSuccess("Appointment marked as completed.");
       navigation.goBack();
     } catch (err) {
@@ -860,6 +871,46 @@ export default function ChatPage({ navigation, route }) {
         </View>
       </Modal>
 
+      <Modal
+        visible={completeModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={closeCompleteModal}
+      >
+        <View style={styles.completeModalOverlay}>
+          <View style={styles.completeModalContent}>
+            <Text style={styles.completeModalTitle}>Mark appointment complete</Text>
+            <Text style={styles.completeModalSubtitle}>
+              Add a reason for confirming (optional)
+            </Text>
+            <TextInput
+              style={styles.completeModalInput}
+              placeholder="e.g. Session completed successfully"
+              placeholderTextColor={Colors.textSecondary}
+              value={completeReason}
+              onChangeText={setCompleteReason}
+              multiline
+              numberOfLines={3}
+              textAlignVertical="top"
+            />
+            <View style={styles.completeModalActions}>
+              <TouchableOpacity
+                style={[styles.completeModalBtn, styles.completeModalBtnCancel]}
+                onPress={closeCompleteModal}
+              >
+                <Text style={styles.completeModalBtnCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.completeModalBtn, styles.completeModalBtnSubmit]}
+                onPress={handleSubmitMarkComplete}
+              >
+                <Text style={styles.completeModalBtnSubmitText}>Confirm</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity
           style={styles.backButton}
@@ -908,26 +959,28 @@ export default function ChatPage({ navigation, route }) {
 
       {!isLoading && bookingId && (
         <View style={styles.appointmentActions}>
-          <TouchableOpacity
-            style={[styles.appointmentActionBtn, styles.noShowBtn]}
-            onPress={handleMarkNoShow}
-            disabled={actionLoading.noShow}
-          >
-            {actionLoading.noShow ? (
-              <ActivityIndicator size="small" color={Colors.error} />
-            ) : (
-              <>
-                <Ionicons name="close-circle-outline" size={18} color={Colors.error} />
-                <Text style={[styles.appointmentActionText, styles.noShowText]}>
-                  No show
-                </Text>
-              </>
-            )}
-          </TouchableOpacity>
+          {bookingStatus === "upcoming" && (
+            <TouchableOpacity
+              style={[styles.appointmentActionBtn, styles.noShowBtn]}
+              onPress={handleMarkNoShow}
+              disabled={actionLoading.noShow}
+            >
+              {actionLoading.noShow ? (
+                <ActivityIndicator size="small" color={Colors.error} />
+              ) : (
+                <>
+                  <Ionicons name="close-circle-outline" size={18} color={Colors.error} />
+                  <Text style={[styles.appointmentActionText, styles.noShowText]}>
+                    No show
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
+          )}
           {consultantConfirmed && (
             <TouchableOpacity
               style={[styles.appointmentActionBtn, styles.completeBtn]}
-              onPress={handleMarkComplete}
+              onPress={openCompleteModal}
               disabled={actionLoading.complete}
             >
               {actionLoading.complete ? (
@@ -1397,6 +1450,70 @@ const styles = StyleSheet.create({
   acceptBtnText: {
     fontSize: 14,
     fontFamily: "Poppins-SemiBold",
+    color: Colors.white,
+  },
+  completeModalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: Sizes.lg,
+  },
+  completeModalContent: {
+    backgroundColor: Colors.white,
+    borderRadius: 16,
+    padding: Sizes.xl,
+    width: "100%",
+    maxWidth: 400,
+  },
+  completeModalTitle: {
+    fontSize: 18,
+    fontFamily: "Poppins-SemiBold",
+    color: Colors.textPrimary,
+    marginBottom: Sizes.xs,
+  },
+  completeModalSubtitle: {
+    fontSize: 14,
+    fontFamily: "Poppins-Regular",
+    color: Colors.textSecondary,
+    marginBottom: Sizes.md,
+  },
+  completeModalInput: {
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+    borderRadius: 12,
+    paddingHorizontal: Sizes.md,
+    paddingVertical: Sizes.sm,
+    fontSize: 14,
+    fontFamily: "Poppins-Regular",
+    color: Colors.textPrimary,
+    minHeight: 80,
+    marginBottom: Sizes.lg,
+  },
+  completeModalActions: {
+    flexDirection: "row",
+    gap: Sizes.md,
+    justifyContent: "flex-end",
+  },
+  completeModalBtn: {
+    paddingVertical: Sizes.sm,
+    paddingHorizontal: Sizes.lg,
+    borderRadius: 12,
+  },
+  completeModalBtnCancel: {
+    backgroundColor: "#F5F5F5",
+  },
+  completeModalBtnCancelText: {
+    fontSize: 14,
+    fontFamily: "Poppins-Medium",
+    color: Colors.textSecondary,
+  },
+  completeModalBtnSubmit: {
+    backgroundColor: Colors.primary,
+  },
+  completeModalBtnSubmitText: {
+    fontSize: 14,
+    fontFamily: "Poppins-Medium",
     color: Colors.white,
   },
 });
