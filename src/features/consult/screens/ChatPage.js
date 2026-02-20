@@ -954,29 +954,43 @@ export default function ChatPage({ navigation, route }) {
           <Text style={styles.pendingBannerText}>
             Please confirm your appointment with the consultant when the session is done.
           </Text>
+          <TouchableOpacity
+            style={[styles.pendingBannerBtn, styles.appointmentActionBtn]}
+            onPress={openCompleteModal}
+            disabled={actionLoading.complete}
+          >
+            {actionLoading.complete ? (
+              <ActivityIndicator size="small" color={Colors.white} />
+            ) : (
+              <>
+                <Ionicons name="checkmark-circle-outline" size={18} color={Colors.white} />
+                <Text style={[styles.appointmentActionText, styles.completeText]}>
+                  Confirm
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
         </View>
       )}
 
-      {!isLoading && bookingId && (
+      {!isLoading && bookingId && bookingStatus === "upcoming" && (
         <View style={styles.appointmentActions}>
-          {bookingStatus === "upcoming" && (
-            <TouchableOpacity
-              style={[styles.appointmentActionBtn, styles.noShowBtn]}
-              onPress={handleMarkNoShow}
-              disabled={actionLoading.noShow}
-            >
-              {actionLoading.noShow ? (
-                <ActivityIndicator size="small" color={Colors.error} />
-              ) : (
-                <>
-                  <Ionicons name="close-circle-outline" size={18} color={Colors.error} />
-                  <Text style={[styles.appointmentActionText, styles.noShowText]}>
-                    No show
-                  </Text>
-                </>
-              )}
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity
+            style={[styles.appointmentActionBtn, styles.noShowBtn]}
+            onPress={handleMarkNoShow}
+            disabled={actionLoading.noShow}
+          >
+            {actionLoading.noShow ? (
+              <ActivityIndicator size="small" color={Colors.error} />
+            ) : (
+              <>
+                <Ionicons name="close-circle-outline" size={18} color={Colors.error} />
+                <Text style={[styles.appointmentActionText, styles.noShowText]}>
+                  No show
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
           {consultantConfirmed && (
             <TouchableOpacity
               style={[styles.appointmentActionBtn, styles.completeBtn]}
@@ -1353,12 +1367,20 @@ const styles = StyleSheet.create({
     paddingVertical: Sizes.sm,
     paddingHorizontal: Sizes.md,
     gap: Sizes.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(0,0,0,0.08)",
+    minHeight: 48,
   },
   pendingBannerText: {
     flex: 1,
     fontSize: 13,
     fontFamily: "Poppins-Medium",
     color: Colors.white,
+  },
+  pendingBannerBtn: {
+    backgroundColor: "rgba(255,255,255,0.25)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.5)",
   },
   appointmentActions: {
     flexDirection: "row",
@@ -1370,6 +1392,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#F5F5F5",
     borderBottomWidth: 1,
     borderBottomColor: "#E0E0E0",
+    minHeight: 48,
   },
   appointmentActionBtn: {
     flexDirection: "row",

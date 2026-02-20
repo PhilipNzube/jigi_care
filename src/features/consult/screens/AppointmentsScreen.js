@@ -354,8 +354,12 @@ export default function AppointmentsScreen({ navigation }) {
                 filter === key && styles.filterChipActive,
               ]}
               onPress={() => {
-                if (filter !== key) setCurrentPage(1);
-                setFilter(key);
+                if (filter !== key) {
+                  setAppointments([]);
+                  setIsLoading(true);
+                  setCurrentPage(1);
+                  setFilter(key);
+                }
               }}
             >
               <Text
@@ -395,8 +399,12 @@ export default function AppointmentsScreen({ navigation }) {
             key={key}
             style={[styles.filterChip, filter === key && styles.filterChipActive]}
             onPress={() => {
-              if (filter !== key) setCurrentPage(1);
-              setFilter(key);
+              if (filter !== key) {
+                setAppointments([]);
+                setIsLoading(true);
+                setCurrentPage(1);
+                setFilter(key);
+              }
             }}
           >
             <Text
@@ -509,7 +517,7 @@ export default function AppointmentsScreen({ navigation }) {
                         <Text style={[styles.actionBtnText, styles.actionBtnPrimary]}>Open chat</Text>
                       </TouchableOpacity>
                       <View style={styles.actionRowRight}>
-                        {consultantConfirmed && (
+                        {(consultantConfirmed || item.status === "pending_confirmation") && (
                           <TouchableOpacity
                             style={styles.actionBtn}
                             onPress={() => openConfirmModal(item)}
