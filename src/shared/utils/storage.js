@@ -13,6 +13,8 @@ const STORAGE_KEYS = {
   SIGN_UP_RESPONSE: "@jigi_care:sign_up_response",
   GOOGLE_SIGN_IN_RESPONSE: "@jigi_care:google_sign_in_response",
   PROFILE_RESPONSE: "@jigi_care:profile_response",
+  BIOMETRIC_ENABLED: "@jigi_care:biometric_enabled",
+  LAST_ACTIVE_TIME: "@jigi_care:last_active_time",
 };
 
 /**
@@ -313,6 +315,59 @@ export const isAuthenticated = async () => {
   }
 };
 
+/**
+ * Store biometric preference
+ * @param {boolean} isEnabled - True if biometrics should be used
+ */
+export const storeBiometricEnabled = async (isEnabled) => {
+  try {
+    await AsyncStorage.setItem(STORAGE_KEYS.BIOMETRIC_ENABLED, JSON.stringify(isEnabled));
+  } catch (error) {
+    console.error("Error storing biometric preference:", error);
+    throw error;
+  }
+};
+
+/**
+ * Retrieve biometric preference
+ * @returns {Promise<boolean>} - True if enabled, false otherwise. Defaults to true.
+ */
+export const getBiometricEnabled = async () => {
+  try {
+    const isEnabled = await AsyncStorage.getItem(STORAGE_KEYS.BIOMETRIC_ENABLED);
+    return isEnabled ? JSON.parse(isEnabled) : true;
+  } catch (error) {
+    console.error("Error retrieving biometric preference:", error);
+    return true;
+  }
+};
+
+/**
+ * Store last active time (timestamp)
+ * @param {number} timestamp - The timestamp when app was last active
+ */
+export const storeLastActiveTime = async (timestamp) => {
+  try {
+    await AsyncStorage.setItem(STORAGE_KEYS.LAST_ACTIVE_TIME, timestamp.toString());
+  } catch (error) {
+    console.error("Error storing last active time:", error);
+  }
+};
+
+/**
+ * Retrieve last active time
+ * @returns {Promise<number|null>} - Timestamp or null if not found
+ */
+export const getLastActiveTime = async () => {
+  try {
+    const timeStr = await AsyncStorage.getItem(STORAGE_KEYS.LAST_ACTIVE_TIME);
+    return timeStr ? parseInt(timeStr, 10) : null;
+  } catch (error) {
+    console.error("Error retrieving last active time:", error);
+    return null;
+  }
+};
+
 export default {
   storeToken,
   getToken,
@@ -332,4 +387,8 @@ export default {
   getProfileResponse,
   clearStorage,
   isAuthenticated,
+  storeBiometricEnabled,
+  getBiometricEnabled,
+  storeLastActiveTime,
+  getLastActiveTime,
 };

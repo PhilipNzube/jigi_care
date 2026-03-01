@@ -16,12 +16,12 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import * as LocalAuthentication from "expo-local-authentication";
 import { Colors, Sizes } from "../../../shared/constants";
 import { Images } from "../../../shared/utils/imageUtils";
 import { signIn as signInAPI, signInWithGoogle } from "../services/authService";
 import { signInWithGoogle as googleSignIn } from "../services/googleSignInService";
 import { useAuth } from "../../../shared/context/AuthContext";
+import { getBiometricEnabled } from "../../../shared/utils/storage";
 import {
   GOOGLE_WEB_CLIENT_ID,
   isGoogleConfigured,
@@ -31,10 +31,10 @@ import { showError, showSuccess } from "../../../shared/utils/toast";
 
 const { width, height } = Dimensions.get("window");
 
-export default function LoginScreen({ navigation }) {
+export default function LoginScreen({ navigation, isLockScreen = false }) {
   const insets = useSafeAreaInsets();
-  const { signIn } = useAuth();
-  const [email, setEmail] = useState("");
+  const { signIn, user, token, unlockApp, signOut } = useAuth();
+  const [email, setEmail] = useState(isLockScreen && user?.email ? user.email : "");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -43,6 +43,7 @@ export default function LoginScreen({ navigation }) {
     face: false,
     fingerprint: false,
   });
+  const [isBiometricActive, setIsBiometricActive] = useState(false);
   const [errors, setErrors] = useState({});
 
   const spinValue = useRef(new Animated.Value(0)).current;
@@ -114,6 +115,13 @@ export default function LoginScreen({ navigation }) {
     checkAvailableBiometrics();
   }, []);
 
+  // Auto-prompt biometrics whenever the user navigates to a biometric 'page'
+  useEffect(() => {
+    if (loginMethod === "face" || loginMethod === "fingerprint") {
+      handleBiometricLogin(loginMethod, true);
+    }
+  }, [loginMethod]);
+
   useEffect(() => {
     if (isLoading) {
       startSpinning();
@@ -139,20 +147,36 @@ export default function LoginScreen({ navigation }) {
 
   const checkAvailableBiometrics = async () => {
     try {
+      // If we're fully logged out (no token), don't show biometrics at all
+      if (!isLockScreen && !token) {
+        setAvailableBiometrics({ face: false, fingerprint: false });
+        return;
+      }
+
       const hasHardware = await LocalAuthentication.hasHardwareAsync();
       const isEnrolled = await LocalAuthentication.isEnrolledAsync();
-      const supportedTypes =
-        await LocalAuthentication.supportedAuthenticationTypesAsync();
+      const supportedTypes = await LocalAuthentication.supportedAuthenticationTypesAsync();
+      const userBiometricEnabled = await getBiometricEnabled();
+
+      setIsBiometricActive(userBiometricEnabled);
 
       if (hasHardware && isEnrolled) {
+        const canFace = supportedTypes.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION);
+        const canFingerprint = supportedTypes.includes(LocalAuthentication.AuthenticationType.FINGERPRINT);
+
         setAvailableBiometrics({
-          face: supportedTypes.includes(
-            LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION
-          ),
-          fingerprint: supportedTypes.includes(
-            LocalAuthentication.AuthenticationType.FINGERPRINT
-          ),
+          face: canFace,
+          fingerprint: canFingerprint,
         });
+
+        // Automatically switch to biometric view if user enabled it
+        if (userBiometricEnabled) {
+          const defaultMethod = canFingerprint ? "fingerprint" : (canFace ? "face" : "password");
+          if (defaultMethod !== "password") {
+            setLoginMethod(defaultMethod);
+            // the useEffect on loginMethod will auto-trigger the actual prompt
+          }
+        }
       }
     } catch (error) {
       console.error("Error checking biometrics:", error);
@@ -169,13 +193,17 @@ export default function LoginScreen({ navigation }) {
     try {
       const response = await signInAPI({ email, password });
 
-      // Store authentication data
-      await signIn(response);
-
-      showSuccess("Login successful! Welcome back.");
-
-      // Navigate to main app
-      navigation.replace("MainApp");
+      if (isLockScreen) {
+        // We just verified the password to unlock the app, don't re-navigate
+        showSuccess("Unlocked successfully!");
+        unlockApp();
+      } else {
+        // Store authentication data
+        await signIn(response);
+        showSuccess("Login successful! Welcome back.");
+        // Navigate to main app
+        navigation.replace("MainApp");
+      }
     } catch (error) {
       console.error("❌ [LOGIN SCREEN] Login error:", error);
       console.error(
@@ -258,7 +286,7 @@ export default function LoginScreen({ navigation }) {
     }
   };
 
-  const handleBiometricLogin = async (method) => {
+  const handleBiometricLogin = async (method, isAutoPrompt = false) => {
     // Prevent multiple simultaneous authentication attempts
     if (isAuthenticating.current) {
       return;
@@ -272,7 +300,7 @@ export default function LoginScreen({ navigation }) {
       const isEnrolled = await LocalAuthentication.isEnrolledAsync();
 
       if (!hasHardware || !isEnrolled) {
-        alert("Biometric authentication is not available on this device");
+        if (!isAutoPrompt) alert("Biometric authentication is not available on this device");
         return;
       }
 
@@ -287,7 +315,13 @@ export default function LoginScreen({ navigation }) {
       });
 
       if (result.success) {
-        navigation.replace("MainApp");
+        if (isLockScreen) {
+          unlockApp();
+        } else {
+          // If using biometrics to login fully without an active session (which implies they have an active token from a previous run)
+          // we would normally just navigate since their token gets refreshed by `AuthContext`.
+          navigation.replace("MainApp");
+        }
       } else {
         // User cancelled or authentication failed
         console.log("Biometric authentication cancelled or failed");
@@ -445,29 +479,31 @@ export default function LoginScreen({ navigation }) {
         <Text style={styles.googleButtonText}>Continue with Google</Text>
       </TouchableOpacity>
 
-      {/* Biometric Options */}
-      {/* <View style={styles.biometricOptions}>
-        {availableBiometrics.face && (
-          <TouchableOpacity
-            style={styles.biometricOption}
-            onPress={() => setLoginMethod("face")}
-          >
-            <Text style={styles.biometricText}>
-              Click to Log in with Face ID
-            </Text>
-          </TouchableOpacity>
-        )}
-        {availableBiometrics.fingerprint && (
-          <TouchableOpacity
-            style={styles.biometricOption}
-            onPress={() => setLoginMethod("fingerprint")}
-          >
-            <Text style={styles.biometricText}>
-              Click to Log in with Fingerprint
-            </Text>
-          </TouchableOpacity>
-        )}
-      </View> */}
+      {/* Biometric Options - Only show if biometrics are explicitly active and token exists */}
+      {isBiometricActive && (token || isLockScreen) && (
+        <View style={styles.biometricOptions}>
+          {availableBiometrics.face && (
+            <TouchableOpacity
+              style={styles.biometricOption}
+              onPress={() => setLoginMethod("face")}
+            >
+              <Text style={styles.biometricText}>
+                Click to Log in with Face ID
+              </Text>
+            </TouchableOpacity>
+          )}
+          {availableBiometrics.fingerprint && (
+            <TouchableOpacity
+              style={styles.biometricOption}
+              onPress={() => setLoginMethod("fingerprint")}
+            >
+              <Text style={styles.biometricText}>
+                Click to Log in with Fingerprint
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
     </View>
   );
 
@@ -482,14 +518,14 @@ export default function LoginScreen({ navigation }) {
       </View>
 
       {/* Instruction Text */}
-      {/* <Text style={styles.biometricInstruction}>Click to log in with Face</Text> */}
+      <Text style={styles.biometricInstruction}>Click to log in with Face ID</Text>
 
       {/* Verify Button */}
       <TouchableOpacity
         style={styles.verifyButton}
         onPress={() => handleBiometricLogin("face")}
       >
-        {/* <Text style={styles.verifyButtonText}>Verify Face</Text> */}
+        <Text style={styles.verifyButtonText}>Verify Face</Text>
       </TouchableOpacity>
 
       {/* Password Login Link */}
@@ -512,16 +548,16 @@ export default function LoginScreen({ navigation }) {
       </View>
 
       {/* Instruction Text */}
-      {/* <Text style={styles.biometricInstruction}>
+      <Text style={styles.biometricInstruction}>
         Click to log in with Fingerprint
-      </Text> */}
+      </Text>
 
       {/* Verify Button */}
       <TouchableOpacity
         style={styles.verifyButton}
         onPress={() => handleBiometricLogin("fingerprint")}
       >
-        {/* <Text style={styles.verifyButtonText}>Verify Fingerprint</Text> */}
+        <Text style={styles.verifyButtonText}>Verify Fingerprint</Text>
       </TouchableOpacity>
 
       {/* Password Login Link */}

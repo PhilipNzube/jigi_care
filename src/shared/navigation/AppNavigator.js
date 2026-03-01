@@ -21,7 +21,7 @@ import NotificationsScreen from "../../features/notifications/screens/Notificati
 const Stack = createStackNavigator();
 
 function AppNavigatorContent() {
-  const { isLoading, isAuthenticated } = useAuth();
+  const { isLoading, isAuthenticated, isLocked } = useAuth();
 
   // Don't render navigator until we know auth status
   // This prevents any flash of onboarding screen
@@ -33,35 +33,40 @@ function AppNavigatorContent() {
   const initialRouteName = isAuthenticated ? "MainApp" : "Onboarding";
 
   return (
-    <Stack.Navigator
-      initialRouteName={initialRouteName}
-      screenOptions={{ headerShown: false }}
-    >
-      <Stack.Screen name="Onboarding" component={OnboardingScreen} />
-      <Stack.Screen name="Welcome" component={WelcomeScreen} />
-      <Stack.Screen name="Login" component={LoginScreen} />
-      <Stack.Screen name="SignUp" component={SignUpScreen} />
-      <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
-      <Stack.Screen
-        name="EmailVerification"
-        component={EmailVerificationScreen}
-      />
-      <Stack.Screen
-        name="CreateNewPassword"
-        component={CreateNewPasswordScreen}
-      />
-      <Stack.Screen name="Personalization" component={PersonalizationScreen} />
-      <Stack.Screen
-        name="MainApp"
-        component={MainAppNavigator}
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen
-        name="Notifications"
-        component={NotificationsScreen}
-        options={{ headerShown: false }}
-      />
-    </Stack.Navigator>
+    <>
+      <Stack.Navigator
+        initialRouteName={initialRouteName}
+        screenOptions={{ headerShown: false }}
+      >
+        <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+        <Stack.Screen name="Welcome" component={WelcomeScreen} />
+        <Stack.Screen name="Login" component={LoginScreen} />
+        <Stack.Screen name="SignUp" component={SignUpScreen} />
+        <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+        <Stack.Screen
+          name="EmailVerification"
+          component={EmailVerificationScreen}
+        />
+        <Stack.Screen
+          name="CreateNewPassword"
+          component={CreateNewPasswordScreen}
+        />
+        <Stack.Screen name="Personalization" component={PersonalizationScreen} />
+        <Stack.Screen
+          name="MainApp"
+          component={MainAppNavigator}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="Notifications"
+          component={NotificationsScreen}
+          options={{ headerShown: false }}
+        />
+      </Stack.Navigator>
+
+      {/* Render Lock Screen overlay if authenticated and locked */}
+      {isAuthenticated && isLocked && <LoginScreen isLockScreen={true} />}
+    </>
   );
 }
 

@@ -1,16 +1,32 @@
-import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import React, { useState, useEffect } from "react";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
+import { getBiometricEnabled, storeBiometricEnabled } from "../../../shared/utils/storage";
 
 export default function SecuritySection() {
+  const [isBiometricEnabled, setIsBiometricEnabled] = useState(false);
+
+  useEffect(() => {
+    const loadBiometricPreference = async () => {
+      const enabled = await getBiometricEnabled();
+      setIsBiometricEnabled(enabled);
+    };
+    loadBiometricPreference();
+  }, []);
+
+  const toggleBiometric = async () => {
+    const newValue = !isBiometricEnabled;
+    setIsBiometricEnabled(newValue);
+    await storeBiometricEnabled(newValue);
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Security</Text>
         <View style={styles.content}>
-          {/* Biometric UI commented out */}
-          {/* <View style={styles.securityItem}>
+          <TouchableOpacity style={styles.securityItem} onPress={toggleBiometric} activeOpacity={0.7}>
             <View style={styles.iconContainer}>
               <Ionicons name="finger-print" size={20} color="#0098B3" />
             </View>
@@ -19,13 +35,13 @@ export default function SecuritySection() {
               <Text style={styles.subtitle}>Use fingerprint or face id</Text>
             </View>
             <View style={styles.toggleContainer}>
-              <View style={styles.toggleOff}>
-                <View style={styles.toggleThumb} />
+              <View style={[styles.toggleOff, isBiometricEnabled && styles.toggleOn]}>
+                <View style={[styles.toggleThumb, isBiometricEnabled && styles.toggleThumbOn]} />
               </View>
             </View>
-          </View>
+          </TouchableOpacity>
 
-          <View style={styles.divider} /> */}
+          <View style={styles.divider} />
 
           <View style={styles.securityItem}>
             <View style={styles.iconContainer}>
@@ -127,6 +143,13 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 2,
     elevation: 2,
+  },
+  toggleOn: {
+    backgroundColor: Colors.primary,
+  },
+  toggleThumbOn: {
+    left: undefined,
+    right: 2,
   },
   activeTag: {
     backgroundColor: "#E0F7FA",

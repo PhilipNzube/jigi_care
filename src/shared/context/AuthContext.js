@@ -3,7 +3,8 @@
  * Manages authentication state across the app
  */
 
-import React, { createContext, useState, useEffect, useContext } from "react";
+import React, { createContext, useState, useEffect, useContext, useRef } from "react";
+import { AppState } from "react-native";
 import {
   getToken,
   getUserData,
@@ -11,6 +12,9 @@ import {
   storeUserData,
   clearStorage,
   getRefreshToken,
+  getLastActiveTime,
+  storeLastActiveTime,
+  getBiometricEnabled,
 } from "../utils/storage";
 import {
   getUserProfile,
@@ -34,6 +38,11 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLocked, setIsLocked] = useState(false);
+
+  // 2 minutes in milliseconds
+  const LOCK_TIMEOUT = 2 * 60 * 1000;
+  const appState = useRef(AppState.currentState);
 
   /**
    * Load stored authentication data on mount
@@ -41,6 +50,72 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     loadStoredAuth();
   }, []);
+
+  /**
+   * AppState listener to handle background/foreground transitions
+   */
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", async (nextAppState) => {
+      if (
+        appState.current.match(/inactive|background/) &&
+        nextAppState === "active"
+      ) {
+        console.log("📱 [APP STATE] App has come to the foreground!");
+        checkLockState();
+      } else if (
+        appState.current === "active" &&
+        nextAppState.match(/inactive|background/)
+      ) {
+        console.log("📱 [APP STATE] App has gone to the background!");
+        if (isAuthenticated) {
+          await storeLastActiveTime(Date.now());
+        }
+      }
+
+      appState.current = nextAppState;
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [isAuthenticated, isLocked]);
+
+  /**
+   * Check if the app should be locked based on last active time
+   */
+  const checkLockState = async () => {
+    if (!isAuthenticated || isLocked) return;
+
+    const lastActive = await getLastActiveTime();
+    if (lastActive) {
+      const currentTime = Date.now();
+      const timeDiff = currentTime - lastActive;
+
+      console.log(`⏱️ [APP STATE] Time since last active: ${Math.floor(timeDiff / 1000)}s`);
+
+      if (timeDiff > LOCK_TIMEOUT) {
+        console.log("🔒 [APP STATE] Time limit reached");
+        const biometricEnabled = await getBiometricEnabled();
+        
+        if (biometricEnabled) {
+          console.log("🔒 [APP STATE] Locking app due to inactivity timeout");
+          setIsLocked(true);
+        } else {
+          console.log("🚪 [APP STATE] Biometrics disabled. Logging user out due to inactivity timeout");
+          signOut();
+        }
+      }
+    }
+  };
+
+  /**
+   * Unlock the app and reset last active time
+   */
+  const unlockApp = async () => {
+    console.log("🔓 [APP STATE] Unlocking app...");
+    setIsLocked(false);
+    await storeLastActiveTime(Date.now());
+  };
 
   /**
    * Load authentication data from storage and fetch fresh profile in background
@@ -61,6 +136,29 @@ export const AuthProvider = ({ children }) => {
           console.log(
             "✅ [AUTH CONTEXT] Using stored user data for immediate navigation"
           );
+        }
+
+        // Check lock state immediately
+        const lastActive = await getLastActiveTime();
+        if (lastActive) {
+          const currentTime = Date.now();
+          if (currentTime - lastActive > LOCK_TIMEOUT) {
+            console.log("🔒 [AUTH CONTEXT] Time limit reached on initial load");
+            const biometricEnabled = await getBiometricEnabled();
+            if (biometricEnabled) {
+              console.log("🔒 [AUTH CONTEXT] Locking app due to initial load timeout");
+              setIsLocked(true);
+            } else {
+              console.log("🚪 [AUTH CONTEXT] Biometrics disabled. Logging user out due to initial load timeout");
+              // Clear cached auth directly to prevent loading the user then immediately logging them out
+              await clearStorage();
+              setIsAuthenticated(false);
+              setUser(null);
+              setToken(null);
+              setIsLoading(false);
+              return; // Halt further loading
+            }
+          }
         }
 
         // Set loading to false immediately to allow navigation
@@ -353,11 +451,13 @@ export const AuthProvider = ({ children }) => {
     token,
     isLoading,
     isAuthenticated,
+    isLocked,
     signIn,
     signUp,
     signOut,
     updateUser,
     loadStoredAuth,
+    unlockApp,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
