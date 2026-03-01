@@ -31,14 +31,15 @@ import { showError, showSuccess } from "../../../shared/utils/toast";
 
 const { width, height } = Dimensions.get("window");
 
-export default function LoginScreen({ navigation, isLockScreen = false }) {
+export default function LoginScreen({ navigation, route }) {
   const insets = useSafeAreaInsets();
-  const { signIn, user, token, unlockApp, signOut } = useAuth();
-  const [email, setEmail] = useState(isLockScreen && user?.email ? user.email : "");
+  const { signIn, token } = useAuth();
+  const defaultMethod = route?.params?.defaultMethod ?? "password";
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [loginMethod, setLoginMethod] = useState("password"); // "password", "face", "fingerprint"
+  const [loginMethod, setLoginMethod] = useState(defaultMethod);
   const [availableBiometrics, setAvailableBiometrics] = useState({
     face: false,
     fingerprint: false,
@@ -147,8 +148,8 @@ export default function LoginScreen({ navigation, isLockScreen = false }) {
 
   const checkAvailableBiometrics = async () => {
     try {
-      // If we're fully logged out (no token), don't show biometrics at all
-      if (!isLockScreen && !token) {
+      // If no token exists (totally logged out), don't show biometric options
+      if (!token) {
         setAvailableBiometrics({ face: false, fingerprint: false });
         return;
       }
@@ -192,18 +193,10 @@ export default function LoginScreen({ navigation, isLockScreen = false }) {
 
     try {
       const response = await signInAPI({ email, password });
-
-      if (isLockScreen) {
-        // We just verified the password to unlock the app, don't re-navigate
-        showSuccess("Unlocked successfully!");
-        unlockApp();
-      } else {
-        // Store authentication data
-        await signIn(response);
-        showSuccess("Login successful! Welcome back.");
-        // Navigate to main app
-        navigation.replace("MainApp");
-      }
+      // Store authentication data and navigate
+      await signIn(response);
+      showSuccess("Login successful! Welcome back.");
+      navigation.replace("MainApp");
     } catch (error) {
       console.error("❌ [LOGIN SCREEN] Login error:", error);
       console.error(
@@ -315,13 +308,8 @@ export default function LoginScreen({ navigation, isLockScreen = false }) {
       });
 
       if (result.success) {
-        if (isLockScreen) {
-          unlockApp();
-        } else {
-          // If using biometrics to login fully without an active session (which implies they have an active token from a previous run)
-          // we would normally just navigate since their token gets refreshed by `AuthContext`.
-          navigation.replace("MainApp");
-        }
+        // On success, always navigate to main app (resets the stack cleanly)
+        navigation.replace("MainApp");
       } else {
         // User cancelled or authentication failed
         console.log("Biometric authentication cancelled or failed");

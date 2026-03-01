@@ -26,10 +26,10 @@ export function reset(state) {
   }
 }
 
-export function resetToLogin() {
+export function resetToLogin(params = {}) {
   reset({
     index: 0,
-    routes: [{ name: "Login" }],
+    routes: [{ name: "Login", params }],
   });
 }
 

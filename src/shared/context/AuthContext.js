@@ -38,7 +38,6 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLocked, setIsLocked] = useState(false);
 
   // 2 minutes in milliseconds
   const LOCK_TIMEOUT = 2 * 60 * 1000;
@@ -84,7 +83,7 @@ export const AuthProvider = ({ children }) => {
    * Check if the app should be locked based on last active time
    */
   const checkLockState = async () => {
-    if (!isAuthenticated || isLocked) return;
+    if (!isAuthenticated) return;
 
     const lastActive = await getLastActiveTime();
     if (lastActive) {
@@ -96,12 +95,13 @@ export const AuthProvider = ({ children }) => {
       if (timeDiff > LOCK_TIMEOUT) {
         console.log("🔒 [APP STATE] Time limit reached");
         const biometricEnabled = await getBiometricEnabled();
-        
+
         if (biometricEnabled) {
-          console.log("🔒 [APP STATE] Locking app due to inactivity timeout");
-          setIsLocked(true);
+          const defaultMethod = await getDefaultBiometricMethod();
+          console.log(`🔒 [APP STATE] Navigating to Login with method: ${defaultMethod}`);
+          resetToLogin({ defaultMethod });
         } else {
-          console.log("🚪 [APP STATE] Biometrics disabled. Logging user out due to inactivity timeout");
+          console.log("🚪 [APP STATE] Biometrics disabled. Logging user out.");
           signOut();
         }
       }
@@ -109,12 +109,21 @@ export const AuthProvider = ({ children }) => {
   };
 
   /**
-   * Unlock the app and reset last active time
+   * Determine the best available biometric method for this device
    */
-  const unlockApp = async () => {
-    console.log("🔓 [APP STATE] Unlocking app...");
-    setIsLocked(false);
-    await storeLastActiveTime(Date.now());
+  const getDefaultBiometricMethod = async () => {
+    try {
+      const LocalAuthentication = require('expo-local-authentication');
+      const hasHardware = await LocalAuthentication.hasHardwareAsync();
+      const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+      if (!hasHardware || !isEnrolled) return "password";
+      const supportedTypes = await LocalAuthentication.supportedAuthenticationTypesAsync();
+      const canFingerprint = supportedTypes.includes(LocalAuthentication.AuthenticationType.FINGERPRINT);
+      const canFace = supportedTypes.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION);
+      return canFingerprint ? "fingerprint" : (canFace ? "face" : "password");
+    } catch {
+      return "password";
+    }
   };
 
   /**
@@ -138,7 +147,7 @@ export const AuthProvider = ({ children }) => {
           );
         }
 
-        // Check lock state immediately
+        // Check lock state — if timed out, navigate to Login
         const lastActive = await getLastActiveTime();
         if (lastActive) {
           const currentTime = Date.now();
@@ -146,17 +155,19 @@ export const AuthProvider = ({ children }) => {
             console.log("🔒 [AUTH CONTEXT] Time limit reached on initial load");
             const biometricEnabled = await getBiometricEnabled();
             if (biometricEnabled) {
-              console.log("🔒 [AUTH CONTEXT] Locking app due to initial load timeout");
-              setIsLocked(true);
+              const defaultMethod = await getDefaultBiometricMethod();
+              console.log(`🔒 [AUTH CONTEXT] Navigating to Login (${defaultMethod}) on load`);
+              setIsLoading(false);
+              resetToLogin({ defaultMethod });
+              return;
             } else {
-              console.log("🚪 [AUTH CONTEXT] Biometrics disabled. Logging user out due to initial load timeout");
-              // Clear cached auth directly to prevent loading the user then immediately logging them out
+              console.log("🚪 [AUTH CONTEXT] Biometrics disabled. Logging user out on initial load.");
               await clearStorage();
               setIsAuthenticated(false);
               setUser(null);
               setToken(null);
               setIsLoading(false);
-              return; // Halt further loading
+              return;
             }
           }
         }
@@ -451,13 +462,11 @@ export const AuthProvider = ({ children }) => {
     token,
     isLoading,
     isAuthenticated,
-    isLocked,
     signIn,
     signUp,
     signOut,
     updateUser,
     loadStoredAuth,
-    unlockApp,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
