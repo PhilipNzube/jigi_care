@@ -5,6 +5,7 @@
 
 import React, { createContext, useState, useEffect, useContext, useRef } from "react";
 import { AppState } from "react-native";
+import * as LocalAuthentication from "expo-local-authentication";
 import {
   getToken,
   getUserData,
@@ -77,7 +78,7 @@ export const AuthProvider = ({ children }) => {
     return () => {
       subscription.remove();
     };
-  }, [isAuthenticated, isLocked]);
+  }, [isAuthenticated]);
 
   /**
    * Check if the app should be locked based on last active time
@@ -113,7 +114,6 @@ export const AuthProvider = ({ children }) => {
    */
   const getDefaultBiometricMethod = async () => {
     try {
-      const LocalAuthentication = require('expo-local-authentication');
       const hasHardware = await LocalAuthentication.hasHardwareAsync();
       const isEnrolled = await LocalAuthentication.isEnrolledAsync();
       if (!hasHardware || !isEnrolled) return "password";

@@ -16,6 +16,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import * as LocalAuthentication from "expo-local-authentication";
 import { Colors, Sizes } from "../../../shared/constants";
 import { Images } from "../../../shared/utils/imageUtils";
 import { signIn as signInAPI, signInWithGoogle } from "../services/authService";
@@ -506,14 +507,32 @@ export default function LoginScreen({ navigation, route }) {
       </View>
 
       {/* Instruction Text */}
-      <Text style={styles.biometricInstruction}>Click to log in with Face ID</Text>
+      <Text
+        style={styles.biometricInstruction}
+        includeFontPadding={false}
+        textAlignVertical="center"
+        adjustsFontSizeToFit={true}
+        minimumFontScale={0.85}
+        numberOfLines={2}
+      >
+        Click to log in with Face ID
+      </Text>
 
       {/* Verify Button */}
       <TouchableOpacity
         style={styles.verifyButton}
         onPress={() => handleBiometricLogin("face")}
       >
-        <Text style={styles.verifyButtonText}>Verify Face</Text>
+        <Text
+          style={styles.verifyButtonText}
+          includeFontPadding={false}
+          textAlignVertical="center"
+          adjustsFontSizeToFit={true}
+          minimumFontScale={0.85}
+          numberOfLines={1}
+        >
+          Verify Face
+        </Text>
       </TouchableOpacity>
 
       {/* Password Login Link */}
@@ -521,7 +540,14 @@ export default function LoginScreen({ navigation, route }) {
         style={styles.alternativeLogin}
         onPress={() => setLoginMethod("password")}
       >
-        <Text style={styles.alternativeLoginText}>
+        <Text
+          style={styles.alternativeLoginText}
+          includeFontPadding={false}
+          textAlignVertical="center"
+          adjustsFontSizeToFit={true}
+          minimumFontScale={0.85}
+          numberOfLines={1}
+        >
           Click to Log in with Password
         </Text>
       </TouchableOpacity>
@@ -536,7 +562,14 @@ export default function LoginScreen({ navigation, route }) {
       </View>
 
       {/* Instruction Text */}
-      <Text style={styles.biometricInstruction}>
+      <Text
+        style={styles.biometricInstruction}
+        includeFontPadding={false}
+        textAlignVertical="center"
+        adjustsFontSizeToFit={true}
+        minimumFontScale={0.85}
+        numberOfLines={2}
+      >
         Click to log in with Fingerprint
       </Text>
 
@@ -545,7 +578,16 @@ export default function LoginScreen({ navigation, route }) {
         style={styles.verifyButton}
         onPress={() => handleBiometricLogin("fingerprint")}
       >
-        <Text style={styles.verifyButtonText}>Verify Fingerprint</Text>
+        <Text
+          style={styles.verifyButtonText}
+          includeFontPadding={false}
+          textAlignVertical="center"
+          adjustsFontSizeToFit={true}
+          minimumFontScale={0.85}
+          numberOfLines={1}
+        >
+          Verify Fingerprint
+        </Text>
       </TouchableOpacity>
 
       {/* Password Login Link */}
@@ -553,7 +595,14 @@ export default function LoginScreen({ navigation, route }) {
         style={styles.alternativeLogin}
         onPress={() => setLoginMethod("password")}
       >
-        <Text style={styles.alternativeLoginText}>
+        <Text
+          style={styles.alternativeLoginText}
+          includeFontPadding={false}
+          textAlignVertical="center"
+          adjustsFontSizeToFit={true}
+          minimumFontScale={0.85}
+          numberOfLines={1}
+        >
           Click to Log in with Password
         </Text>
       </TouchableOpacity>
@@ -581,8 +630,24 @@ export default function LoginScreen({ navigation, route }) {
             </View>
 
             {/* Title */}
-            <Text style={styles.title}>Welcome Back</Text>
-            <Text style={styles.subtitle}>
+            <Text
+              style={styles.title}
+              includeFontPadding={false}
+              textAlignVertical="center"
+              adjustsFontSizeToFit={true}
+              minimumFontScale={0.85}
+              numberOfLines={1}
+            >
+              Welcome Back
+            </Text>
+            <Text
+              style={styles.subtitle}
+              includeFontPadding={false}
+              textAlignVertical="center"
+              adjustsFontSizeToFit={true}
+              minimumFontScale={0.85}
+              numberOfLines={2}
+            >
               Log in to continue your health journey
             </Text>
           </View>
