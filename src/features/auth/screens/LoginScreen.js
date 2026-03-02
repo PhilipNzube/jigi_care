@@ -13,6 +13,7 @@ import {
   Platform,
   Animated,
   Alert,
+  BackHandler,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -36,6 +37,8 @@ export default function LoginScreen({ navigation, route }) {
   const insets = useSafeAreaInsets();
   const { signIn, token } = useAuth();
   const defaultMethod = route?.params?.defaultMethod ?? "password";
+  // isLockedMode: true when this screen was opened due to auto-lock timeout
+  const isLockedMode = !!route?.params?.defaultMethod;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -115,7 +118,30 @@ export default function LoginScreen({ navigation, route }) {
 
   useEffect(() => {
     checkAvailableBiometrics();
+    
+    // Show session timeout message if navigated via timeout
+    if (route?.params?.timeout) {
+      showError("Session timed out. Please log in again for your security.");
+      // Clear the param to prevent repeated toasts on subsequent renders
+      navigation.setParams({ timeout: undefined });
+    }
   }, []);
+
+  // Prevent Android back button from going back to MainApp when screen is in locked mode
+  useEffect(() => {
+    if (!isLockedMode) return;
+    const onBackPress = () => {
+      // If we're on a biometric view, go back to password view
+      if (loginMethod !== "password") {
+        setLoginMethod("password");
+        return true; // handled
+      }
+      // If on password view, block back entirely (don't let them into the app)
+      return true;
+    };
+    const sub = BackHandler.addEventListener("hardwareBackPress", onBackPress);
+    return () => sub.remove();
+  }, [isLockedMode, loginMethod]);
 
   // Auto-prompt biometrics whenever the user navigates to a biometric 'page'
   useEffect(() => {
@@ -149,8 +175,8 @@ export default function LoginScreen({ navigation, route }) {
 
   const checkAvailableBiometrics = async () => {
     try {
-      // If no token exists (totally logged out), don't show biometric options
-      if (!token) {
+      // If not in locked mode and no token, user is fully logged out — hide biometrics
+      if (!isLockedMode && !token) {
         setAvailableBiometrics({ face: false, fingerprint: false });
         return;
       }
@@ -298,7 +324,7 @@ export default function LoginScreen({ navigation, route }) {
         return;
       }
 
-      // Authenticate using biometrics
+      // Authenticate using biometrics — let the OS use the appropriate sensor
       const result = await LocalAuthentication.authenticateAsync({
         promptMessage:
           method === "face"
@@ -469,9 +495,9 @@ export default function LoginScreen({ navigation, route }) {
       </TouchableOpacity>
 
       {/* Biometric Options - Only show if biometrics are explicitly active and token exists */}
-      {isBiometricActive && (token || isLockScreen) && (
+      {isBiometricActive && (token || isLockedMode) && (
         <View style={styles.biometricOptions}>
-          {availableBiometrics.face && (
+          {/* {availableBiometrics.face && (
             <TouchableOpacity
               style={styles.biometricOption}
               onPress={() => setLoginMethod("face")}
@@ -480,7 +506,7 @@ export default function LoginScreen({ navigation, route }) {
                 Click to Log in with Face ID
               </Text>
             </TouchableOpacity>
-          )}
+          )} */}
           {availableBiometrics.fingerprint && (
             <TouchableOpacity
               style={styles.biometricOption}

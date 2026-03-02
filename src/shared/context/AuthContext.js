@@ -96,14 +96,15 @@ export const AuthProvider = ({ children }) => {
       if (timeDiff > LOCK_TIMEOUT) {
         console.log("🔒 [APP STATE] Time limit reached");
         const biometricEnabled = await getBiometricEnabled();
+        const defaultMethod = await getDefaultBiometricMethod();
 
-        if (biometricEnabled) {
-          const defaultMethod = await getDefaultBiometricMethod();
+        if (biometricEnabled && defaultMethod !== "password") {
           console.log(`🔒 [APP STATE] Navigating to Login with method: ${defaultMethod}`);
-          resetToLogin({ defaultMethod });
+          resetToLogin({ defaultMethod, timeout: true });
         } else {
-          console.log("🚪 [APP STATE] Biometrics disabled. Logging user out.");
-          signOut();
+          console.log("🚪 [APP STATE] Biometrics disabled or unavailable. Logging user out.");
+          // Pass timeout: true so LoginScreen shows the message
+          signOut({ timeout: true });
         }
       }
     }
@@ -154,19 +155,22 @@ export const AuthProvider = ({ children }) => {
           if (currentTime - lastActive > LOCK_TIMEOUT) {
             console.log("🔒 [AUTH CONTEXT] Time limit reached on initial load");
             const biometricEnabled = await getBiometricEnabled();
-            if (biometricEnabled) {
-              const defaultMethod = await getDefaultBiometricMethod();
+            const defaultMethod = await getDefaultBiometricMethod();
+            
+            if (biometricEnabled && defaultMethod !== "password") {
               console.log(`🔒 [AUTH CONTEXT] Navigating to Login (${defaultMethod}) on load`);
               setIsLoading(false);
-              resetToLogin({ defaultMethod });
+              resetToLogin({ defaultMethod, timeout: true });
               return;
             } else {
-              console.log("🚪 [AUTH CONTEXT] Biometrics disabled. Logging user out on initial load.");
+              console.log("🚪 [AUTH CONTEXT] Biometrics disabled or unavailable. Logging user out on initial load.");
               await clearStorage();
               setIsAuthenticated(false);
               setUser(null);
               setToken(null);
               setIsLoading(false);
+              // Navigate manually with timeout param since it's an initial load cleanup
+              resetToLogin({ timeout: true });
               return;
             }
           }
@@ -395,9 +399,9 @@ export const AuthProvider = ({ children }) => {
 
   /**
    * Sign out user and clear all cached tokens and storage
-   * Only proceeds with local logout if server request succeeds
+   * @param {object} params - Optional navigation params for resetToLogin
    */
-  const signOut = async () => {
+  const signOut = async (params = {}) => {
     try {
       console.log("🚪 [SIGN OUT] Starting sign out process...");
       console.log(
@@ -429,6 +433,7 @@ export const AuthProvider = ({ children }) => {
       console.log(
         "✅ [SIGN OUT] All tokens and cached data have been wiped out"
       );
+      resetToLogin(params);
     } catch (error) {
       console.error("❌ [SIGN OUT] Error signing out:", error);
       console.error(

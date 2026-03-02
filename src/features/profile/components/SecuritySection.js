@@ -1,25 +1,45 @@
-import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import React, { useState, useEffect, useRef } from "react";
+import { View, Text, StyleSheet, TouchableOpacity, Animated } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
 import { getBiometricEnabled, storeBiometricEnabled } from "../../../shared/utils/storage";
 
 export default function SecuritySection() {
   const [isBiometricEnabled, setIsBiometricEnabled] = useState(false);
+  const animatedValue = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     const loadBiometricPreference = async () => {
       const enabled = await getBiometricEnabled();
       setIsBiometricEnabled(enabled);
+      animatedValue.setValue(enabled ? 1 : 0);
     };
     loadBiometricPreference();
   }, []);
+
+  useEffect(() => {
+    Animated.timing(animatedValue, {
+      toValue: isBiometricEnabled ? 1 : 0,
+      duration: 250,
+      useNativeDriver: false, // Color and Layout properties don't support native driver well for this use case
+    }).start();
+  }, [isBiometricEnabled]);
 
   const toggleBiometric = async () => {
     const newValue = !isBiometricEnabled;
     setIsBiometricEnabled(newValue);
     await storeBiometricEnabled(newValue);
   };
+
+  const toggleBackgroundColor = animatedValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["#E0E0E0", Colors.primary],
+  });
+
+  const thumbPosition = animatedValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: [2, 22], // 50 (width) - 26 (thumb width) - 2 (spacing) = 22
+  });
 
   return (
     <View style={styles.container}>
@@ -35,9 +55,9 @@ export default function SecuritySection() {
               <Text style={styles.subtitle}>Use fingerprint or face id</Text>
             </View>
             <View style={styles.toggleContainer}>
-              <View style={[styles.toggleOff, isBiometricEnabled && styles.toggleOn]}>
-                <View style={[styles.toggleThumb, isBiometricEnabled && styles.toggleThumbOn]} />
-              </View>
+              <Animated.View style={[styles.toggleBase, { backgroundColor: toggleBackgroundColor }]}>
+                <Animated.View style={[styles.toggleThumb, { left: thumbPosition }]} />
+              </Animated.View>
             </View>
           </TouchableOpacity>
 
@@ -120,11 +140,10 @@ const styles = StyleSheet.create({
   toggleContainer: {
     marginLeft: Sizes.sm,
   },
-  toggleOff: {
+  toggleBase: {
     width: 50,
     height: 30,
     borderRadius: 15,
-    backgroundColor: "#E0E0E0",
     position: "relative",
     justifyContent: "center",
   },
@@ -134,7 +153,6 @@ const styles = StyleSheet.create({
     borderRadius: 13,
     backgroundColor: Colors.white,
     position: "absolute",
-    left: 2,
     shadowColor: Colors.black,
     shadowOffset: {
       width: 0,
@@ -143,13 +161,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 2,
     elevation: 2,
-  },
-  toggleOn: {
-    backgroundColor: Colors.primary,
-  },
-  toggleThumbOn: {
-    left: undefined,
-    right: 2,
   },
   activeTag: {
     backgroundColor: "#E0F7FA",
