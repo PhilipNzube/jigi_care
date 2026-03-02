@@ -74,6 +74,8 @@ export default function App() {
         text1NumberOfLines={0}
         text2NumberOfLines={0}
         style={[props.style, { minHeight: 60, height: undefined }]}
+        text1Style={{ includeFontPadding: false, textAlignVertical: "center" }}
+        text2Style={{ includeFontPadding: false, textAlignVertical: "center" }}
       />
     ),
     error: (props) => (
@@ -85,6 +87,8 @@ export default function App() {
           props.style,
           { borderLeftColor: "#F44336", minHeight: 60, height: undefined },
         ]}
+        text1Style={{ includeFontPadding: false, textAlignVertical: "center" }}
+        text2Style={{ includeFontPadding: false, textAlignVertical: "center" }}
       />
     ),
     info: (props) => (
@@ -93,6 +97,8 @@ export default function App() {
         text1NumberOfLines={0}
         text2NumberOfLines={0}
         style={[props.style, { minHeight: 60, height: undefined }]}
+        text1Style={{ includeFontPadding: false, textAlignVertical: "center" }}
+        text2Style={{ includeFontPadding: false, textAlignVertical: "center" }}
       />
     ),
   };

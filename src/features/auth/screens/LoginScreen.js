@@ -381,7 +381,14 @@ export default function LoginScreen({ navigation, route }) {
         />
       </View>
       {(errors.email || (email.trim() === "" && email.length > 0)) && (
-        <Text style={styles.errorText}>
+        <Text
+          style={styles.errorText}
+          includeFontPadding={false}
+          textAlignVertical="center"
+          adjustsFontSizeToFit={true}
+          minimumFontScale={0.85}
+          numberOfLines={1}
+        >
           {errors.email || "Email is required"}
         </Text>
       )}
@@ -418,7 +425,14 @@ export default function LoginScreen({ navigation, route }) {
         </TouchableOpacity>
       </View>
       {(errors.password || (password.trim() === "" && password.length > 0)) && (
-        <Text style={styles.errorText}>
+        <Text
+          style={styles.errorText}
+          includeFontPadding={false}
+          textAlignVertical="center"
+          adjustsFontSizeToFit={true}
+          minimumFontScale={0.85}
+          numberOfLines={1}
+        >
           {errors.password || "Password is required"}
         </Text>
       )}
@@ -428,7 +442,16 @@ export default function LoginScreen({ navigation, route }) {
         style={styles.forgotPassword}
         onPress={() => navigation.navigate("ForgotPassword")}
       >
-        <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+        <Text
+          style={styles.forgotPasswordText}
+          includeFontPadding={false}
+          textAlignVertical="center"
+          adjustsFontSizeToFit={true}
+          minimumFontScale={0.85}
+          numberOfLines={1}
+        >
+          Forgot Password?
+        </Text>
       </TouchableOpacity>
 
       {/* Login Button */}
@@ -458,7 +481,16 @@ export default function LoginScreen({ navigation, route }) {
             ]}
           />
         ) : (
-          <Text style={styles.loginButtonText}>Log in</Text>
+          <Text
+            style={styles.loginButtonText}
+            includeFontPadding={false}
+            textAlignVertical="center"
+            adjustsFontSizeToFit={true}
+            minimumFontScale={0.85}
+            numberOfLines={1}
+          >
+            Log in
+          </Text>
         )}
       </TouchableOpacity>
 
@@ -471,16 +503,43 @@ export default function LoginScreen({ navigation, route }) {
 
       {/* Sign Up Link */}
       <View style={styles.signUpContainer}>
-        <Text style={styles.signUpText}>Don't have an account? </Text>
+        <Text
+          style={styles.signUpText}
+          includeFontPadding={false}
+          textAlignVertical="center"
+          adjustsFontSizeToFit={true}
+          minimumFontScale={0.85}
+          numberOfLines={1}
+        >
+          Don't have an account?{" "}
+        </Text>
         <TouchableOpacity onPress={() => navigation.navigate("SignUp")}>
-          <Text style={styles.signUpLink}>Sign up</Text>
+          <Text
+            style={styles.signUpLink}
+            includeFontPadding={false}
+            textAlignVertical="center"
+            adjustsFontSizeToFit={true}
+            minimumFontScale={0.85}
+            numberOfLines={1}
+          >
+            Sign up
+          </Text>
         </TouchableOpacity>
       </View>
 
       {/* Separator */}
       <View style={styles.separator}>
         <View style={styles.separatorLine} />
-        <Text style={styles.separatorText}>or continue with</Text>
+        <Text
+          style={styles.separatorText}
+          includeFontPadding={false}
+          textAlignVertical="center"
+          adjustsFontSizeToFit={true}
+          minimumFontScale={0.85}
+          numberOfLines={1}
+        >
+          or continue with
+        </Text>
         <View style={styles.separatorLine} />
       </View>
 
@@ -491,7 +550,16 @@ export default function LoginScreen({ navigation, route }) {
         disabled={isLoading}
       >
         <Image source={Images.google} style={styles.googleIcon} />
-        <Text style={styles.googleButtonText}>Continue with Google</Text>
+        <Text
+          style={styles.googleButtonText}
+          includeFontPadding={false}
+          textAlignVertical="center"
+          adjustsFontSizeToFit={true}
+          minimumFontScale={0.85}
+          numberOfLines={1}
+        >
+          Continue with Google
+        </Text>
       </TouchableOpacity>
 
       {/* Biometric Options - Only show if biometrics are explicitly active and token exists */}
@@ -512,7 +580,14 @@ export default function LoginScreen({ navigation, route }) {
               style={styles.biometricOption}
               onPress={() => setLoginMethod("fingerprint")}
             >
-              <Text style={styles.biometricText}>
+              <Text
+                style={styles.biometricText}
+                includeFontPadding={false}
+                textAlignVertical="center"
+                adjustsFontSizeToFit={true}
+                minimumFontScale={0.85}
+                numberOfLines={1}
+              >
                 Click to Log in with Fingerprint
               </Text>
             </TouchableOpacity>

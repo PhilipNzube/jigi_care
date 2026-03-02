@@ -102,9 +102,9 @@ export const AuthProvider = ({ children }) => {
           console.log(`🔒 [APP STATE] Navigating to Login with method: ${defaultMethod}`);
           resetToLogin({ defaultMethod, timeout: true });
         } else {
-          console.log("🚪 [APP STATE] Biometrics disabled or unavailable. Logging user out.");
-          // Pass timeout: true so LoginScreen shows the message
-          signOut({ timeout: true });
+          console.log("🔒 [APP STATE] Biometrics disabled/unavailable. Redirecting to Password Login (preserving session).");
+          // Just redirect to password login without wiping the token
+          resetToLogin({ defaultMethod: "password", timeout: true });
         }
       }
     }
@@ -163,14 +163,9 @@ export const AuthProvider = ({ children }) => {
               resetToLogin({ defaultMethod, timeout: true });
               return;
             } else {
-              console.log("🚪 [AUTH CONTEXT] Biometrics disabled or unavailable. Logging user out on initial load.");
-              await clearStorage();
-              setIsAuthenticated(false);
-              setUser(null);
-              setToken(null);
+              console.log("🔒 [AUTH CONTEXT] Biometrics disabled/unavailable on load. Redirecting to Password Login (preserving session).");
               setIsLoading(false);
-              // Navigate manually with timeout param since it's an initial load cleanup
-              resetToLogin({ timeout: true });
+              resetToLogin({ defaultMethod: "password", timeout: true });
               return;
             }
           }
