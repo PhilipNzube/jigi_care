@@ -9,6 +9,13 @@ export const navigationRef = createNavigationContainerRef();
 export function navigate(name, params) {
   if (navigationRef.isReady()) {
     navigationRef.navigate(name, params);
+  } else {
+    const checkInterval = setInterval(() => {
+      if (navigationRef.isReady()) {
+        clearInterval(checkInterval);
+        navigationRef.navigate(name, params);
+      }
+    }, 50);
   }
 }
 
@@ -16,13 +23,12 @@ export function reset(state) {
   if (navigationRef.isReady()) {
     navigationRef.reset(state);
   } else {
-    // If navigation is not ready, wait for it
-    const unsubscribe = navigationRef.addListener('state', () => {
+    const checkInterval = setInterval(() => {
       if (navigationRef.isReady()) {
+        clearInterval(checkInterval);
         navigationRef.reset(state);
-        unsubscribe();
       }
-    });
+    }, 50);
   }
 }
 

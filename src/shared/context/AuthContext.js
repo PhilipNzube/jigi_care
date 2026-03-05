@@ -16,6 +16,8 @@ import {
   getLastActiveTime,
   storeLastActiveTime,
   getBiometricEnabled,
+  storeIsLockedLocally,
+  getIsLockedLocally,
 } from "../utils/storage";
 import {
   getUserProfile,
@@ -95,6 +97,8 @@ export const AuthProvider = ({ children }) => {
 
       if (timeDiff > LOCK_TIMEOUT) {
         console.log("🔒 [APP STATE] Time limit reached");
+        await storeIsLockedLocally(true);
+        
         const biometricEnabled = await getBiometricEnabled();
         const defaultMethod = await getDefaultBiometricMethod();
 
@@ -148,14 +152,23 @@ export const AuthProvider = ({ children }) => {
           );
         }
 
-        // Check lock state — if timed out, navigate to Login
+        // Check lock state
         const lastActive = await getLastActiveTime();
-        if (lastActive) {
+        const isLocked = await getIsLockedLocally();
+        let shouldLock = isLocked;
+
+        if (lastActive && !shouldLock) {
           const currentTime = Date.now();
           if (currentTime - lastActive > LOCK_TIMEOUT) {
-            console.log("🔒 [AUTH CONTEXT] Time limit reached on initial load");
-            const biometricEnabled = await getBiometricEnabled();
-            const defaultMethod = await getDefaultBiometricMethod();
+            shouldLock = true;
+          }
+        }
+
+        if (shouldLock) {
+          console.log("🔒 [AUTH CONTEXT] App is locked on initial load");
+          await storeIsLockedLocally(true);
+          const biometricEnabled = await getBiometricEnabled();
+          const defaultMethod = await getDefaultBiometricMethod();
             
             if (biometricEnabled && defaultMethod !== "password") {
               console.log(`🔒 [AUTH CONTEXT] Navigating to Login (${defaultMethod}) on load`);
@@ -169,7 +182,6 @@ export const AuthProvider = ({ children }) => {
               return;
             }
           }
-        }
 
         // Set loading to false immediately to allow navigation
         setIsLoading(false);
@@ -444,6 +456,15 @@ export const AuthProvider = ({ children }) => {
   };
 
   /**
+   * Unlock app locally (clear the persistent lock flag)
+   */
+  const unlockApp = async () => {
+    console.log("🔓 [AUTH CONTEXT] Unlocking app manually...");
+    await storeIsLockedLocally(false);
+    await storeLastActiveTime(Date.now());
+  };
+
+  /**
    * Update user data
    * @param {object} userData - Updated user data
    */
@@ -467,6 +488,7 @@ export const AuthProvider = ({ children }) => {
     signOut,
     updateUser,
     loadStoredAuth,
+    unlockApp,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

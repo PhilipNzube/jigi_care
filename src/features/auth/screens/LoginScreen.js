@@ -35,7 +35,7 @@ const { width, height } = Dimensions.get("window");
 
 export default function LoginScreen({ navigation, route }) {
   const insets = useSafeAreaInsets();
-  const { signIn, token } = useAuth();
+  const { signIn, token, unlockApp } = useAuth();
   const defaultMethod = route?.params?.defaultMethod ?? "password";
   // isLockedMode: true when this screen was opened due to auto-lock timeout
   const isLockedMode = !!route?.params?.defaultMethod;
@@ -222,6 +222,10 @@ export default function LoginScreen({ navigation, route }) {
       const response = await signInAPI({ email, password });
       // Store authentication data and navigate
       await signIn(response);
+      
+      // Explicitly clear any lock modes
+      if (unlockApp) await unlockApp();
+
       showSuccess("Login successful! Welcome back.");
       navigation.replace("MainApp");
     } catch (error) {
@@ -281,6 +285,9 @@ export default function LoginScreen({ navigation, route }) {
       // Store authentication data
       await signIn(response);
 
+      // Explicitly clear any lock modes
+      if (unlockApp) await unlockApp();
+
       showSuccess("Google sign in successful! Welcome back.");
 
       // Navigate to main app
@@ -335,6 +342,9 @@ export default function LoginScreen({ navigation, route }) {
       });
 
       if (result.success) {
+        // Explicitly clear any lock modes
+        if (unlockApp) await unlockApp();
+
         // On success, always navigate to main app (resets the stack cleanly)
         navigation.replace("MainApp");
       } else {

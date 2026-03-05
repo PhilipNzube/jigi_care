@@ -15,6 +15,7 @@ const STORAGE_KEYS = {
   PROFILE_RESPONSE: "@jigi_care:profile_response",
   BIOMETRIC_ENABLED: "@jigi_care:biometric_enabled",
   LAST_ACTIVE_TIME: "@jigi_care:last_active_time",
+  IS_LOCKED: "@jigi_care:is_locked",
 };
 
 /**
@@ -368,6 +369,32 @@ export const getLastActiveTime = async () => {
   }
 };
 
+/**
+ * Store persistent lock state
+ * @param {boolean} isLocked - True if app is locked
+ */
+export const storeIsLockedLocally = async (isLocked) => {
+  try {
+    await AsyncStorage.setItem(STORAGE_KEYS.IS_LOCKED, JSON.stringify(isLocked));
+  } catch (error) {
+    console.error("Error storing lock state:", error);
+  }
+};
+
+/**
+ * Retrieve persistent lock state
+ * @returns {Promise<boolean>} - True if app is locked
+ */
+export const getIsLockedLocally = async () => {
+  try {
+    const lockedStr = await AsyncStorage.getItem(STORAGE_KEYS.IS_LOCKED);
+    return lockedStr ? JSON.parse(lockedStr) : false;
+  } catch (error) {
+    console.error("Error retrieving lock state:", error);
+    return false;
+  }
+};
+
 export default {
   storeToken,
   getToken,
@@ -391,4 +418,6 @@ export default {
   getBiometricEnabled,
   storeLastActiveTime,
   getLastActiveTime,
+  storeIsLockedLocally,
+  getIsLockedLocally,
 };
