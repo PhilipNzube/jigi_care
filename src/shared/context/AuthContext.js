@@ -25,6 +25,7 @@ import {
 } from "../../features/auth/services/authService";
 import { showError } from "../utils/toast";
 import { resetToLogin } from "../navigation/navigationRef";
+import oneSignalService from "../services/onesignalService";
 
 const AuthContext = createContext(null);
 
@@ -337,6 +338,11 @@ export const AuthProvider = ({ children }) => {
       // Store user data in AsyncStorage (tokens already stored by api.js)
       await storeUserData(userData);
 
+      // Sync with OneSignal
+      if (userData.id) {
+        oneSignalService.setExternalUserId(userData.id.toString());
+      }
+
       console.log("✅ [AUTH CONTEXT] Sign in data stored successfully!");
     } catch (error) {
       console.error("❌ [AUTH CONTEXT] Error signing in:", error);
@@ -397,6 +403,11 @@ export const AuthProvider = ({ children }) => {
       // Store user data in AsyncStorage (tokens already stored by api.js)
       await storeUserData(userData);
 
+      // Sync with OneSignal
+      if (userData.id) {
+        oneSignalService.setExternalUserId(userData.id.toString());
+      }
+
       console.log("✅ [AUTH CONTEXT] Sign up data stored successfully!");
     } catch (error) {
       console.error("❌ [AUTH CONTEXT] Error signing up:", error);
@@ -435,6 +446,9 @@ export const AuthProvider = ({ children }) => {
       // Clear all storage (tokens, user data, and any other cached data)
       console.log("🚪 [SIGN OUT] Clearing all cached tokens and storage...");
       await clearStorage();
+
+      // Remove from OneSignal
+      oneSignalService.removeExternalUserId();
 
       console.log("✅ [SIGN OUT] Sign out completed successfully!");
       console.log(

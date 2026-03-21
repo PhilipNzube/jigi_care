@@ -1,4 +1,4 @@
-import { OneSignal } from "react-native-onesignal";
+import { OneSignal, LogLevel } from "react-native-onesignal";
 import { ONESIGNAL_APP_ID } from "../config/onesignalConfig";
 
 /**
@@ -26,15 +26,36 @@ class OneSignalService {
         return;
       }
 
+      // Enable verbose logging for debugging (remove in production if needed)
+      OneSignal.Debug.setLogLevel(LogLevel.Verbose);
+
       // Initialize OneSignal (v5 API)
       OneSignal.initialize(ONESIGNAL_APP_ID);
 
+      // --- Default Event Listeners ---
+
+      // Handle notification clicks
+      OneSignal.Notifications.addEventListener("click", (event) => {
+        console.log("OneSignal: notification clicked:", event);
+        // You can add global navigation logic here if needed
+      });
+
+      // Handle foreground notifications (v5 requirement)
+      OneSignal.Notifications.addEventListener("foregroundWillDisplay", (event) => {
+        console.log("OneSignal: notification received in foreground:", event);
+        // Display the notification by default
+        event.notification.display();
+      });
+
       // Optionally request permission for push notifications
       try {
-        const granted = await OneSignal.Notifications.requestPermission(false);
+        const granted = await OneSignal.Notifications.requestPermission(true);
         console.log("OneSignal permission result:", granted);
       } catch (permError) {
-        console.warn("OneSignal permission request:", permError?.message || permError);
+        console.warn(
+          "OneSignal permission request error:",
+          permError?.message || permError
+        );
       }
 
       this.isInitialized = true;
