@@ -158,8 +158,9 @@ export const getUserMedia = async (video = false, audio = true) => {
         video && permissions.video
           ? {
               facingMode: "user",
-              width: { ideal: 1280 },
-              height: { ideal: 720 },
+              width: { ideal: 640 },
+              height: { ideal: 480 },
+              frameRate: 30,
             }
           : false,
       audio:
@@ -216,9 +217,18 @@ export const setupWebRTCConnection = async ({
     peerConnection.ontrack = (event) => {
       console.log("📹 [WEBRTC] Remote stream received");
       if (event.streams && event.streams[0]) {
+        const remoteStream = event.streams[0];
+        
         if (onRemoteStream) {
-          onRemoteStream(event.streams[0]);
+          onRemoteStream(remoteStream);
         }
+
+        // Listen for track additions to existing streams
+        // (sometimes audio arrives before video)
+        remoteStream.onaddtrack = () => {
+          console.log("📹 [WEBRTC] Track added to remote stream");
+          if (onRemoteStream) onRemoteStream(remoteStream);
+        };
       }
     };
 

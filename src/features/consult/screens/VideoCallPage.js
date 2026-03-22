@@ -51,6 +51,7 @@ export default function VideoCallPage({ navigation, route }) {
   const [callDuration, setCallDuration] = useState(0);
   const [localStream, setLocalStream] = useState(null);
   const [remoteStream, setRemoteStream] = useState(null);
+  const [remoteVideoRefreshKey, setRemoteVideoRefreshKey] = useState(0);
   const [streamStatus, setStreamStatus] = useState({
     localAudio: false,
     localVideo: false,
@@ -87,8 +88,12 @@ export default function VideoCallPage({ navigation, route }) {
             },
             onRemoteStream: (stream) => {
               setRemoteStream(stream);
+              setRemoteVideoRefreshKey((prev) => prev + 1);
               setCallStatus("connected");
               stopRingingSound();
+              // Start in-call mode for video
+              startInCall("video");
+              
               // Debug: Log remote stream info
               logStreamInfo(stream, "Remote");
               monitorStreamTracks(stream, "Remote");
@@ -101,16 +106,14 @@ export default function VideoCallPage({ navigation, route }) {
                   );
                 }
               }, 2000);
-              // When remote stream tracks change, refresh remote video view
-              stream.getTracks().forEach((track) => {
-                // Tracks can be monitored/debugged here if needed
-              });
             },
             onConnectionStateChange: (state) => {
               if (state === "connected") {
                 setCallStatus("connected");
                 stopRingingSound();
+                startInCall("video");
               } else if (state === "disconnected" || state === "failed") {
+                stopInCall();
                 handleEndCall();
               }
             },
@@ -500,8 +503,9 @@ export default function VideoCallPage({ navigation, route }) {
 
       <View style={styles.videoContainer}>
         {/* Remote video feed (caller) - key refreshes so their video keeps updating */}
-        {remoteStream ? (
+        {remoteStream && remoteStream.getVideoTracks().length > 0 ? (
           <RTCView
+            key={`remote-${remoteVideoRefreshKey}`}
             streamURL={remoteStream.toURL()}
             style={styles.mainVideo}
             objectFit="cover"
