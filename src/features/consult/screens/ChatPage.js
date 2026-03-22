@@ -38,6 +38,7 @@ import {
 import {
   markBookingCompleted,
   markBookingNoShow,
+  getBookingById,
 } from "../services/bookingService";
 import { startRingtone, stopRingtone, getRingtoneURI } from "../utils/ringtone";
 import { format, parseISO } from "date-fns";
@@ -62,17 +63,67 @@ export default function ChatPage({ navigation, route }) {
   const isNearBottomRef = useRef(true);
   const shouldAutoScrollRef = useRef(true);
 
-  // Get consultantId, patientId, bookingId, and appointment status
-  const consultantId = doctor?.consultantId || doctor?.consultantData?.userId;
   const patientId = user?.id;
   const bookingId = doctor?.bookingId || route.params?.bookingId;
-  const appointmentData = route.params?.appointmentData || {};
+  const appointmentData = route.params?.appointmentData || localDoctor || {};
   const bookingStatus = appointmentData?.status || route.params?.bookingStatus || "";
   const consultantConfirmed = appointmentData?.consultantConfirmed === true;
-  const [actionLoading, setActionLoading] = useState({ complete: false, noShow: false });
+  const [actionLoading, setActionLoading] = useState({
+    complete: false,
+    noShow: false,
+  });
   const [incomingCall, setIncomingCall] = useState(null);
   const [completeModalVisible, setCompleteModalVisible] = useState(false);
   const [completeReason, setCompleteReason] = useState("");
+  const [localDoctor, setLocalDoctor] = useState(doctor || null);
+  const [isFetchingDoctor, setIsFetchingDoctor] = useState(false);
+
+  // Effect to fetch doctor details if missing (e.g. from notification)
+  useEffect(() => {
+    const fetchDoctorDetails = async () => {
+      // If we don't have doctor info but we have a bookingId and patientId
+      if (!localDoctor && bookingId && patientId) {
+        console.log("🔍 [CHAT PAGE] Fetching missing doctor details for booking:", bookingId);
+        setIsFetchingDoctor(true);
+        try {
+          const booking = await getBookingById(patientId, bookingId);
+          if (booking) {
+            console.log("✅ [CHAT PAGE] Doctor details fetched:", booking.consultantName);
+            setLocalDoctor({
+              name: booking.fullName || booking.consultantName || "Consultant",
+              consultantId: booking.consultantId,
+              bookingId: booking.bookingId || booking.id,
+              ...booking,
+            });
+          } else {
+            console.warn("⚠️ [CHAT PAGE] Booking not found for ID:", bookingId);
+          }
+        } catch (error) {
+          console.error("❌ [CHAT PAGE] Error fetching doctor details:", error);
+        } finally {
+          setIsFetchingDoctor(false);
+        }
+      }
+    };
+
+    fetchDoctorDetails();
+  }, [bookingId, patientId, localDoctor]);
+
+  // Handle incoming call parameter from notification
+  useEffect(() => {
+    if (route.params?.isIncoming && localDoctor && !incomingCall) {
+      console.log("📞 [CHAT PAGE] Handling incoming call from notification params");
+      setIncomingCall({
+        fromUserId: localDoctor.consultantId,
+        conversationId: route.params.conversationId || conversationId,
+        callType: route.params.callType || "video",
+      });
+      startRingtone(getRingtoneURI("incoming"));
+    }
+  }, [route.params?.isIncoming, localDoctor, incomingCall, conversationId]);
+
+  // Get consultantId, patientId, bookingId, and appointment status
+  const consultantId = localDoctor?.consultantId || localDoctor?.consultantData?.userId;
 
   useEffect(() => {
     const keyboardDidShowListener = Keyboard.addListener(
@@ -659,7 +710,7 @@ export default function ChatPage({ navigation, route }) {
     }
     initiateCall(consultantId, conversationId, "audio");
     navigation.navigate("VoiceCall", {
-      doctor,
+      doctor: localDoctor,
       conversationId,
       callType: "audio",
       otherUserId: consultantId,
@@ -674,7 +725,7 @@ export default function ChatPage({ navigation, route }) {
     }
     initiateCall(consultantId, conversationId, "video");
     navigation.navigate("VideoCall", {
-      doctor,
+      doctor: localDoctor,
       conversationId,
       callType: "video",
       otherUserId: consultantId,
@@ -688,7 +739,7 @@ export default function ChatPage({ navigation, route }) {
     const { fromUserId, conversationId: convId, callType } = incomingCall;
     console.log("📞 [CHAT PAGE] Answering call – fromUserId (caller):", fromUserId, "conversationId:", convId, "callType:", callType);
     acceptCall(fromUserId);
-    const minimalDoctor = { name: "Consultant", consultantId: fromUserId, ...doctor };
+    const minimalDoctor = { name: "Consultant", consultantId: fromUserId, ...localDoctor };
     setIncomingCall(null);
     if (callType === "video") {
       navigation.navigate("VideoCall", {
@@ -849,7 +900,7 @@ export default function ChatPage({ navigation, route }) {
               Incoming {incomingCall?.callType === "video" ? "video" : "audio"} call
             </Text>
             <Text style={styles.incomingCallSubtitle}>
-              {doctor?.name || "Consultant"}
+              {localDoctor?.name || "Consultant"}
             </Text>
             <View style={styles.incomingCallActions}>
               <TouchableOpacity
@@ -925,7 +976,7 @@ export default function ChatPage({ navigation, route }) {
           </View>
           <View style={styles.doctorDetails}>
             <Text style={styles.doctorName}>
-              {doctor?.name || "Consultant"}
+              {localDoctor?.name || "Consultant"}
             </Text>
             {/* Online status - commented out */}
             {/* <Text style={styles.doctorStatus}>Online</Text> */}

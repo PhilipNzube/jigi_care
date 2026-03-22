@@ -1,5 +1,6 @@
 import { OneSignal, LogLevel } from "react-native-onesignal";
 import { ONESIGNAL_APP_ID } from "../config/onesignalConfig";
+import { navigationRef } from "../navigation/navigationRef";
 
 /**
  * OneSignal Push Notification Service (react-native-onesignal v5 API)
@@ -37,7 +38,32 @@ class OneSignalService {
       // Handle notification clicks
       OneSignal.Notifications.addEventListener("click", (event) => {
         console.log("OneSignal: notification clicked:", event);
-        // You can add global navigation logic here if needed
+
+        const { notification } = event;
+        const data = notification.additionalData;
+
+        if (data && (data.bookingId || data.conversationId)) {
+          console.log("OneSignal: Navigating to ChatPage with data:", data);
+
+          // Category-based navigation
+          const category = data.category || "Message";
+
+          if (category === "Call") {
+            // If it's a call, we go to ChatPage first which handles the incoming call UI
+            navigationRef.navigate("ChatPage", {
+              bookingId: data.bookingId,
+              conversationId: data.conversationId,
+              callType: data.callType || "video",
+              isIncoming: true,
+            });
+          } else {
+            // Default to ChatPage for messages or generic notifications
+            navigationRef.navigate("ChatPage", {
+              bookingId: data.bookingId,
+              conversationId: data.conversationId,
+            });
+          }
+        }
       });
 
       // Handle foreground notifications (v5 requirement)

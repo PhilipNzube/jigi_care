@@ -164,6 +164,28 @@ export const createBooking = async (bookingData) => {
   }
 };
 
+/**
+ * Get a specific booking by ID for a patient
+ * @param {string} patientId - Patient ID
+ * @param {string} bookingId - Booking ID to find
+ * @returns {Promise<object|null>} - The booking object or null if not found
+ */
+export const getBookingById = async (patientId, bookingId) => {
+  console.log("📅 [BOOKING SERVICE] Fetching booking by ID:", bookingId);
+  try {
+    // Falls back to fetching upcoming and in_progress to find the specific one
+    // In a mature API, this would be a direct GET /booking/:id endpoint
+    const result = await getPatientBookingList(patientId, { status: "", limit: 50 });
+    const booking = (result.data || []).find(
+      (b) => String(b.bookingId || b.id) === String(bookingId)
+    );
+    return booking || null;
+  } catch (error) {
+    console.error("❌ [BOOKING SERVICE] Error fetching booking by ID:", error);
+    throw error;
+  }
+};
+
 export default {
   getUpcomingAppointments,
   getPatientBookingList,
@@ -171,5 +193,6 @@ export default {
   createBooking,
   markBookingCompleted,
   markBookingNoShow,
+  getBookingById,
 };
 
