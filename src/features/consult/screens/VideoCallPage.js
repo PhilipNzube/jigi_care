@@ -57,8 +57,6 @@ export default function VideoCallPage({ navigation, route }) {
     remoteAudio: false,
     remoteVideo: false,
   });
-  const [videoRefreshKey, setVideoRefreshKey] = useState(0);
-  const [remoteVideoRefreshKey, setRemoteVideoRefreshKey] = useState(0);
 
   const peerConnectionRef = useRef(null);
   const localStreamRef = useRef(null);
@@ -91,8 +89,6 @@ export default function VideoCallPage({ navigation, route }) {
               setRemoteStream(stream);
               setCallStatus("connected");
               stopRingingSound();
-              setVideoRefreshKey((k) => k + 1);
-              setRemoteVideoRefreshKey((k) => k + 1);
               // Debug: Log remote stream info
               logStreamInfo(stream, "Remote");
               monitorStreamTracks(stream, "Remote");
@@ -107,15 +103,7 @@ export default function VideoCallPage({ navigation, route }) {
               }, 2000);
               // When remote stream tracks change, refresh remote video view
               stream.getTracks().forEach((track) => {
-                track.addEventListener("ended", () =>
-                  setRemoteVideoRefreshKey((k) => k + 1),
-                );
-                track.addEventListener("mute", () =>
-                  setRemoteVideoRefreshKey((k) => k + 1),
-                );
-                track.addEventListener("unmute", () =>
-                  setRemoteVideoRefreshKey((k) => k + 1),
-                );
+                // Tracks can be monitored/debugged here if needed
               });
             },
             onConnectionStateChange: (state) => {
@@ -474,19 +462,7 @@ export default function VideoCallPage({ navigation, route }) {
     await setAudioRoute(next);
   };
 
-  // Periodic refresh of local video view to avoid frozen frame
-  useEffect(() => {
-    if (callStatus !== "connected" || !localStream) return;
-    const t = setInterval(() => setVideoRefreshKey((k) => k + 1), 15000);
-    return () => clearInterval(t);
-  }, [callStatus, localStream]);
-
-  // More frequent refresh for remote (caller) video so their feed keeps updating on recipient's screen
-  useEffect(() => {
-    if (callStatus !== "connected" || !remoteStream) return;
-    const t = setInterval(() => setRemoteVideoRefreshKey((k) => k + 1), 2500);
-    return () => clearInterval(t);
-  }, [callStatus, remoteStream]);
+  // Monitoring stream status for debugging (keeps existing logic)
 
   const formatCallDuration = (seconds) => {
     const mins = Math.floor(seconds / 60);
@@ -526,7 +502,6 @@ export default function VideoCallPage({ navigation, route }) {
         {/* Remote video feed (caller) - key refreshes so their video keeps updating */}
         {remoteStream ? (
           <RTCView
-            key={`remote-${remoteVideoRefreshKey}-${videoRefreshKey}-${remoteStream.id}`}
             streamURL={remoteStream.toURL()}
             style={styles.mainVideo}
             objectFit="cover"
@@ -544,11 +519,11 @@ export default function VideoCallPage({ navigation, route }) {
         {localStream && isVideoOn ? (
           <View style={[styles.userVideoContainer, { top: insets.top + 60 }]}>
             <RTCView
-              key={`local-${videoRefreshKey}-${localStream.id}`}
               streamURL={localStream.toURL()}
               style={styles.userVideo}
               objectFit="cover"
               mirror={true}
+              zOrder={1}
             />
           </View>
         ) : localStream ? (
