@@ -119,8 +119,11 @@ export default function ChatPage({ navigation, route }) {
         callType: route.params.callType || "video",
       });
       startRingtone(getRingtoneURI("incoming"));
+
+      // Clear the parameter so it doesn't re-trigger when returning to this screen
+      navigation.setParams({ isIncoming: false });
     }
-  }, [route.params?.isIncoming, localDoctor, incomingCall, conversationId]);
+  }, [route.params?.isIncoming, localDoctor, incomingCall, conversationId, navigation]);
 
   // Get consultantId, patientId, bookingId, and appointment status
   const consultantId = localDoctor?.consultantId || localDoctor?.consultantData?.userId;

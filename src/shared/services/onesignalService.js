@@ -1,6 +1,11 @@
 import { OneSignal, LogLevel } from "react-native-onesignal";
 import { ONESIGNAL_APP_ID } from "../config/onesignalConfig";
-import { navigationRef } from "../navigation/navigationRef";
+import { navigationRef, navigate } from "../navigation/navigationRef";
+import {
+  startRingtone,
+  stopRingtone,
+  getRingtoneURI,
+} from "../../features/consult/utils/ringtone";
 
 /**
  * OneSignal Push Notification Service (react-native-onesignal v5 API)
@@ -39,6 +44,9 @@ class OneSignalService {
       OneSignal.Notifications.addEventListener("click", (event) => {
         console.log("OneSignal: notification clicked:", event);
 
+        // Stop any ringtone when clicking a notification
+        stopRingtone();
+
         const { notification } = event;
         const data = notification.additionalData;
 
@@ -50,7 +58,7 @@ class OneSignalService {
 
           if (category === "Call") {
             // If it's a call, we go to ChatPage first which handles the incoming call UI
-            navigationRef.navigate("ChatPage", {
+            navigate("ChatPage", {
               bookingId: data.bookingId,
               conversationId: data.conversationId,
               callType: data.callType || "video",
@@ -58,7 +66,7 @@ class OneSignalService {
             });
           } else {
             // Default to ChatPage for messages or generic notifications
-            navigationRef.navigate("ChatPage", {
+            navigate("ChatPage", {
               bookingId: data.bookingId,
               conversationId: data.conversationId,
             });
@@ -69,6 +77,15 @@ class OneSignalService {
       // Handle foreground notifications (v5 requirement)
       OneSignal.Notifications.addEventListener("foregroundWillDisplay", (event) => {
         console.log("OneSignal: notification received in foreground:", event);
+        
+        const data = event.notification.additionalData;
+        
+        // If it's a call in foreground, start the ringtone
+        if (data && data.category === "Call") {
+          console.log("OneSignal: Call notification in foreground, starting ringtone");
+          startRingtone(getRingtoneURI("incoming"));
+        }
+
         // Display the notification by default
         event.notification.display();
       });

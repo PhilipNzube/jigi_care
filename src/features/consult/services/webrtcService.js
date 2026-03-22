@@ -25,6 +25,11 @@ try {
   console.warn("⚠️ [WEBRTC] react-native-incall-manager not available:", e?.message);
 }
 
+// Maps to track state for each PeerConnection
+// Using WeakMap ensures data is cleaned up when PeerConnection is garbage collected
+const pendingCandidatesMap = new WeakMap();
+const hasRemoteDescriptionMap = new WeakMap();
+
 const ICE_SERVERS = [
   { urls: "stun:stun.l.google.com:19302" },
   { urls: "stun:stun1.l.google.com:19302" },
@@ -286,7 +291,26 @@ export const handleOffer = async ({
   isVideo,
 }) => {
   try {
+    console.log("📥 [WEBRTC] Setting remote description (offer)");
     await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+    
+    // Mark as having remote description
+    hasRemoteDescriptionMap.set(peerConnection, true);
+    
+    // Flush queued candidates
+    const queued = pendingCandidatesMap.get(peerConnection) || [];
+    if (queued.length > 0) {
+      console.log(`📦 [WEBRTC] Flushing ${queued.length} pending ICE candidates`);
+      for (const candidate of queued) {
+        try {
+          await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+        } catch (e) {
+          console.error("❌ [WEBRTC] Error adding queued ICE candidate:", e);
+        }
+      }
+      pendingCandidatesMap.delete(peerConnection);
+    }
+
     const answer = await peerConnection.createAnswer({
       offerToReceiveAudio: true,
       offerToReceiveVideo: isVideo,
@@ -308,9 +332,28 @@ export const handleOffer = async ({
  */
 export const handleAnswer = async ({ peerConnection, answer }) => {
   try {
+    console.log("📥 [WEBRTC] Setting remote description (answer)");
     await peerConnection.setRemoteDescription(
       new RTCSessionDescription(answer),
     );
+    
+    // Mark as having remote description
+    hasRemoteDescriptionMap.set(peerConnection, true);
+    
+    // Flush queued candidates
+    const queued = pendingCandidatesMap.get(peerConnection) || [];
+    if (queued.length > 0) {
+      console.log(`📦 [WEBRTC] Flushing ${queued.length} pending ICE candidates`);
+      for (const candidate of queued) {
+        try {
+          await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+        } catch (e) {
+          console.error("❌ [WEBRTC] Error adding queued ICE candidate:", e);
+        }
+      }
+      pendingCandidatesMap.delete(peerConnection);
+    }
+
     console.log("✅ [WEBRTC] Answer received and set");
   } catch (error) {
     console.error("❌ [WEBRTC] Error handling answer:", error);
@@ -326,6 +369,15 @@ export const handleAnswer = async ({ peerConnection, answer }) => {
  */
 export const handleIceCandidate = async ({ peerConnection, candidate }) => {
   try {
+    // If we don't have a remote description yet, queue the candidate
+    if (!hasRemoteDescriptionMap.get(peerConnection)) {
+      console.log("⏸️ [WEBRTC] Queuing ICE candidate (no remote description yet)");
+      let queued = pendingCandidatesMap.get(peerConnection) || [];
+      queued.push(candidate);
+      pendingCandidatesMap.set(peerConnection, queued);
+      return;
+    }
+
     await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
     console.log("🧊 [WEBRTC] ICE candidate added");
   } catch (error) {
