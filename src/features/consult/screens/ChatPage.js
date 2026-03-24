@@ -41,6 +41,7 @@ import {
   getBookingById,
 } from "../services/bookingService";
 import { startRingtone, stopRingtone, getRingtoneURI } from "../utils/ringtone";
+import { startInCall, setAudioRoute, getInitialAudioRoute } from "../services/webrtcService";
 import { format, parseISO } from "date-fns";
 import { showError, showSuccess } from "../../../shared/utils/toast";
 import ShimmerLoader from "../../../shared/components/ShimmerLoader";
@@ -722,60 +723,93 @@ export default function ChatPage({ navigation, route }) {
     }
   };
 
-  const handleVoiceCall = () => {
+  const handleVoiceCall = async () => {
     if (!conversationId || !consultantId) {
       showError("Conversation not ready. Please wait.", "Cannot call");
       return;
     }
-    initiateCall(consultantId, conversationId, "audio");
-    navigation.navigate("VoiceCall", {
-      doctor: localDoctor,
-      conversationId,
-      callType: "audio",
-      otherUserId: consultantId,
-      isInitiator: true,
-    });
-  };
-
-  const handleVideoCall = () => {
-    if (!conversationId || !consultantId) {
-      showError("Conversation not ready. Please wait.", "Cannot call");
-      return;
-    }
-    initiateCall(consultantId, conversationId, "video");
-    navigation.navigate("VideoCall", {
-      doctor: localDoctor,
-      conversationId,
-      callType: "video",
-      otherUserId: consultantId,
-      isInitiator: true,
-    });
-  };
-
-  const handleAcceptIncomingCall = () => {
-    if (!incomingCall) return;
-    stopRingtone();
-    const { fromUserId, conversationId: convId, callType } = incomingCall;
-    console.log("📞 [CHAT PAGE] Answering call – fromUserId (caller):", fromUserId, "conversationId:", convId, "callType:", callType);
-    acceptCall(fromUserId);
-    const minimalDoctor = { name: "Consultant", consultantId: fromUserId, ...localDoctor };
-    setIncomingCall(null);
-    if (callType === "video") {
-      navigation.navigate("VideoCall", {
-        doctor: minimalDoctor,
-        conversationId: convId,
-        callType,
-        otherUserId: fromUserId,
-        isInitiator: false,
-      });
-    } else {
+    
+    try {
+      // Eagerly start audio mode
+      const initialRoute = await getInitialAudioRoute(false);
+      await startInCall("audio");
+      await setAudioRoute(initialRoute);
+      
+      initiateCall(consultantId, conversationId, "audio");
       navigation.navigate("VoiceCall", {
-        doctor: minimalDoctor,
-        conversationId: convId,
-        callType,
-        otherUserId: fromUserId,
-        isInitiator: false,
+        doctor: localDoctor,
+        conversationId,
+        callType: "audio",
+        otherUserId: consultantId,
+        isInitiator: true,
       });
+    } catch (error) {
+      console.error("❌ [CHAT PAGE] Error starting voice call:", error);
+    }
+  };
+
+  const handleVideoCall = async () => {
+    if (!conversationId || !consultantId) {
+      showError("Conversation not ready. Please wait.", "Cannot call");
+      return;
+    }
+    
+    try {
+      // Eagerly start video mode
+      const initialRoute = await getInitialAudioRoute(true);
+      await startInCall("video");
+      await setAudioRoute(initialRoute);
+
+      initiateCall(consultantId, conversationId, "video");
+      navigation.navigate("VideoCall", {
+        doctor: localDoctor,
+        conversationId,
+        callType: "video",
+        otherUserId: consultantId,
+        isInitiator: true,
+      });
+    } catch (error) {
+      console.error("❌ [CHAT PAGE] Error starting video call:", error);
+    }
+  };
+
+  const handleAcceptIncomingCall = async () => {
+    if (!incomingCall) return;
+    
+    try {
+      const { fromUserId, conversationId: convId, callType } = incomingCall;
+      
+      // Eagerly start audio/video mode before navigating
+      // This ensures the hardware is ready before the connection is established
+      console.log("🔊 [CHAT PAGE] Starting eager audio mode for:", callType);
+      const initialRoute = await getInitialAudioRoute(callType === "video");
+      await startInCall(callType);
+      await setAudioRoute(initialRoute);
+
+      stopRingtone();
+      console.log("📞 [CHAT PAGE] Answering call – fromUserId (caller):", fromUserId, "conversationId:", convId, "callType:", callType);
+      acceptCall(fromUserId);
+      const minimalDoctor = { name: "Consultant", consultantId: fromUserId, ...localDoctor };
+      setIncomingCall(null);
+      if (callType === "video") {
+        navigation.navigate("VideoCall", {
+          doctor: minimalDoctor,
+          conversationId: convId,
+          callType,
+          otherUserId: fromUserId,
+          isInitiator: false,
+        });
+      } else {
+        navigation.navigate("VoiceCall", {
+          doctor: minimalDoctor,
+          conversationId: convId,
+          callType,
+          otherUserId: fromUserId,
+          isInitiator: false,
+        });
+      }
+    } catch (error) {
+      console.error("❌ [CHAT PAGE] Error accepting incoming call:", error);
     }
   };
 

@@ -19,11 +19,34 @@ import { Audio } from "expo-av";
 import { Platform } from "react-native";
 
 let InCallManager = null;
+let isBluetoothAvailable = false;
 try {
   InCallManager = require("react-native-incall-manager").default;
+  if (InCallManager) {
+    // Listen for bluetooth presence changes
+    // InCallManager doesn't always export the event name as a constant, so we use the string
+    const { DeviceEventEmitter } = require("react-native");
+    DeviceEventEmitter.addListener("InCallManagerBluetoothPresentChanged", (data) => {
+      console.log("🔵 [WEBRTC] Bluetooth presence changed:", data.available);
+      isBluetoothAvailable = !!data.available;
+    });
+    
+    // Initial check if possible
+    if (typeof InCallManager.getIsBluetoothPresent === 'function') {
+      InCallManager.getIsBluetoothPresent().then(present => {
+        isBluetoothAvailable = present;
+      });
+    }
+  }
 } catch (e) {
   console.warn("⚠️ [WEBRTC] react-native-incall-manager not available:", e?.message);
 }
+
+/**
+ * Check if bluetooth is available
+ * @returns {boolean}
+ */
+export const checkBluetoothAvailable = () => isBluetoothAvailable;
 
 // Maps to track state for each PeerConnection
 // Using WeakMap ensures data is cleaned up when PeerConnection is garbage collected
@@ -537,10 +560,9 @@ export const stopInCall = () => {
 export const getInitialAudioRoute = async (isVideo) => {
   if (InCallManager) {
     try {
-      // InCallManager doesn't have a synchronous way to check Bluetooth 
-      // without starting, but we can try to check if it's available.
-      // For now, video defaults to speaker, voice defaults to earpiece.
-      // Hardware will usually auto-route to Bluetooth if connected.
+      if (isBluetoothAvailable) {
+        return "bluetooth";
+      }
       return isVideo ? "speaker" : "earpiece";
     } catch (e) {
       return isVideo ? "speaker" : "earpiece";

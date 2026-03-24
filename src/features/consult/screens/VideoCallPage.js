@@ -21,6 +21,8 @@ import {
   setAudioRoute,
   startInCall,
   stopInCall,
+  checkBluetoothAvailable,
+  getInitialAudioRoute,
 } from "../services/webrtcService";
 import { RTCView } from "react-native-webrtc";
 import { showError } from "../../../shared/utils/toast";
@@ -47,6 +49,7 @@ export default function VideoCallPage({ navigation, route }) {
   const [isMuted, setIsMuted] = useState(false);
   const [audioDevice, setAudioDevice] = useState("speaker");
   const [showAudioMenu, setShowAudioMenu] = useState(false);
+  const [isBluetoothPresent, setIsBluetoothPresent] = useState(false);
   const [isVideoOn, setIsVideoOn] = useState(true);
   const [callStatus, setCallStatus] = useState("ringing");
   const [callDuration, setCallDuration] = useState(0);
@@ -358,20 +361,20 @@ export default function VideoCallPage({ navigation, route }) {
     };
   }, [otherUserId, navigation]);
 
-  // Start InCallManager and detect initial audio route when connected
+  // Sync initial audio routing icons with hardware state
+  useEffect(() => {
+    const initAudio = async () => {
+      const initialRoute = await getInitialAudioRoute(true);
+      setAudioDevice(initialRoute);
+      setIsBluetoothPresent(checkBluetoothAvailable());
+    };
+    initAudio();
+  }, []);
+
+  // Monitor bluetooth presence changes
   useEffect(() => {
     if (callStatus === "connected") {
-      const detectRoute = async () => {
-        // Give hardware a moment to stabilize
-        setTimeout(async () => {
-          const initialRoute = await getInitialAudioRoute(true);
-          setAudioDevice(initialRoute);
-          await startInCall("video");
-          await setAudioRoute(initialRoute);
-        }, 500);
-      };
-      
-      detectRoute();
+      setIsBluetoothPresent(checkBluetoothAvailable());
     }
   }, [callStatus]);
 
@@ -584,13 +587,15 @@ export default function VideoCallPage({ navigation, route }) {
                 <Text style={[styles.audioOptionText, audioDevice === 'speaker' && styles.audioOptionTextActive]}>Speaker</Text>
               </TouchableOpacity>
               
-              <TouchableOpacity 
-                style={[styles.audioOption, audioDevice === 'bluetooth' && styles.audioOptionActive]} 
-                onPress={() => handleAudioRoute('bluetooth')}
-              >
-                <Ionicons name="bluetooth" size={20} color={audioDevice === 'bluetooth' ? Colors.white : Colors.black} />
-                <Text style={[styles.audioOptionText, audioDevice === 'bluetooth' && styles.audioOptionTextActive]}>Bluetooth</Text>
-              </TouchableOpacity>
+              {isBluetoothPresent && (
+                <TouchableOpacity 
+                  style={[styles.audioOption, audioDevice === 'bluetooth' && styles.audioOptionActive]} 
+                  onPress={() => handleAudioRoute('bluetooth')}
+                >
+                  <Ionicons name="bluetooth" size={20} color={audioDevice === 'bluetooth' ? Colors.white : Colors.black} />
+                  <Text style={[styles.audioOptionText, audioDevice === 'bluetooth' && styles.audioOptionTextActive]}>Bluetooth</Text>
+                </TouchableOpacity>
+              )}
             </View>
           )}
           <TouchableOpacity style={styles.controlButton} onPress={toggleAudioMenu}>
@@ -687,7 +692,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#4CAF50",
     paddingHorizontal: Sizes.md,
     paddingVertical: Sizes.xs,
-    backgroundColor: Colors.primary,
+    borderRadius: 20,
   },
   completeModalBtnSubmitText: {
     fontSize: 14,
