@@ -8,11 +8,12 @@
  */
 
 let SoundPlayer;
+let Audio;
 try {
   SoundPlayer = require("react-native-sound-player").default;
+  Audio = require("expo-av").Audio;
 } catch (e) {
-  console.warn("⚠️ [RINGTONE] react-native-sound-player not available:", e?.message);
-  SoundPlayer = null;
+  console.warn("⚠️ [RINGTONE] Dependencies not available:", e?.message);
 }
 
 // Bundled ringtones (relative to this file: utils -> consult -> features -> src)
@@ -47,6 +48,16 @@ export const startRingtone = (source) => {
   try {
     _shouldLoop = true;
     _currentAsset = asset;
+
+    // Set audio mode for ducking (mute other apps)
+    if (Audio) {
+      Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+        playsInSilentModeIOS: true,
+        staysActiveInBackground: true,
+        shouldDuckAndroid: true,
+      }).catch(e => console.warn("⚠️ [RINGTONE] setAudioMode failed:", e));
+    }
 
     const playAgain = () => {
       if (!_shouldLoop) return;

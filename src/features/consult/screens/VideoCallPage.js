@@ -45,9 +45,10 @@ export default function VideoCallPage({ navigation, route }) {
   } = route.params || {};
   const [showEndModal, setShowEndModal] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
-  const [isSpeakerOn, setIsSpeakerOn] = useState(false);
+  const [audioDevice, setAudioDevice] = useState("speaker");
+  const [showAudioMenu, setShowAudioMenu] = useState(false);
   const [isVideoOn, setIsVideoOn] = useState(true);
-  const [callStatus, setCallStatus] = useState("ringing"); // 'ringing' | 'connecting' | 'connected'
+  const [callStatus, setCallStatus] = useState("ringing");
   const [callDuration, setCallDuration] = useState(0);
   const [localStream, setLocalStream] = useState(null);
   const [remoteStream, setRemoteStream] = useState(null);
@@ -357,11 +358,20 @@ export default function VideoCallPage({ navigation, route }) {
     };
   }, [otherUserId, navigation]);
 
-  // Start InCallManager when connected so speaker/earpiece toggle works
+  // Start InCallManager and detect initial audio route when connected
   useEffect(() => {
     if (callStatus === "connected") {
-      startInCall("video");
-      setAudioRoute(isSpeakerOn);
+      const detectRoute = async () => {
+        // Give hardware a moment to stabilize
+        setTimeout(async () => {
+          const initialRoute = await getInitialAudioRoute(true);
+          setAudioDevice(initialRoute);
+          await startInCall("video");
+          await setAudioRoute(initialRoute);
+        }, 500);
+      };
+      
+      detectRoute();
     }
   }, [callStatus]);
 
@@ -441,6 +451,16 @@ export default function VideoCallPage({ navigation, route }) {
 
   const handleContinueCall = () => {
     setShowEndModal(false);
+  };
+
+  const handleAudioRoute = async (route) => {
+    setAudioDevice(route);
+    setShowAudioMenu(false);
+    await setAudioRoute(route);
+  };
+
+  const toggleAudioMenu = () => {
+    setShowAudioMenu(!showAudioMenu);
   };
 
   const toggleMute = () => {
@@ -545,13 +565,48 @@ export default function VideoCallPage({ navigation, route }) {
           { paddingBottom: insets.bottom + Sizes.lg },
         ]}
       >
-        <TouchableOpacity style={styles.controlButton} onPress={toggleSpeaker}>
-          <Ionicons
-            name={isSpeakerOn ? "volume-high" : "phone-portrait-outline"}
-            size={24}
-            color={Colors.black}
-          />
-        </TouchableOpacity>
+        <View>
+          {showAudioMenu && (
+            <View style={styles.audioPopup}>
+              <TouchableOpacity 
+                style={[styles.audioOption, audioDevice === 'earpiece' && styles.audioOptionActive]} 
+                onPress={() => handleAudioRoute('earpiece')}
+              >
+                <Ionicons name="phone-portrait-outline" size={20} color={audioDevice === 'earpiece' ? Colors.white : Colors.black} />
+                <Text style={[styles.audioOptionText, audioDevice === 'earpiece' && styles.audioOptionTextActive]}>Earpiece</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[styles.audioOption, audioDevice === 'speaker' && styles.audioOptionActive]} 
+                onPress={() => handleAudioRoute('speaker')}
+              >
+                <Ionicons name="volume-high" size={20} color={audioDevice === 'speaker' ? Colors.white : Colors.black} />
+                <Text style={[styles.audioOptionText, audioDevice === 'speaker' && styles.audioOptionTextActive]}>Speaker</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[styles.audioOption, audioDevice === 'bluetooth' && styles.audioOptionActive]} 
+                onPress={() => handleAudioRoute('bluetooth')}
+              >
+                <Ionicons name="bluetooth" size={20} color={audioDevice === 'bluetooth' ? Colors.white : Colors.black} />
+                <Text style={[styles.audioOptionText, audioDevice === 'bluetooth' && styles.audioOptionTextActive]}>Bluetooth</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          <TouchableOpacity style={styles.controlButton} onPress={toggleAudioMenu}>
+            <Ionicons
+              name={
+                audioDevice === "speaker"
+                  ? "volume-high"
+                  : audioDevice === "bluetooth"
+                    ? "bluetooth"
+                    : "phone-portrait-outline"
+              }
+              size={24}
+              color={Colors.black}
+            />
+          </TouchableOpacity>
+        </View>
 
         <TouchableOpacity
           style={[styles.controlButton, !isVideoOn && styles.disabledButton]}
@@ -632,7 +687,46 @@ const styles = StyleSheet.create({
     backgroundColor: "#4CAF50",
     paddingHorizontal: Sizes.md,
     paddingVertical: Sizes.xs,
-    borderRadius: 20,
+    backgroundColor: Colors.primary,
+  },
+  completeModalBtnSubmitText: {
+    fontSize: 14,
+    fontFamily: "Poppins-Medium",
+    color: Colors.white,
+  },
+  audioPopup: {
+    position: "absolute",
+    bottom: 70,
+    left: -40,
+    width: 140,
+    backgroundColor: Colors.white,
+    borderRadius: 12,
+    padding: Sizes.xs,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+    elevation: 8,
+    zIndex: 1000,
+  },
+  audioOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: Sizes.sm,
+    paddingHorizontal: Sizes.md,
+    borderRadius: 8,
+    gap: Sizes.sm,
+  },
+  audioOptionActive: {
+    backgroundColor: "#0098B3",
+  },
+  audioOptionText: {
+    fontSize: 14,
+    fontFamily: "Poppins-Medium",
+    color: Colors.black,
+  },
+  audioOptionTextActive: {
+    color: Colors.white,
   },
   statusText: {
     fontSize: 12,

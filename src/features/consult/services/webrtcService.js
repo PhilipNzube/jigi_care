@@ -443,29 +443,41 @@ export const toggleVideoTrack = (stream, enabled) => {
 };
 
 /**
- * Set audio route for call: speaker (loud) vs earpiece (phone to ear).
- * Uses react-native-incall-manager when available; falls back to expo-av.
- * @param {boolean} useSpeaker - true = loudspeaker, false = earpiece
+ * Set audio route for call.
+ * @param {'speaker'|'earpiece'|'bluetooth'} route - target audio route
  */
-export const setAudioRoute = async (useSpeaker) => {
-  if (InCallManager) {
-    try {
-      InCallManager.setSpeakerphoneOn(useSpeaker);
-      if (Platform.OS === "ios") {
-        InCallManager.setForceSpeakerphoneOn(useSpeaker);
-      }
-    } catch (error) {
-      console.warn("⚠️ [WEBRTC] InCallManager set audio route failed:", error);
-    }
-    return;
-  }
+export const setAudioRoute = async (route) => {
+  console.log(`🔊 [WEBRTC] Setting audio route to: ${route}`);
+  
   try {
+    const useSpeaker = route === "speaker";
+    
+    // 1. Configure Expo Audio
     await Audio.setAudioModeAsync({
-      allowsRecordingIOS: !useSpeaker,
+      allowsRecordingIOS: true,
       playsInSilentModeIOS: true,
       staysActiveInBackground: true,
-      shouldDuckAndroid: false,
+      shouldDuckAndroid: true,
+      playThroughEarpieceAndroid: route === "earpiece",
     });
+
+    // 2. Use InCallManager for hardware routing
+    if (InCallManager) {
+      if (route === "bluetooth") {
+        InCallManager.chooseAudioRoute("BLUETOOTH");
+      } else if (route === "speaker") {
+        InCallManager.setSpeakerphoneOn(true);
+        if (Platform.OS === "ios") {
+          InCallManager.setForceSpeakerphoneOn(true);
+        }
+      } else {
+        // Earpiece
+        InCallManager.setSpeakerphoneOn(false);
+        if (Platform.OS === "ios") {
+          InCallManager.setForceSpeakerphoneOn(false);
+        }
+      }
+    }
   } catch (error) {
     console.warn("⚠️ [WEBRTC] Could not set audio route:", error);
   }
@@ -476,13 +488,31 @@ export const setAudioRoute = async (useSpeaker) => {
  * Call when the call becomes connected.
  * @param {'audio'|'video'} media - 'audio' for voice, 'video' for video call
  */
-export const startInCall = (media = "audio") => {
+export const startInCall = async (media = "audio") => {
+  console.log(`📞 [WEBRTC] Starting in-call mode: ${media}`);
+  
   if (InCallManager) {
     try {
       InCallManager.start({ media, auto: true });
+      // On some Androids, we need to explicitly set speaker to OFF initially for video calls 
+      // if they want to start on earpiece, but usually video starts on speaker.
+      if (media === "video") {
+        InCallManager.setSpeakerphoneOn(true);
+      }
     } catch (error) {
       console.warn("⚠️ [WEBRTC] InCallManager start failed:", error);
     }
+  }
+
+  try {
+    await Audio.setAudioModeAsync({
+      allowsRecordingIOS: true,
+      playsInSilentModeIOS: true,
+      staysActiveInBackground: true,
+      shouldDuckAndroid: true,
+    });
+  } catch (e) {
+    console.warn("⚠️ [WEBRTC] Audio mode failed in startInCall:", e);
   }
 };
 
@@ -497,4 +527,24 @@ export const stopInCall = () => {
       console.warn("⚠️ [WEBRTC] InCallManager stop failed:", error);
     }
   }
+};
+
+/**
+ * Get the recommended initial audio route.
+ * @param {boolean} isVideo - Whether it's a video call
+ * @returns {Promise<'speaker'|'earpiece'|'bluetooth'>}
+ */
+export const getInitialAudioRoute = async (isVideo) => {
+  if (InCallManager) {
+    try {
+      // InCallManager doesn't have a synchronous way to check Bluetooth 
+      // without starting, but we can try to check if it's available.
+      // For now, video defaults to speaker, voice defaults to earpiece.
+      // Hardware will usually auto-route to Bluetooth if connected.
+      return isVideo ? "speaker" : "earpiece";
+    } catch (e) {
+      return isVideo ? "speaker" : "earpiece";
+    }
+  }
+  return isVideo ? "speaker" : "earpiece";
 };

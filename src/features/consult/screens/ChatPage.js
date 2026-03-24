@@ -113,6 +113,18 @@ export default function ChatPage({ navigation, route }) {
   useEffect(() => {
     if (route.params?.isIncoming && localDoctor && !incomingCall) {
       console.log("📞 [CHAT PAGE] Handling incoming call from notification params");
+      
+      const timestamp = route.params?.timestamp;
+      const now = Date.now();
+      
+      // If notification is older than 60 seconds, it's likely expired
+      if (timestamp && now - timestamp > 60000) {
+        console.log("⚠️ [CHAT PAGE] Call notification is too old. Ignoring.");
+        showError("Call has already ended");
+        navigation.setParams({ isIncoming: false });
+        return;
+      }
+
       setIncomingCall({
         fromUserId: localDoctor.consultantId,
         conversationId: route.params.conversationId || conversationId,
@@ -120,7 +132,7 @@ export default function ChatPage({ navigation, route }) {
       });
       startRingtone(getRingtoneURI("incoming"));
 
-      // Clear the parameter so it doesn't re-trigger when returning to this screen
+      // Clear the parameter immediately
       navigation.setParams({ isIncoming: false });
     }
   }, [route.params?.isIncoming, localDoctor, incomingCall, conversationId, navigation]);
@@ -191,16 +203,20 @@ export default function ChatPage({ navigation, route }) {
           setIsTyping(false);
         }
       },
+      onWebRTCOffer: (data) => {
+        console.log("📥 [CHAT PAGE] Socket WebRTC offer received:", data.fromUserId);
+      },
       onMessagesRead: (data) => {
         console.log("✅ [CHAT PAGE] Messages read:", data);
         handleMessagesRead(data);
       },
       onCallIncoming: (data) => {
-        console.log("📞 [CHAT PAGE] Incoming call – fromUserId:", data?.fromUserId, "conversationId:", data?.conversationId, "callType:", data?.callType || "audio");
+        console.log("📥 [CHAT PAGE] Socket confirmed incoming call:", data);
+        
         setIncomingCall({
           fromUserId: data.fromUserId,
           conversationId: data.conversationId,
-          callType: data.callType || "audio",
+          callType: data.callType,
         });
         startRingtone(getRingtoneURI("incoming"));
       },
@@ -1069,6 +1085,10 @@ export default function ChatPage({ navigation, route }) {
       <ScrollView
         ref={scrollViewRef}
         style={styles.messagesContainer}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: Sizes.lg }
+        ]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         onScroll={handleScroll}

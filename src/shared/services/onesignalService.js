@@ -63,6 +63,7 @@ class OneSignalService {
               conversationId: data.conversationId,
               callType: data.callType || "video",
               isIncoming: true,
+              timestamp: Date.now(),
             });
           } else {
             // Default to ChatPage for messages or generic notifications

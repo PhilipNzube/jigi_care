@@ -30,6 +30,11 @@ import {
 } from "../../../shared/config/googleConfig";
 import LoadingOverlay from "../../../shared/components/LoadingOverlay";
 import { showError, showSuccess } from "../../../shared/utils/toast";
+import { 
+  getPendingNavigation, 
+  clearPendingNavigation, 
+  navigate 
+} from "../../../shared/navigation/navigationRef";
 
 const { width, height } = Dimensions.get("window");
 
@@ -227,7 +232,19 @@ export default function LoginScreen({ navigation, route }) {
       if (unlockApp) await unlockApp();
 
       showSuccess("Login successful! Welcome back.");
+      
+      // Navigate to main app
       navigation.replace("MainApp");
+      
+      // Check for pending navigation (e.g. from notification)
+      const pending = getPendingNavigation();
+      if (pending) {
+        console.log("📌 [LOGIN] Executing pending navigation after login:", pending.name);
+        setTimeout(() => {
+          navigate(pending.name, pending.params);
+          clearPendingNavigation();
+        }, 100);
+      }
     } catch (error) {
       console.error("❌ [LOGIN SCREEN] Login error:", error);
       console.error(
@@ -292,6 +309,16 @@ export default function LoginScreen({ navigation, route }) {
 
       // Navigate to main app
       navigation.replace("MainApp");
+      
+      // Check for pending navigation
+      const pending = getPendingNavigation();
+      if (pending) {
+        console.log("📌 [LOGIN] Executing pending navigation after Google sign in:", pending.name);
+        setTimeout(() => {
+          navigate(pending.name, pending.params);
+          clearPendingNavigation();
+        }, 100);
+      }
     } catch (error) {
       console.error("❌ [GOOGLE SIGN IN] Google sign in error:", error);
       console.error(
@@ -347,6 +374,16 @@ export default function LoginScreen({ navigation, route }) {
 
         // On success, always navigate to main app (resets the stack cleanly)
         navigation.replace("MainApp");
+
+        // Check for pending navigation
+        const pending = getPendingNavigation();
+        if (pending) {
+          console.log("📌 [LOGIN] Executing pending navigation after biometric unlock:", pending.name);
+          setTimeout(() => {
+            navigate(pending.name, pending.params);
+            clearPendingNavigation();
+          }, 100);
+        }
       } else {
         // User cancelled or authentication failed
         console.log("Biometric authentication cancelled or failed");
