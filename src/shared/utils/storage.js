@@ -16,6 +16,7 @@ const STORAGE_KEYS = {
   BIOMETRIC_ENABLED: "@jigi_care:biometric_enabled",
   LAST_ACTIVE_TIME: "@jigi_care:last_active_time",
   IS_LOCKED: "@jigi_care:is_locked",
+  PRIVACY_POLICY_ACCEPTED: "@jigi_care:privacy_policy_accepted",
 };
 
 /**
@@ -124,7 +125,10 @@ export const clearStorage = async () => {
     console.log("🗑️ [STORAGE] All storage keys found:", allKeys);
 
     // Filter keys that belong to this app
-    const appKeys = allKeys.filter((key) => key.startsWith("@jigi_care:"));
+    const appKeys = allKeys.filter((key) => 
+      key.startsWith("@jigi_care:") && 
+      key !== STORAGE_KEYS.PRIVACY_POLICY_ACCEPTED
+    );
     console.log("🗑️ [STORAGE] App-specific keys to clear:", appKeys);
 
     // Clear all app-specific keys (in case there are any we missed)
@@ -140,7 +144,8 @@ export const clearStorage = async () => {
     // Verify everything is cleared
     const remainingKeys = await AsyncStorage.getAllKeys();
     const remainingAppKeys = remainingKeys.filter((key) =>
-      key.startsWith("@jigi_care:")
+      key.startsWith("@jigi_care:") && 
+      key !== STORAGE_KEYS.PRIVACY_POLICY_ACCEPTED
     );
 
     if (remainingAppKeys.length === 0) {
@@ -395,6 +400,32 @@ export const getIsLockedLocally = async () => {
   }
 };
 
+/**
+ * Store privacy policy acceptance locally
+ * @param {boolean} accepted - True if accepted
+ */
+export const storePrivacyPolicyAccepted = async (accepted) => {
+  try {
+    await AsyncStorage.setItem(STORAGE_KEYS.PRIVACY_POLICY_ACCEPTED, JSON.stringify(accepted));
+  } catch (error) {
+    console.error("Error storing privacy policy state:", error);
+  }
+};
+
+/**
+ * Retrieve privacy policy acceptance state
+ * @returns {Promise<boolean>} - True if accepted
+ */
+export const getPrivacyPolicyAccepted = async () => {
+  try {
+    const acceptedStr = await AsyncStorage.getItem(STORAGE_KEYS.PRIVACY_POLICY_ACCEPTED);
+    return acceptedStr ? JSON.parse(acceptedStr) : false;
+  } catch (error) {
+    console.error("Error retrieving privacy policy state:", error);
+    return false;
+  }
+};
+
 export default {
   storeToken,
   getToken,
@@ -420,4 +451,6 @@ export default {
   getLastActiveTime,
   storeIsLockedLocally,
   getIsLockedLocally,
+  storePrivacyPolicyAccepted,
+  getPrivacyPolicyAccepted,
 };

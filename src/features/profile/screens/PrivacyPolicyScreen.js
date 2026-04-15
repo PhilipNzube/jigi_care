@@ -16,7 +16,7 @@ export default function PrivacyPolicyScreen({ navigation }) {
       id: 1,
       title: "Introduction",
       content:
-        "At Jiggy Care, we are committed to protecting your privacy and ensuring the security of your personal information. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our mobile application and services.",
+        "At Jigi Care, we are committed to protecting your privacy and ensuring the security of your personal information. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our mobile application and services.",
     },
     {
       id: 2,
@@ -58,7 +58,7 @@ export default function PrivacyPolicyScreen({ navigation }) {
       id: 8,
       title: "Children's Privacy",
       content:
-        "Our services are not intended for children under 18 years of age. We do not knowingly collect personal information from children. If you believe we have collected information from a child, please contact us immediately.",
+        "Patients under the age of 18 are not permitted to use the platform independently. A parent or legal guardian must provide explicit consent and manage the account for any user under the age of 18. If you believe we have collected information from a child without parental consent, please contact us immediately.",
     },
     {
       id: 9,
@@ -70,7 +70,7 @@ export default function PrivacyPolicyScreen({ navigation }) {
       id: 10,
       title: "Contact Us",
       content:
-        "If you have questions, concerns, or requests regarding this Privacy Policy or our data practices, please contact us:\n\nEmail: privacy@jiggycare.com\nPhone: +234 800 000 0000\nAddress: Jiggy Care, Lagos, Nigeria",
+        "If you have questions, concerns, or requests regarding this Privacy Policy or our data practices, please contact us:\n\nEmail: privacy@jigicare.com\nPhone: +234 800 000 0000\nAddress: Jigi Care, Lagos, Nigeria",
     },
   ];
 
@@ -102,7 +102,7 @@ export default function PrivacyPolicyScreen({ navigation }) {
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>
-            By using Jiggy Care, you acknowledge that you have read and understood this Privacy Policy.
+            By using Jigi Care, you acknowledge that you have read and understood this Privacy Policy.
           </Text>
         </View>
       </ScrollView>

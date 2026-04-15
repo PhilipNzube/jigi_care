@@ -21,6 +21,13 @@ import HealthTipsCarousel from "../components/HealthTipsCarousel";
 // import UpcomingAppointmentsList from "../components/UpcomingAppointmentsList";
 import FloatingActionButton from "../components/FloatingActionButton";
 import ChatBotInterface from "../components/ChatBotInterface";
+import PrivacyPolicyModal from "../../../shared/components/PrivacyPolicyModal";
+import DeclineConfirmationModal from "../../../shared/components/DeclineConfirmationModal";
+import LoadingOverlay from "../../../shared/components/LoadingOverlay";
+import { useAuth } from "../../../shared/context/AuthContext";
+import { calculateAge } from "../../../shared/utils/validationUtils";
+import { updateProfile } from "../../auth/services/authService";
+import storage from "../../../shared/utils/storage";
 
 export default function HomeScreen({ navigation, route }) {
   const insets = useSafeAreaInsets();
@@ -30,6 +37,67 @@ export default function HomeScreen({ navigation, route }) {
   const refreshKeyRef = useRef(0);
   const backPressTimeoutRef = useRef(null);
   const warningShownRef = useRef(false);
+  const { user, updateUser, signOut } = useAuth();
+  const [showPolicyModal, setShowPolicyModal] = useState(false);
+  const [showDeclineConfirm, setShowDeclineConfirm] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const userAge = calculateAge(user?.dateOfBirth);
+  const isUnder18 = userAge > 0 && userAge < 18;
+
+  useEffect(() => {
+    // Check if user has accepted the privacy policy locally
+    const checkPolicy = async () => {
+      const accepted = await storage.getPrivacyPolicyAccepted();
+      if (!accepted) {
+        setShowPolicyModal(true);
+      }
+    };
+    
+    if (user && !isLoggingOut) {
+      checkPolicy();
+    }
+  }, [user, isLoggingOut]);
+
+  // Logout transition logic
+  const handleFinalDecline = async () => {
+    setShowDeclineConfirm(false);
+    setIsLoggingOut(true);
+    
+    // Slight delay for better UX before signing out
+    setTimeout(async () => {
+      await signOut();
+    }, 1500);
+  };
+
+  const handleAcceptPolicy = async () => {
+    try {
+      if (isUnder18) {
+        // Redirect to a specific consent form or show info
+        navigation.navigate("ContactUs", { 
+          subject: "Parental Consent Request",
+          message: `I would like to request parental consent for account: ${user?.email}`
+        });
+        return;
+      }
+
+      // Store locally as requested by the user
+      await storage.storePrivacyPolicyAccepted(true);
+      setShowPolicyModal(false);
+    } catch (error) {
+       console.error("Error accepting privacy policy:", error);
+    }
+  };
+
+  const handleRejectPolicy = async () => {
+     // Show confirmation bottom sheet instead of moving straight to logout
+     setShowPolicyModal(false);
+     setShowDeclineConfirm(true);
+  };
+
+  const handleCancelDecline = () => {
+    setShowDeclineConfirm(false);
+    setShowPolicyModal(true);
+  };
 
   // Refresh when screen comes into focus (tab change)
   useEffect(() => {
@@ -149,6 +217,21 @@ export default function HomeScreen({ navigation, route }) {
         visible={showChatBotInterface}
         onClose={handleCloseChat}
       />
+
+      <PrivacyPolicyModal
+        visible={showPolicyModal}
+        isUnder18={isUnder18}
+        onAccept={handleAcceptPolicy}
+        onReject={handleRejectPolicy}
+      />
+
+      <DeclineConfirmationModal 
+        visible={showDeclineConfirm}
+        onContinue={handleFinalDecline}
+        onCancel={handleCancelDecline}
+      />
+
+      <LoadingOverlay visible={isLoggingOut} />
     </View>
   );
 }

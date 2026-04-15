@@ -13,6 +13,9 @@ import {
   Image,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { get, post } from "../../../shared/services/api";
+import { showError, showSuccess, showInfo } from "../../../shared/utils/toast";
+import ConsultationRatingModal from "../../../shared/components/ConsultationRatingModal";
 import { Colors, Sizes } from "../../../shared/constants";
 import { Images } from "../../../shared/utils/imageUtils";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -25,6 +28,26 @@ export default function ConsultationSummaryPage({ navigation, route }) {
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [rating, setRating] = useState(0);
   const [feedback, setFeedback] = useState("");
+  const [showRatingModal, setShowRatingModal] = useState(false);
+
+  useEffect(() => {
+    // Show rating modal after a short delay when page loads
+    const timer = setTimeout(() => {
+      setShowRatingModal(true);
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const handleRatingSubmit = async (ratingData) => {
+    try {
+      // API call to submit rating could go here
+      console.log("Submitting rating:", ratingData);
+      showSuccess("Thank you for your feedback!");
+      setShowRatingModal(false);
+    } catch (error) {
+      console.error("Error submitting rating:", error);
+    }
+  };
 
   useEffect(() => {
     const keyboardDidShowListener = Keyboard.addListener(

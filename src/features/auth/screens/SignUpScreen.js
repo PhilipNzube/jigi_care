@@ -30,6 +30,7 @@ import {
 } from "../../../shared/config/googleConfig";
 import LoadingOverlay from "../../../shared/components/LoadingOverlay";
 import { showError, showSuccess } from "../../../shared/utils/toast";
+import { validatePassword, ALLOWED_SPECIAL_CHARS_DISPLAY } from "../../../shared/utils/validationUtils";
 
 const { width, height } = Dimensions.get("window");
 
@@ -76,44 +77,8 @@ export default function SignUpScreen({ navigation }) {
     return emailRegex.test(email);
   };
 
-  const validatePassword = (password) => {
-    // Password requirements:
-    // - At least 8 characters
-    // - At least one uppercase letter
-    // - At least one lowercase letter
-    // - At least one number
-    // - At least one special character
-    if (password.length < 8) {
-      return {
-        valid: false,
-        message: "Password must be at least 8 characters",
-      };
-    }
-    if (!/[A-Z]/.test(password)) {
-      return {
-        valid: false,
-        message: "Password must contain at least one uppercase letter",
-      };
-    }
-    if (!/[a-z]/.test(password)) {
-      return {
-        valid: false,
-        message: "Password must contain at least one lowercase letter",
-      };
-    }
-    if (!/[0-9]/.test(password)) {
-      return {
-        valid: false,
-        message: "Password must contain at least one number",
-      };
-    }
-    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
-      return {
-        valid: false,
-        message: "Password must contain at least one special character",
-      };
-    }
-    return { valid: true, message: "" };
+  const validatePasswordInternal = (password) => {
+    return validatePassword(password);
   };
 
   const validateFullName = (name) => {
@@ -134,7 +99,7 @@ export default function SignUpScreen({ navigation }) {
     if (!password.trim()) {
       newErrors.password = "Password is required";
     } else {
-      const passwordValidation = validatePassword(password);
+      const passwordValidation = validatePasswordInternal(password);
       if (!passwordValidation.valid) {
         newErrors.password = passwordValidation.message;
       }
@@ -175,7 +140,7 @@ export default function SignUpScreen({ navigation }) {
         if (value.trim() === "") {
           newErrors.password = "Password is required";
         } else {
-          const passwordValidation = validatePassword(value);
+          const passwordValidation = validatePasswordInternal(value);
           if (!passwordValidation.valid) {
             newErrors.password = passwordValidation.message;
           } else {
@@ -204,7 +169,7 @@ export default function SignUpScreen({ navigation }) {
   };
 
   const isFormValid = () => {
-    const passwordValidation = validatePassword(password);
+    const passwordValidation = validatePasswordInternal(password);
     return (
       validateFullName(fullName) &&
       validateEmail(email) &&
@@ -498,11 +463,12 @@ export default function SignUpScreen({ navigation }) {
                 <Text
                   style={[
                     styles.requirement,
-                    /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password) &&
+                    /[!@#$%^&*()_+\- .?]/.test(password) &&
                       styles.requirementMet,
                   ]}
                 >
                   • At least one special character
+                  {"\n"}  ({ALLOWED_SPECIAL_CHARS_DISPLAY})
                 </Text>
               </View>
             )}

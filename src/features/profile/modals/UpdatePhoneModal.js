@@ -25,6 +25,7 @@ export default function UpdatePhoneModal({ visible, onClose }) {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [phoneData, setPhoneData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
 
   // Update phone when modal opens or user data changes
   useEffect(() => {
@@ -36,7 +37,9 @@ export default function UpdatePhoneModal({ visible, onClose }) {
         user?.mobileNumber ||
         user?.contactNumber ||
         "";
-      if (userPhone) {
+      
+      // Filter out "Not set" or other non-numeric fallbacks
+      if (userPhone && userPhone !== "Not set") {
         setPhoneNumber(userPhone);
       } else {
         setPhoneNumber("");
@@ -45,14 +48,28 @@ export default function UpdatePhoneModal({ visible, onClose }) {
   }, [visible, user]);
 
   const handlePhoneChange = (data) => {
+    // Keep internal state updated
     setPhoneData(data);
-    // data contains: { phoneNumber, e164, isValid, countryCode, country }
-    setPhoneNumber(data?.phoneNumber || "");
+    
+    // Only update phoneNumber if we have something, but don't wipe it to empty if the user is typing
+    if (data?.phoneNumber) {
+      setPhoneNumber(data.phoneNumber);
+    } else if (data === null || data === undefined) {
+      // Library returned nothing at all (rare)
+      setPhoneNumber("");
+    }
+    
+    if (error) setError(""); // Clear error when typing
   };
 
   const handleSave = async () => {
-    if (!phoneNumber.trim()) {
-      showError("Please enter a phone number");
+    if (!phoneNumber || phoneNumber.trim() === "") {
+      setError("Please enter a phone number");
+      return;
+    }
+
+    if (phoneData && !phoneData.isValid) {
+      setError("Please enter a valid phone number");
       return;
     }
 
@@ -126,21 +143,22 @@ export default function UpdatePhoneModal({ visible, onClose }) {
                   }}
                 />
               </View>
+              {error ? <Text style={styles.errorText}>{error}</Text> : null}
             </View>
-
-            <TouchableOpacity
-              style={[
-                styles.saveButton,
-                isLoading && styles.saveButtonDisabled,
-              ]}
-              onPress={handleSave}
-              disabled={isLoading}
-            >
-              <Text style={styles.saveButtonText}>
-                {isLoading ? "Saving..." : "Save"}
-              </Text>
-            </TouchableOpacity>
           </ScrollView>
+
+          <TouchableOpacity
+            style={[
+              styles.saveButton,
+              isLoading && styles.saveButtonDisabled,
+            ]}
+            onPress={handleSave}
+            disabled={isLoading}
+          >
+            <Text style={styles.saveButtonText}>
+              {isLoading ? "Saving..." : "Save"}
+            </Text>
+          </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
       <LoadingOverlay visible={isLoading} />
@@ -225,5 +243,11 @@ const styles = StyleSheet.create({
   },
   saveButtonDisabled: {
     opacity: 0.6,
+  },
+  errorText: {
+    color: Colors.error,
+    fontSize: 12,
+    fontFamily: "Poppins-Regular",
+    marginTop: Sizes.xs,
   },
 });

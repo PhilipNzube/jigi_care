@@ -18,6 +18,7 @@ import { Colors, Sizes } from "../../../shared/constants";
 import { Images } from "../../../shared/utils/imageUtils";
 import { verifyPasswordResetOTP } from "../services/authService";
 import { showError, showSuccess } from "../../../shared/utils/toast";
+import { validatePassword, ALLOWED_SPECIAL_CHARS_DISPLAY } from "../../../shared/utils/validationUtils";
 
 const { width, height } = Dimensions.get("window");
 
@@ -57,15 +58,16 @@ export default function CreateNewPasswordScreen({ navigation, route }) {
   };
 
   // Validation functions
-  const validatePassword = (password) => {
-    return password.length >= 8;
+  const validatePasswordInternal = (password) => {
+    return validatePassword(password);
   };
 
   const validateForm = () => {
     const newErrors = {};
 
-    if (!validatePassword(password)) {
-      newErrors.password = "Password must be at least 8 characters";
+    const passwordValidation = validatePasswordInternal(password);
+    if (!passwordValidation.valid) {
+      newErrors.password = passwordValidation.message;
     }
 
     if (password !== confirmPassword) {
@@ -77,8 +79,9 @@ export default function CreateNewPasswordScreen({ navigation, route }) {
   };
 
   const isFormValid = () => {
+    const passwordValidation = validatePasswordInternal(password);
     return (
-      validatePassword(password) &&
+      passwordValidation.valid &&
       password === confirmPassword &&
       password.trim() !== "" &&
       confirmPassword.trim() !== ""
@@ -93,10 +96,13 @@ export default function CreateNewPasswordScreen({ navigation, route }) {
       case "password":
         if (value.trim() === "") {
           newErrors.password = "Password is required";
-        } else if (!validatePassword(value)) {
-          newErrors.password = "Password must be at least 8 characters";
         } else {
-          delete newErrors.password;
+          const passwordValidation = validatePasswordInternal(value);
+          if (!passwordValidation.valid) {
+            newErrors.password = passwordValidation.message;
+          } else {
+            delete newErrors.password;
+          }
         }
         // Also validate confirm password if it has a value
         if (confirmPassword && confirmPassword !== value) {
@@ -195,7 +201,8 @@ export default function CreateNewPasswordScreen({ navigation, route }) {
 
             {/* Description */}
             <Text style={styles.description}>
-              Please enter matching passwords with at least 8 characters
+              Please enter matching passwords with at least 8 characters.
+              Requirements: {ALLOWED_SPECIAL_CHARS_DISPLAY}
             </Text>
 
             {/* Password Input */}
@@ -316,9 +323,10 @@ export default function CreateNewPasswordScreen({ navigation, route }) {
 
             {/* Help Text */}
             {/* {!isFormValid() && (
-              <Text style={styles.helpText}>
-                Please enter matching passwords with at least 8 characters
-              </Text>
+              <Text style={styles.description}>
+              Please enter matching passwords with at least 8 characters.
+              Requirements: {ALLOWED_SPECIAL_CHARS_DISPLAY}
+            </Text>
             )} */}
           </View>
         </ScrollView>

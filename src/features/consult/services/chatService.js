@@ -1,7 +1,7 @@
 /**
  * Chat Service
  * Handles all chat-related API calls and WebSocket connections
- * Based on Jiggy Care Chat System Documentation v2026-01-14
+ * Based on Jigi Care Chat System Documentation v2026-01-14
  */
 
 import { get, post, patch } from "../../../shared/services/api";
