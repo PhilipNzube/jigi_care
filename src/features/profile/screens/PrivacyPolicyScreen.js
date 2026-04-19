@@ -70,7 +70,7 @@ export default function PrivacyPolicyScreen({ navigation }) {
       id: 10,
       title: "Contact Us",
       content:
-        "If you have questions, concerns, or requests regarding this Privacy Policy or our data practices, please contact us:\n\nEmail: privacy@jigicare.com\nPhone: +234 800 000 0000\nAddress: Jigi Care, Lagos, Nigeria",
+        "If you have questions, concerns, or requests regarding this Privacy Policy or our data practices, please contact us:\n\nEmail: Jigicareltd@gmail.com\nPhone: 08069407850\nAddress: D4/4 Irewolede Estate, Ilawe road, Ado-Ekiti, Ekiti State",
     },
   ];
 

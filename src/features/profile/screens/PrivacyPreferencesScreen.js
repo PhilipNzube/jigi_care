@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -6,13 +6,80 @@ import {
   ScrollView,
   TouchableOpacity,
   Switch,
+  AppState,
+  Linking,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
+import { OneSignal } from "react-native-onesignal";
+import { showInfo } from "../../../shared/utils/toast";
 
 export default function PrivacyPreferencesScreen({ navigation }) {
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const appState = useRef(AppState.currentState);
+
+  // Check notification permission status
+  const checkNotificationPermission = async () => {
+    try {
+      // getPermissionAsync returns a boolean for granted status in OneSignal v5
+      const granted = await OneSignal.Notifications.getPermissionAsync();
+      setNotificationsEnabled(granted);
+    } catch (error) {
+      console.error("Error checking notification permission:", error);
+    }
+  };
+
+  useEffect(() => {
+    // Initial check
+    checkNotificationPermission();
+
+    // Listen for app state changes to refresh status when returning from settings
+    const subscription = AppState.addEventListener("change", (nextAppState) => {
+      if (
+        appState.current.match(/inactive|background/) &&
+        nextAppState === "active"
+      ) {
+        checkNotificationPermission();
+      }
+      appState.current = nextAppState;
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, []);
+
+  const handleNotificationToggle = async () => {
+    // Check current status
+    const granted = await OneSignal.Notifications.getPermissionAsync();
+
+    // If permission not determined/not requested, status might be different in native, 
+    // but OneSignal v5 requestPermission(true) handles the prompt.
+    // However, if already granted or denied, oneSignal.Notifications.requestPermission(true)
+    // might not show prompt again on iOS.
+    
+    // We'll try to request first if not enabled
+    if (!granted) {
+      const result = await OneSignal.Notifications.requestPermission(true);
+      if (result) {
+        setNotificationsEnabled(true);
+        return;
+      }
+    }
+
+    // If we're here, it means either:
+    // 1. It was already granted and user wants to turn it off -> Open Settings
+    // 2. It was denied and requestPermission didn't show prompt/was rejected -> Open Settings
+    Linking.openSettings();
+  };
+
+  const handleFeatureNotAvailable = (featureName) => {
+    showInfo(
+      `The "${featureName}" feature is coming soon! Our team is working hard to bring it to you.`,
+      "Coming Soon"
+    );
+  };
 
   const privacySettings = [
     {
@@ -20,7 +87,7 @@ export default function PrivacyPreferencesScreen({ navigation }) {
       title: "Push Notifications",
       description: "Receive push notifications on your device",
       value: notificationsEnabled,
-      onValueChange: setNotificationsEnabled,
+      onValueChange: handleNotificationToggle,
     },
   ];
 
@@ -30,6 +97,7 @@ export default function PrivacyPreferencesScreen({ navigation }) {
       title: "Download My Data",
       icon: "download-outline",
       description: "Request a copy of your data",
+      onPress: () => handleFeatureNotAvailable("Download My Data"),
     },
     {
       id: 2,
@@ -37,6 +105,7 @@ export default function PrivacyPreferencesScreen({ navigation }) {
       icon: "trash-outline",
       description: "Permanently delete your account",
       danger: true,
+      onPress: () => handleFeatureNotAvailable("Delete Account"),
     },
   ];
 
@@ -85,7 +154,10 @@ export default function PrivacyPreferencesScreen({ navigation }) {
           <View style={styles.card}>
             {privacyActions.map((action, index) => (
               <View key={action.id}>
-                <TouchableOpacity style={styles.actionItem}>
+                <TouchableOpacity 
+                  style={styles.actionItem}
+                  onPress={action.onPress}
+                >
                   <View style={styles.actionLeft}>
                     <Ionicons
                       name={action.icon}
