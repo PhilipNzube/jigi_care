@@ -13,7 +13,9 @@ import {
   ActivityIndicator,
   Animated,
   Modal,
+  Dimensions,
 } from "react-native";
+const { width } = Dimensions.get("window");
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, Sizes } from "../../../shared/constants";
 import { Images } from "../../../shared/utils/imageUtils";
@@ -46,6 +48,10 @@ import { format, parseISO } from "date-fns";
 import { showError, showSuccess } from "../../../shared/utils/toast";
 import ShimmerLoader from "../../../shared/components/ShimmerLoader";
 import { useFocusEffect } from "@react-navigation/native";
+import * as ImagePicker from "expo-image-picker";
+import * as DocumentPicker from "expo-document-picker";
+import { uploadFile } from "../../../shared/services/uploadService";
+import LoadingOverlay from "../../../shared/components/LoadingOverlay";
 
 export default function ChatPage({ navigation, route }) {
   const insets = useSafeAreaInsets();
@@ -78,6 +84,8 @@ export default function ChatPage({ navigation, route }) {
   const [completeReason, setCompleteReason] = useState("");
   const [localDoctor, setLocalDoctor] = useState(doctor || null);
   const [isFetchingDoctor, setIsFetchingDoctor] = useState(false);
+  const [isAttachmentModalVisible, setIsAttachmentModalVisible] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   // Effect to fetch doctor details if missing (e.g. from notification)
   useEffect(() => {
@@ -594,9 +602,10 @@ export default function ChatPage({ navigation, route }) {
   /**
    * Send a message
    */
-  const handleSendMessage = async () => {
+  const handleSendMessage = async (contentOverride = null) => {
     // Prevent double-tap and ensure message is not empty
-    if (!message.trim() || isSending) {
+    const messageToSubmit = contentOverride || message;
+    if (!messageToSubmit.trim() || isSending) {
       return;
     }
 
@@ -605,8 +614,8 @@ export default function ChatPage({ navigation, route }) {
       return;
     }
 
-    const messageContent = message.trim();
-    setMessage(""); // Clear input immediately for better UX
+    const messageContent = messageToSubmit.trim();
+    if (!contentOverride) setMessage(""); // Clear input immediately for better UX
     stopTypingIndicator(); // Stop typing indicator
 
     // Set sending state immediately to prevent double-tap
@@ -721,6 +730,90 @@ export default function ChatPage({ navigation, route }) {
     if (conversationId && isConnected) {
       stopTyping(conversationId, patientId);
     }
+  };
+
+  const handlePickImage = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== "granted") {
+        showError("Permission to access gallery was denied");
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.7,
+      });
+      if (!result.canceled) {
+        uploadAndSendMessage(result.assets[0]);
+      }
+    } catch (error) {
+      console.error("Error picking image:", error);
+    } finally {
+      setIsAttachmentModalVisible(false);
+    }
+  };
+
+  const handleTakePhoto = async () => {
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== "granted") {
+        showError("Permission to access camera was denied");
+        return;
+      }
+      const result = await ImagePicker.launchCameraAsync({
+        quality: 0.7,
+      });
+      if (!result.canceled) {
+        uploadAndSendMessage(result.assets[0]);
+      }
+    } catch (error) {
+      console.error("Error taking photo:", error);
+    } finally {
+      setIsAttachmentModalVisible(false);
+    }
+  };
+
+  const handlePickDocument = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: "*/*",
+        copyToCacheDirectory: true,
+      });
+      if (!result.canceled) {
+        uploadAndSendMessage(result.assets[0]);
+      }
+    } catch (error) {
+      console.error("Error picking document:", error);
+    } finally {
+      setIsAttachmentModalVisible(false);
+    }
+  };
+
+  const uploadAndSendMessage = async (file) => {
+    setIsUploading(true);
+    try {
+      const response = await uploadFile(file);
+      if (response && response.success && response.data?.fileUrl) {
+        handleSendMessage(response.data.fileUrl);
+      } else {
+        showError("Upload failed. Please try again.");
+      }
+    } catch (error) {
+      console.error("Upload error:", error);
+      showError("Failed to upload file");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const isImageUrl = (url) => {
+    if (!url || typeof url !== 'string') return false;
+    return url.match(/\.(jpeg|jpg|gif|png|webp|bmp)$/i) || (url.includes('cloudinary.com') && url.includes('/image/upload/'));
+  };
+
+  const isFileUrl = (url) => {
+    if (!url || typeof url !== 'string') return false;
+    return url.match(/\.(pdf|doc|docx|xls|xlsx|ppt|pptx|txt)$/i) || (url.includes('cloudinary.com') && url.includes('/raw/upload/'));
   };
 
   const handleVoiceCall = async () => {
@@ -1176,14 +1269,31 @@ export default function ChatPage({ navigation, route }) {
                     : styles.doctorBubble,
                 ]}
               >
-                <Text
-                  style={[
-                    styles.messageText,
-                    msg.sender === "user" ? styles.userText : styles.doctorText,
-                  ]}
-                >
-                  {msg.text}
-                </Text>
+                {isImageUrl(msg.text) ? (
+                  <View style={styles.imageWrapper}>
+                    <Image source={{ uri: msg.text }} style={styles.messageImage} resizeMode="cover" />
+                  </View>
+                ) : isFileUrl(msg.text) ? (
+                  <View style={styles.fileContainer}>
+                    <Ionicons 
+                      name="document-text" 
+                      size={32} 
+                      color={msg.sender === "user" ? Colors.white : Colors.primary} 
+                    />
+                    <Text style={[styles.fileText, msg.sender === "user" ? styles.userText : styles.doctorText]}>
+                      Document Attachment
+                    </Text>
+                  </View>
+                ) : (
+                  <Text
+                    style={[
+                      styles.messageText,
+                      msg.sender === "user" ? styles.userText : styles.doctorText,
+                    ]}
+                  >
+                    {msg.text}
+                  </Text>
+                )}
                 <View style={styles.messageFooter}>
                   <Text
                     style={[
@@ -1219,10 +1329,12 @@ export default function ChatPage({ navigation, route }) {
           { paddingBottom: isKeyboardVisible ? 0 : insets.bottom },
         ]}
       >
-        {/* Camera icon - commented out */}
-        {/* <TouchableOpacity style={styles.attachButton}>
-          <Ionicons name="camera" size={24} color={Colors.grey} />
-        </TouchableOpacity> */}
+        <TouchableOpacity 
+          style={styles.attachButton}
+          onPress={() => setIsAttachmentModalVisible(true)}
+        >
+          <Ionicons name="add-circle" size={28} color="#0098B3" />
+        </TouchableOpacity>
 
         <TextInput
           style={styles.textInput}
@@ -1248,6 +1360,55 @@ export default function ChatPage({ navigation, route }) {
           )}
         </TouchableOpacity>
       </View>
+
+      {/* Attachment Selection Modal */}
+      <Modal
+        visible={isAttachmentModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setIsAttachmentModalVisible(false)}
+      >
+        <TouchableOpacity 
+          style={styles.modalOverlay} 
+          activeOpacity={1} 
+          onPress={() => setIsAttachmentModalVisible(false)}
+        >
+          <View style={styles.attachmentModalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Send Attachment</Text>
+              <TouchableOpacity onPress={() => setIsAttachmentModalVisible(false)}>
+                <Ionicons name="close" size={24} color={Colors.black} />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.attachmentOptions}>
+              <TouchableOpacity style={styles.attachmentOption} onPress={handleTakePhoto}>
+                <View style={[styles.optionIcon, { backgroundColor: '#E3F2FD' }]}>
+                  <Ionicons name="camera" size={24} color="#1565C0" />
+                </View>
+                <Text style={styles.optionLabel}>Camera</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.attachmentOption} onPress={handlePickImage}>
+                <View style={[styles.optionIcon, { backgroundColor: '#E8F5E9' }]}>
+                  <Ionicons name="image" size={24} color="#2E7D32" />
+                </View>
+                <Text style={styles.optionLabel}>Gallery</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.attachmentOption} onPress={handlePickDocument}>
+                <View style={[styles.optionIcon, { backgroundColor: '#FFF3E0' }]}>
+                  <Ionicons name="document" size={24} color="#E65100" />
+                </View>
+                <Text style={styles.optionLabel}>Document</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Uploading Loader */}
+      <LoadingOverlay visible={isUploading} />
     </KeyboardAvoidingView>
   );
 }
@@ -1448,6 +1609,98 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
   },
   typingBubble: {
+    backgroundColor: "#E0F2F7",
+    paddingHorizontal: Sizes.md,
+    paddingVertical: Sizes.sm,
+    borderRadius: 16,
+    borderBottomLeftRadius: 4,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  attachmentModalContent: {
+    backgroundColor: Colors.white,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: Sizes.lg,
+    paddingBottom: Sizes.xl * 2,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Sizes.xl,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontFamily: 'Poppins-SemiBold',
+    color: Colors.black,
+  },
+  attachmentOptions: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+  },
+  attachmentOption: {
+    alignItems: 'center',
+    gap: Sizes.xs,
+  },
+  optionIcon: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  optionLabel: {
+    fontSize: 14,
+    fontFamily: 'Poppins-Medium',
+    color: Colors.textPrimary,
+  },
+  uploadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  uploadingBox: {
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    padding: Sizes.xl,
+    borderRadius: 16,
+    alignItems: 'center',
+    gap: Sizes.md,
+  },
+  uploadingText: {
+    color: Colors.white,
+    fontSize: 16,
+    fontFamily: 'Poppins-Medium',
+  },
+  imageWrapper: {
+    width: width * 0.65,
+    height: 200,
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginBottom: 4,
+  },
+  messageImage: {
+    width: '100%',
+    height: '100%',
+  },
+  fileContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Sizes.sm,
+    paddingVertical: Sizes.xs,
+  },
+  fileText: {
+    fontSize: 14,
+    fontFamily: 'Poppins-Medium',
+  },
+  typingDots: {
     backgroundColor: Colors.white,
     borderRadius: 20,
     borderBottomLeftRadius: 5,

@@ -16,7 +16,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
-import { getPatientBookingList, markBookingCompleted, markBookingNoShow } from "../services/bookingService";
+import { getPatientBookingList, markBookingCompleted, markBookingNoShow, cancelAppointment } from "../services/bookingService";
 import { useAuth } from "../../../shared/context/AuthContext";
 import { format, parseISO } from "date-fns";
 import ShimmerLoader from "../../../shared/components/ShimmerLoader";
@@ -123,6 +123,22 @@ export default function AppointmentsScreen({ navigation }) {
       showError(msg, "Error");
     } finally {
       setBookingActionLoading(bid, "noShow", false);
+    }
+  };
+
+  const handleCancelAppointment = async (item) => {
+    const bid = item.bookingId || item.id;
+    if (!bid) return;
+    setBookingActionLoading(bid, "cancel", true);
+    try {
+      await cancelAppointment(bid);
+      showSuccess("Appointment cancelled successfully.");
+      await fetchAppointments(currentPage, true);
+    } catch (err) {
+      const msg = err?.data?.message || err?.message || "Could not cancel appointment.";
+      showError(msg, "Error");
+    } finally {
+      setBookingActionLoading(bid, "cancel", false);
     }
   };
 
@@ -529,6 +545,22 @@ export default function AppointmentsScreen({ navigation }) {
                               <>
                                 <Ionicons name="checkmark-circle-outline" size={16} color={Colors.primary} />
                                 <Text style={[styles.actionBtnText, styles.actionBtnPrimary]}>Confirm</Text>
+                              </>
+                            )}
+                          </TouchableOpacity>
+                        )}
+                        {item.status === "upcoming" && (
+                          <TouchableOpacity
+                            style={styles.actionBtn}
+                            onPress={() => handleCancelAppointment(item)}
+                            disabled={loading.cancel}
+                          >
+                            {loading.cancel ? (
+                              <ActivityIndicator size="small" color={Colors.error} />
+                            ) : (
+                              <>
+                                <Ionicons name="trash-outline" size={16} color={Colors.error} />
+                                <Text style={[styles.actionBtnText, styles.actionBtnNoShow]}>Cancel</Text>
                               </>
                             )}
                           </TouchableOpacity>

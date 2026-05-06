@@ -8,6 +8,8 @@ import {
   Text,
   TouchableOpacity,
   TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, Sizes } from "../../../shared/constants";
@@ -350,7 +352,11 @@ export default function BookConsultationScreen({ navigation, route }) {
   }
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : -20}
+    >
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
@@ -398,7 +404,7 @@ export default function BookConsultationScreen({ navigation, route }) {
 
       {/* Book Consultation Button - Sticky to bottom */}
       <View
-        style={[styles.bookButtonContainer, { paddingBottom: insets.bottom }]}
+        style={[styles.bookButtonContainer, { paddingBottom: insets.bottom + (Platform.OS === 'ios' ? 0 : 10) }]}
       >
         <BookConsultationButton
           doctor={doctor}
@@ -407,7 +413,7 @@ export default function BookConsultationScreen({ navigation, route }) {
           isDisabled={!isFormValid()}
         />
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

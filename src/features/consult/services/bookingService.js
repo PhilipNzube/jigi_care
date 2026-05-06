@@ -139,6 +139,26 @@ export const markBookingNoShow = async (bookingId) => {
 };
 
 /**
+ * Cancel an appointment
+ * @param {string} bookingId - Booking ID
+ * @returns {Promise<object>}
+ */
+export const cancelAppointment = async (bookingId) => {
+  console.log("📅 [BOOKING SERVICE] Cancelling appointment:", bookingId);
+  try {
+    const response = await patch(
+      `/booking/${bookingId}/patient/cancel`,
+      {}
+    );
+    console.log("✅ [BOOKING SERVICE] Appointment cancelled successfully");
+    return response;
+  } catch (error) {
+    console.error("❌ [BOOKING SERVICE] Error cancelling appointment:", error);
+    throw error;
+  }
+};
+
+/**
  * Create a booking
  * @param {object} bookingData - Booking data
  * @param {string} bookingData.date - Date in ISO format (e.g., "2025-12-25T09:05:30.123Z")
@@ -194,5 +214,6 @@ export default {
   markBookingCompleted,
   markBookingNoShow,
   getBookingById,
+  cancelAppointment,
 };
 

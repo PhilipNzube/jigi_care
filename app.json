@@ -30,7 +30,12 @@
     "ios": {
       "supportsTablet": true,
       "requireFullScreen": false,
-      "bundleIdentifier": "com.jigicare.app"
+      "bundleIdentifier": "com.jigicare.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "This app uses the camera to allow you to take photos for your consultations and share them in chat.",
+        "NSPhotoLibraryUsageDescription": "This app accesses your photos to allow you to upload images for your consultations and share them in chat.",
+        "NSMicrophoneUsageDescription": "This app uses the microphone for video and voice calls with doctors."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -39,7 +44,13 @@
       },
       "edgeToEdgeEnabled": true,
       "package": "com.jigicare.app",
-      "screenOrientation": "portrait"
+      "screenOrientation": "portrait",
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "RECORD_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/images/app_icon.png"

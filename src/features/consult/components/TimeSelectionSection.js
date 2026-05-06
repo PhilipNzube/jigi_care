@@ -29,15 +29,8 @@ export default function TimeSelectionSection({
           // Create date for this time slot
           const slotDate = new Date(selectedDate);
           
-          // Handle midnight (hour 0) - it represents the next day
-          if (slot.hour === 0 || slot.hour < 6) {
-            // Times from midnight to early morning (0-5) are considered next day
-            slotDate.setDate(slotDate.getDate() + 1);
-            slotDate.setHours(slot.hour, slot.minute || 0, 0, 0);
-          } else {
-            // Regular times on the same day
-            slotDate.setHours(slot.hour, slot.minute || 0, 0, 0);
-          }
+          // Set hours and minutes for the slot on the selected date
+          slotDate.setHours(slot.hour, slot.minute || 0, 0, 0);
           
           isPastTime = isPast(slotDate);
         }
