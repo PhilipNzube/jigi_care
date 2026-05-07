@@ -14,8 +14,11 @@ import {
   Animated,
   Modal,
   Dimensions,
+  Linking,
+  BackHandler,
 } from "react-native";
-const { width } = Dimensions.get("window");
+const { width, height } = Dimensions.get("window");
+import { Video, ResizeMode } from "expo-av";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, Sizes } from "../../../shared/constants";
 import { Images } from "../../../shared/utils/imageUtils";
@@ -86,6 +89,29 @@ export default function ChatPage({ navigation, route }) {
   const [isFetchingDoctor, setIsFetchingDoctor] = useState(false);
   const [isAttachmentModalVisible, setIsAttachmentModalVisible] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [selectedVideo, setSelectedVideo] = useState(null);
+  const [isMediaLoading, setIsMediaLoading] = useState(false);
+
+  // Handle hardware back press when media viewer is open
+  useEffect(() => {
+    const backAction = () => {
+      if (selectedImage || selectedVideo) {
+        setSelectedImage(null);
+        setSelectedVideo(null);
+        setIsMediaLoading(false);
+        return true;
+      }
+      return false;
+    };
+
+    const backHandler = BackHandler.addEventListener(
+      "hardwareBackPress",
+      backAction
+    );
+
+    return () => backHandler.remove();
+  }, [selectedImage, selectedVideo]);
 
   // Effect to fetch doctor details if missing (e.g. from notification)
   useEffect(() => {
@@ -318,7 +344,8 @@ export default function ChatPage({ navigation, route }) {
 
         return {
           id: msg.id,
-          text: msg.content,
+          text: msg.content || msg.fileUrl || "",
+          fileType: msg.fileType || null,
           sender: isUserMessage ? "user" : "doctor",
           time: format(messageDate, "h:mm a").toLowerCase(),
           status: msg.isRead ? "read" : "sent",
@@ -422,7 +449,8 @@ export default function ChatPage({ navigation, route }) {
 
           return {
             id: msg.id,
-            text: msg.content,
+            text: msg.content || msg.fileUrl || "",
+            fileType: msg.fileType || (isVideoUrl(msg.content || msg.fileUrl) ? "video" : (isImageUrl(msg.content || msg.fileUrl) ? "image" : (isFileUrl(msg.content || msg.fileUrl) ? "file" : "text"))),
             sender: isUserMessage ? "user" : "doctor",
             time: format(messageDate, "h:mm a").toLowerCase(),
             status: msg.isRead ? "read" : "sent",
@@ -505,7 +533,8 @@ export default function ChatPage({ navigation, route }) {
 
     const newMessage = {
       id: msg.id,
-      text: msg.content,
+      text: msg.content || msg.fileUrl || "",
+      fileType: msg.fileType || (isVideoUrl(msg.content || msg.fileUrl) ? "video" : (isImageUrl(msg.content || msg.fileUrl) ? "image" : (isFileUrl(msg.content || msg.fileUrl) ? "file" : "text"))),
       sender: isUserMessage ? "user" : "doctor",
       time: format(messageDate, "h:mm a").toLowerCase(),
       status: msg.isRead ? "read" : "sent",
@@ -550,7 +579,8 @@ export default function ChatPage({ navigation, route }) {
 
     const realMessage = {
       id: msg.id,
-      text: msg.content,
+      text: msg.content || msg.fileUrl || "",
+      fileType: msg.fileType || null,
       sender: "user",
       time: format(messageDate, "h:mm a").toLowerCase(),
       status: msg.isRead ? "read" : "sent",
@@ -603,9 +633,10 @@ export default function ChatPage({ navigation, route }) {
    * Send a message
    */
   const handleSendMessage = async (contentOverride = null) => {
-    // Prevent double-tap and ensure message is not empty
-    const messageToSubmit = contentOverride || message;
-    if (!messageToSubmit.trim() || isSending) {
+    // If called from onPress, contentOverride might be an event object
+    const actualContent = (typeof contentOverride === 'string' && contentOverride) || (contentOverride === null && message) || null;
+    
+    if (!actualContent || !actualContent.trim() || isSending) {
       return;
     }
 
@@ -614,7 +645,7 @@ export default function ChatPage({ navigation, route }) {
       return;
     }
 
-    const messageContent = messageToSubmit.trim();
+    const messageContent = actualContent.trim();
     if (!contentOverride) setMessage(""); // Clear input immediately for better UX
     stopTypingIndicator(); // Stop typing indicator
 
@@ -632,6 +663,7 @@ export default function ChatPage({ navigation, route }) {
       createdAt: new Date().toISOString(),
     };
     setMessages((prev) => [...prev, tempMessage]);
+    shouldAutoScrollRef.current = true;
 
     try {
       console.log("📤 [CHAT PAGE] Sending message...");
@@ -660,16 +692,18 @@ export default function ChatPage({ navigation, route }) {
 
         // Replace temp message with real message from API
         if (response.message) {
+          const msg = response.message;
           const realMessage = {
-            id: response.message.id,
-            text: response.message.content,
+            id: msg.id,
+            text: msg.content || msg.fileUrl || "",
+            fileType: msg.fileType || null,
             sender: "user",
             time: format(
-              parseISO(response.message.createdAt),
+              parseISO(msg.createdAt),
               "h:mm a"
             ).toLowerCase(),
-            status: response.message.isRead ? "read" : "sent",
-            createdAt: response.message.createdAt,
+            status: msg.isRead ? "read" : "sent",
+            createdAt: msg.createdAt,
           };
 
           setMessages((prev) => {
@@ -808,12 +842,34 @@ export default function ChatPage({ navigation, route }) {
 
   const isImageUrl = (url) => {
     if (!url || typeof url !== 'string') return false;
-    return url.match(/\.(jpeg|jpg|gif|png|webp|bmp)$/i) || (url.includes('cloudinary.com') && url.includes('/image/upload/'));
+    const lowerUrl = url.toLowerCase();
+    return (
+      lowerUrl.match(/\.(jpeg|jpg|gif|png|webp|bmp)(\?|$)/i) || 
+      (lowerUrl.includes('cloudinary.com') && lowerUrl.includes('/image/upload/')) ||
+      lowerUrl.includes('firebasestorage.googleapis.com') ||
+      lowerUrl.includes('googleusercontent.com') ||
+      lowerUrl.startsWith('data:image/')
+    );
+  };
+
+  const isVideoUrl = (url) => {
+    if (!url || typeof url !== 'string') return false;
+    const lowerUrl = url.toLowerCase();
+    return (
+      lowerUrl.match(/\.(mp4|mov|avi|wmv|flv|mkv|webm)(\?|$)/i) || 
+      (lowerUrl.includes('cloudinary.com') && lowerUrl.includes('/video/upload/'))
+    );
   };
 
   const isFileUrl = (url) => {
     if (!url || typeof url !== 'string') return false;
-    return url.match(/\.(pdf|doc|docx|xls|xlsx|ppt|pptx|txt)$/i) || (url.includes('cloudinary.com') && url.includes('/raw/upload/'));
+    const lowerUrl = url.toLowerCase();
+    return (
+      lowerUrl.match(/\.(pdf|doc|docx|xls|xlsx|ppt|pptx|txt)/i) || 
+      (lowerUrl.includes('cloudinary.com') && lowerUrl.includes('/raw/upload/')) ||
+      lowerUrl.includes('drive.google.com') ||
+      lowerUrl.includes('s3.amazonaws.com')
+    );
   };
 
   const handleVoiceCall = async () => {
@@ -1118,31 +1174,45 @@ export default function ChatPage({ navigation, route }) {
 
         <View style={styles.doctorInfo}>
           <View style={styles.doctorAvatar}>
-            <Ionicons name="person" size={20} color={Colors.primary} />
+            {!localDoctor || isFetchingDoctor ? (
+              <ShimmerLoader>
+                <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.lightGray }} />
+              </ShimmerLoader>
+            ) : (
+              <Ionicons name="person" size={20} color={Colors.primary} />
+            )}
           </View>
           <View style={styles.doctorDetails}>
-            <Text style={styles.doctorName}>
-              {localDoctor?.name || "Consultant"}
-            </Text>
+            {!localDoctor || isFetchingDoctor ? (
+              <ShimmerLoader>
+                <View style={{ width: 120, height: 16, borderRadius: 4, backgroundColor: Colors.lightGray }} />
+              </ShimmerLoader>
+            ) : (
+              <Text style={styles.doctorName}>
+                {localDoctor.name}
+              </Text>
+            )}
             {/* Online status - commented out */}
             {/* <Text style={styles.doctorStatus}>Online</Text> */}
           </View>
         </View>
 
-        <View style={styles.headerActions}>
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={handleVoiceCall}
-          >
-            <Ionicons name="call" size={24} color={Colors.black} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={handleVideoCall}
-          >
-            <Ionicons name="videocam" size={24} color={Colors.black} />
-          </TouchableOpacity>
-        </View>
+        {!(isLoading || isFetchingDoctor || !localDoctor) && (
+          <View style={styles.headerActions}>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={handleVoiceCall}
+            >
+              <Ionicons name="call" size={24} color={Colors.black} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={handleVideoCall}
+            >
+              <Ionicons name="videocam" size={24} color={Colors.black} />
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
 
       {!isLoading && bookingStatus === "pending_confirmation" && (
@@ -1221,33 +1291,77 @@ export default function ChatPage({ navigation, route }) {
         onScroll={handleScroll}
         scrollEventThrottle={400}
       >
-        {isLoading ? (
-          <View style={styles.loadingContainer}>
-            {[1, 2, 3, 4].map((index) => (
-              <ShimmerLoader key={index}>
-                <View
+        {isLoading || isFetchingDoctor || !localDoctor ? (
+          <View style={{ paddingHorizontal: Sizes.md, paddingTop: Sizes.md }}>
+            {[1, 2, 3, 4, 5, 6].map((i) => {
+              const isUser = i % 2 === 0;
+              return (
+                <View 
+                  key={i} 
                   style={[
-                    styles.messageSkeleton,
-                    index % 2 === 0
-                      ? styles.skeletonUserMessage
-                      : styles.skeletonDoctorMessage,
+                    styles.messageContainer, 
+                    isUser ? styles.userMessage : styles.doctorMessage,
+                    { marginBottom: Sizes.xl }
                   ]}
                 >
-                  <View style={styles.skeletonBubble} />
+                  <View style={{ 
+                    flexDirection: isUser ? 'row-reverse' : 'row', 
+                    alignItems: 'flex-end',
+                    gap: Sizes.sm
+                  }}>
+                    {/* Avatar Shimmer */}
+                    <ShimmerLoader>
+                      <View style={{ 
+                        width: 36, 
+                        height: 36, 
+                        borderRadius: 18, 
+                        backgroundColor: Colors.lightGray 
+                      }} />
+                    </ShimmerLoader>
+                    
+                    <View style={{ alignItems: isUser ? 'flex-end' : 'flex-start' }}>
+                      {/* Bubble Shimmer */}
+                      <ShimmerLoader>
+                        <View style={[
+                          styles.messageBubble, 
+                          isUser ? styles.userBubble : styles.doctorBubble,
+                          { 
+                            width: i % 3 === 0 ? 240 : i % 2 === 0 ? 160 : 200, 
+                            height: i % 5 === 0 ? 90 : 50, 
+                            backgroundColor: isUser ? 'rgba(0, 152, 179, 0.15)' : Colors.white,
+                            borderWidth: isUser ? 0 : 1,
+                            borderColor: '#EEEEEE'
+                          }
+                        ]} />
+                      </ShimmerLoader>
+                      
+                      {/* Time Shimmer */}
+                      <ShimmerLoader>
+                        <View style={{ 
+                          width: 45, 
+                          height: 10, 
+                          borderRadius: 5, 
+                          backgroundColor: Colors.lightGray, 
+                          marginTop: 8,
+                          opacity: 0.4
+                        }} />
+                      </ShimmerLoader>
+                    </View>
+                  </View>
                 </View>
-              </ShimmerLoader>
-            ))}
+              );
+            })}
           </View>
         ) : messages.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Ionicons
-              name="chatbubbles-outline"
+              name="chatbubble-ellipses-outline"
               size={64}
-              color={Colors.grey}
+              color={Colors.lightGray}
             />
             <Text style={styles.emptyText}>No messages yet</Text>
             <Text style={styles.emptySubText}>
-              Start the conversation by sending a message
+              Start a conversation with {localDoctor?.name || "the consultant"}.
             </Text>
           </View>
         ) : (
@@ -1267,23 +1381,57 @@ export default function ChatPage({ navigation, route }) {
                   msg.sender === "user"
                     ? styles.userBubble
                     : styles.doctorBubble,
+                  (msg.fileType === 'image' || isImageUrl(msg.text) || msg.fileType === 'video' || isVideoUrl(msg.text)) && { padding: 0, overflow: 'hidden' }
                 ]}
               >
-                {isImageUrl(msg.text) ? (
-                  <View style={styles.imageWrapper}>
-                    <Image source={{ uri: msg.text }} style={styles.messageImage} resizeMode="cover" />
-                  </View>
-                ) : isFileUrl(msg.text) ? (
-                  <View style={styles.fileContainer}>
+                {msg.fileType === 'image' || isImageUrl(msg.text) ? (
+                  <TouchableOpacity 
+                    style={styles.imageWrapper}
+                    onPress={() => setSelectedImage(msg.text)}
+                  >
+                    <Image 
+                      source={{ uri: msg.text?.trim() }} 
+                      style={styles.messageImage} 
+                      resizeMode="cover"
+                    />
+                  </TouchableOpacity>
+                ) : msg.fileType === 'video' || isVideoUrl(msg.text) ? (
+                  <TouchableOpacity 
+                    style={styles.imageWrapper}
+                    onPress={() => setSelectedVideo(msg.text)}
+                  >
+                    <View style={styles.videoPlaceholder}>
+                      <Video
+                        source={{ uri: msg.text?.trim() }}
+                        style={styles.messageImage}
+                        resizeMode={ResizeMode.COVER}
+                        shouldPlay={false}
+                        isMuted={true}
+                      />
+                      <View style={styles.playButtonOverlay}>
+                        <Ionicons name="play" size={40} color={Colors.white} />
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                ) : msg.fileType === 'file' || isFileUrl(msg.text) ? (
+                  <TouchableOpacity 
+                    style={styles.fileContainer}
+                    onPress={() => Linking.openURL(msg.text)}
+                  >
                     <Ionicons 
                       name="document-text" 
                       size={32} 
                       color={msg.sender === "user" ? Colors.white : Colors.primary} 
                     />
-                    <Text style={[styles.fileText, msg.sender === "user" ? styles.userText : styles.doctorText]}>
-                      Document Attachment
-                    </Text>
-                  </View>
+                    <View>
+                      <Text style={[styles.fileText, msg.sender === "user" ? styles.userText : styles.doctorText]}>
+                        Document Attachment
+                      </Text>
+                      <Text style={{ fontSize: 11, color: msg.sender === "user" ? 'rgba(255,255,255,0.7)' : Colors.grey }}>
+                        Tap to open
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
                 ) : (
                   <Text
                     style={[
@@ -1323,43 +1471,45 @@ export default function ChatPage({ navigation, route }) {
         {isTyping && <TypingIndicator />}
       </ScrollView>
 
-      <View
-        style={[
-          styles.inputContainer,
-          { paddingBottom: isKeyboardVisible ? 0 : insets.bottom },
-        ]}
-      >
-        <TouchableOpacity 
-          style={styles.attachButton}
-          onPress={() => setIsAttachmentModalVisible(true)}
-        >
-          <Ionicons name="add-circle" size={28} color="#0098B3" />
-        </TouchableOpacity>
-
-        <TextInput
-          style={styles.textInput}
-          placeholder="Type a message..."
-          placeholderTextColor={Colors.grey}
-          value={message}
-          onChangeText={handleTyping}
-          multiline
-        />
-
-        <TouchableOpacity
+      {isLoading || isFetchingDoctor || !localDoctor ? null : (
+        <View
           style={[
-            styles.sendButton,
-            (isSending || !message.trim()) && styles.sendButtonDisabled,
+            styles.inputContainer,
+            { paddingBottom: isKeyboardVisible ? 0 : insets.bottom },
           ]}
-          onPress={handleSendMessage}
-          disabled={isSending || !message.trim()}
         >
-          {isSending ? (
-            <ActivityIndicator size="small" color={Colors.white} />
-          ) : (
-            <Ionicons name="send" size={20} color={Colors.white} />
-          )}
-        </TouchableOpacity>
-      </View>
+          <TouchableOpacity 
+            style={styles.attachButton}
+            onPress={() => setIsAttachmentModalVisible(true)}
+          >
+            <Ionicons name="add-circle" size={28} color="#0098B3" />
+          </TouchableOpacity>
+
+          <TextInput
+            style={styles.textInput}
+            placeholder="Type a message..."
+            placeholderTextColor={Colors.grey}
+            value={message}
+            onChangeText={handleTyping}
+            multiline
+          />
+
+          <TouchableOpacity
+            style={[
+              styles.sendButton,
+              (isSending || !message.trim()) && styles.sendButtonDisabled,
+            ]}
+            onPress={() => handleSendMessage()}
+            disabled={isSending || !message.trim()}
+          >
+            {isSending ? (
+              <ActivityIndicator size="small" color={Colors.white} />
+            ) : (
+              <Ionicons name="send" size={20} color={Colors.white} />
+            )}
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Attachment Selection Modal */}
       <Modal
@@ -1405,6 +1555,83 @@ export default function ChatPage({ navigation, route }) {
             </View>
           </View>
         </TouchableOpacity>
+      </Modal>
+
+      {/* Image Viewer Modal */}
+      <Modal
+        visible={!!selectedImage}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => {
+          setSelectedImage(null);
+          setIsMediaLoading(false);
+        }}
+      >
+        <View style={styles.mediaViewerContainer}>
+          <TouchableOpacity 
+            style={styles.mediaViewerClose}
+            onPress={() => {
+              setSelectedImage(null);
+              setIsMediaLoading(false);
+            }}
+          >
+            <Ionicons name="close" size={30} color={Colors.white} />
+          </TouchableOpacity>
+          
+          {isMediaLoading && (
+            <View style={styles.mediaLoaderContainer}>
+              <ActivityIndicator size="large" color={Colors.white} />
+            </View>
+          )}
+
+          <Image 
+            source={{ uri: selectedImage }} 
+            style={styles.fullMedia} 
+            resizeMode="contain" 
+            onLoadStart={() => setIsMediaLoading(true)}
+            onLoadEnd={() => setIsMediaLoading(false)}
+          />
+        </View>
+      </Modal>
+
+      {/* Video Viewer Modal */}
+      <Modal
+        visible={!!selectedVideo}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => {
+          setSelectedVideo(null);
+          setIsMediaLoading(false);
+        }}
+      >
+        <View style={styles.mediaViewerContainer}>
+          <TouchableOpacity 
+            style={styles.mediaViewerClose}
+            onPress={() => {
+              setSelectedVideo(null);
+              setIsMediaLoading(false);
+            }}
+          >
+            <Ionicons name="close" size={30} color={Colors.white} />
+          </TouchableOpacity>
+
+          {isMediaLoading && (
+            <View style={styles.mediaLoaderContainer}>
+              <ActivityIndicator size="large" color={Colors.white} />
+            </View>
+          )}
+
+          <Video
+            source={{ uri: selectedVideo }}
+            style={styles.fullMedia}
+            useNativeControls
+            resizeMode={ResizeMode.CONTAIN}
+            shouldPlay
+            onLoadStart={() => setIsMediaLoading(true)}
+            onLoad={() => setIsMediaLoading(false)}
+            onError={() => setIsMediaLoading(false)}
+          />
+        </View>
       </Modal>
 
       {/* Uploading Loader */}
@@ -1604,6 +1831,45 @@ const styles = StyleSheet.create({
     textAlign: "center",
     paddingHorizontal: Sizes.lg,
   },
+  videoPlaceholder: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#000',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  playButtonOverlay: {
+    position: 'absolute',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  mediaViewerContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  mediaViewerClose: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    zIndex: 10,
+    padding: 10,
+  },
+  fullMedia: {
+    width: width,
+    height: height,
+  },
+  mediaLoaderContainer: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 5,
+  },
   typingContainer: {
     marginVertical: Sizes.xs,
     alignItems: "flex-start",
@@ -1614,6 +1880,8 @@ const styles = StyleSheet.create({
     paddingVertical: Sizes.sm,
     borderRadius: 16,
     borderBottomLeftRadius: 4,
+    flexDirection: "row",
+    alignItems: "center",
   },
   modalOverlay: {
     flex: 1,

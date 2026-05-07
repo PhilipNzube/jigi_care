@@ -8,160 +8,102 @@ import {
   Dimensions,
 } from "react-native";
 import { Colors, Sizes } from "../../../shared/constants";
-import { startOfWeek, addDays, format, isSameDay, isPast, startOfDay } from "date-fns";
+import { 
+  addDays, 
+  format, 
+  isSameDay, 
+  startOfDay, 
+} from "date-fns";
+import Ionicons from "react-native-vector-icons/Ionicons";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 export default function DateSelectionSection({ selectedDate, onDateSelect, onDateSelectWithObj }) {
+  const today = startOfDay(new Date());
   const [dates, setDates] = useState([]);
-  const [today, setToday] = useState(new Date());
+  const [visibleDaysCount, setVisibleDaysCount] = useState(7); // Show 1 week initially
   const scrollViewRef = useRef(null);
-  const dateRefs = useRef({});
 
   useEffect(() => {
-    // Generate dates for the current week (Sunday to Saturday)
-    const now = new Date();
-    const today = startOfDay(now);
-    
-    // Get the start of the current week (Sunday)
-    const weekStart = startOfWeek(today, { weekStartsOn: 0 }); // 0 = Sunday
-    const weekDates = [];
-
-    // Generate 7 days from Sunday to Saturday
-    for (let i = 0; i < 7; i++) {
-      const date = addDays(weekStart, i);
-      const isPastDate = isPast(startOfDay(date)) && !isSameDay(date, today);
-      
-      weekDates.push({
+    // Generate 15 days (Today + 14 days)
+    const allDates = [];
+    for (let i = 0; i < 15; i++) {
+      const date = addDays(today, i);
+      allDates.push({
         id: format(date, "EEE d"),
         dayName: format(date, "EEE"),
         dayNumber: format(date, "d"),
-        fullDate: date, // Store full date for easier parsing
-        date: date,
+        fullDate: date,
         isToday: isSameDay(date, today),
-        isPast: isPastDate,
       });
     }
+    setDates(allDates);
 
-    setDates(weekDates);
-
-    // Auto-select today's date
-    const todayDate = weekDates.find((d) => d.isToday);
-    if (todayDate && !selectedDate) {
-      onDateSelect(todayDate.id);
-      if (onDateSelectWithObj) {
-        onDateSelectWithObj(todayDate.fullDate || todayDate.date);
-      }
-    } else if (weekDates.length > 0 && !selectedDate) {
-      // Select first available (non-past) date if today is not available
-      const firstAvailableDate = weekDates.find((d) => !d.isPast) || weekDates[0];
-      onDateSelect(firstAvailableDate.id);
-      if (onDateSelectWithObj) {
-        onDateSelectWithObj(firstAvailableDate.fullDate || firstAvailableDate.date);
-      }
+    // Auto-select today if nothing selected
+    if (!selectedDate && allDates.length > 0) {
+      onDateSelect(allDates[0].id);
+      onDateSelectWithObj(allDates[0].fullDate);
     }
   }, []);
 
-  // Scroll to selected date when it changes
-  useEffect(() => {
-    if (selectedDate && dates.length > 0 && scrollViewRef.current) {
-      const selectedIndex = dates.findIndex((d) => d.id === selectedDate);
-      if (selectedIndex !== -1) {
-        // Calculate scroll position: (button width + margin) * index
-        const buttonWidth = 50; // width from styles
-        const margin = Sizes.sm; // marginRight from styles
-        const buttonCenter = (buttonWidth + margin) * selectedIndex + buttonWidth / 2;
-        
-        // Scroll to center the selected date in the viewport
-        const scrollPosition = Math.max(0, buttonCenter - SCREEN_WIDTH / 2);
-        
-        setTimeout(() => {
-          scrollViewRef.current?.scrollTo({
-            x: scrollPosition,
-            animated: true,
-          });
-        }, 100);
-      }
-    }
-  }, [selectedDate, dates]);
+  const handleShowMore = () => {
+    setVisibleDaysCount(15);
+  };
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Select Date</Text>
+      
       <ScrollView
         ref={scrollViewRef}
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.datesContainer}
       >
-        {dates.map((date, index) => {
-          const isDisabled = date.isPast;
-          
-          return (
+        {dates.slice(0, visibleDaysCount).map((date) => (
           <TouchableOpacity
             key={date.id}
-              ref={(ref) => {
-                if (ref) {
-                  dateRefs.current[date.id] = ref;
-                }
-              }}
             style={[
               styles.dateButton,
               selectedDate === date.id && styles.selectedDateButton,
-                isDisabled && styles.disabledDateButton,
             ]}
-              onPress={() => {
-                if (!isDisabled) {
-                  onDateSelect(date.id);
-                  if (onDateSelectWithObj) {
-                    onDateSelectWithObj(date.fullDate || date.date);
-                  }
-                  
-                  // Scroll to selected date
-                  if (scrollViewRef.current) {
-                    const buttonWidth = 50;
-                    const margin = Sizes.sm;
-                    const buttonCenter = (buttonWidth + margin) * index + buttonWidth / 2;
-                    const scrollPosition = Math.max(0, buttonCenter - SCREEN_WIDTH / 2);
-                    
-                    scrollViewRef.current.scrollTo({
-                      x: scrollPosition,
-                      animated: true,
-                    });
-                  }
-                }
-              }}
-              disabled={isDisabled}
+            onPress={() => {
+              onDateSelect(date.id);
+              onDateSelectWithObj(date.fullDate);
+            }}
           >
-            <Text
-              style={[
-                styles.dayNameText,
-                selectedDate === date.id && styles.selectedDateText,
-                  isDisabled && styles.disabledText,
-              ]}
-            >
+            <Text style={[
+              styles.dayNameText,
+              selectedDate === date.id && styles.selectedDateText
+            ]}>
               {date.dayName}
             </Text>
-            <View
-              style={[
-                styles.dayNumberContainer,
-                selectedDate === date.id && styles.selectedDayNumberContainer,
-                  isDisabled && styles.disabledDayNumberContainer,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.dayNumberText,
-                  selectedDate === date.id && styles.selectedDateText,
-                    isDisabled && styles.disabledText,
-                ]}
-              >
+            <View style={[
+              styles.dayNumberContainer,
+              selectedDate === date.id && styles.selectedDayNumberContainer
+            ]}>
+              <Text style={[
+                styles.dayNumberText,
+                selectedDate === date.id && styles.selectedDateText
+              ]}>
                 {date.dayNumber}
               </Text>
             </View>
           </TouchableOpacity>
-          );
-        })}
+        ))}
+
+        {/* Show More Icon if we have more dates and currently showing 7 */}
+        {dates.length > 7 && visibleDaysCount === 7 && (
+          <TouchableOpacity 
+            style={styles.moreButton}
+            onPress={handleShowMore}
+          >
+            <View style={styles.moreIconContainer}>
+              <Ionicons name="chevron-forward" size={24} color={Colors.primary} />
+            </View>
+            <Text style={styles.moreText}>More</Text>
+          </TouchableOpacity>
+        )}
       </ScrollView>
     </View>
   );
@@ -180,6 +122,7 @@ const styles = StyleSheet.create({
   datesContainer: {
     flexDirection: "row",
     paddingRight: Sizes.lg,
+    alignItems: 'center',
   },
   dateButton: {
     width: 50,
@@ -191,7 +134,7 @@ const styles = StyleSheet.create({
     marginRight: Sizes.sm,
   },
   selectedDateButton: {
-    backgroundColor: "#0098B3",
+    backgroundColor: Colors.primary,
   },
   dayNameText: {
     fontSize: 10,
@@ -218,14 +161,22 @@ const styles = StyleSheet.create({
   selectedDateText: {
     color: Colors.white,
   },
-  disabledDateButton: {
-    backgroundColor: "#F5F5F5",
-    opacity: 0.5,
+  moreButton: {
+    alignItems: 'center',
+    marginLeft: Sizes.xs,
   },
-  disabledDayNumberContainer: {
-    backgroundColor: "transparent",
+  moreIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "rgba(0, 152, 179, 0.1)",
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 4,
   },
-  disabledText: {
-    color: "#999",
-  },
+  moreText: {
+    fontSize: 10,
+    fontFamily: "Poppins-Medium",
+    color: Colors.primary,
+  }
 });

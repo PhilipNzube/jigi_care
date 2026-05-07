@@ -66,6 +66,15 @@ export function reset(state) {
 }
 
 export function resetToLogin(params = {}) {
+  // If this is a timeout/lock, capture the current screen to resume later
+  if (params.timeout && navigationRef.isReady()) {
+    const currentRoute = navigationRef.getCurrentRoute();
+    if (currentRoute && currentRoute.name !== "Login") {
+      console.log(`🔒 [NAV REF] Capturing resume point: ${currentRoute.name}`);
+      setPendingNavigation(currentRoute.name, currentRoute.params);
+    }
+  }
+
   reset({
     index: 0,
     routes: [{ name: "Login", params }],
