@@ -52,7 +52,7 @@ export default function SecuritySection() {
             </View>
             <View style={styles.textContainer}>
               <Text style={styles.title}>Biometric Log in</Text>
-              <Text style={styles.subtitle}>Use fingerprint or face id</Text>
+              <Text style={styles.subtitle}>Use fingerprint</Text>
             </View>
             <View style={styles.toggleContainer}>
               <Animated.View style={[styles.toggleBase, { backgroundColor: toggleBackgroundColor }]}>

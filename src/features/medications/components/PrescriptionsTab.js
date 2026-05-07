@@ -11,7 +11,10 @@ import { useFocusEffect } from "@react-navigation/native";
 import { Colors, Sizes } from "../../../shared/constants";
 import PrescriptionCard from "./PrescriptionCard";
 import { getPrescriptions } from "../services/prescriptionService";
+import { requestMedication, getMedicationRequests } from "../services/medicationService";
 import ShimmerLoader from "../../../shared/components/ShimmerLoader";
+import { showError, showSuccess } from "../../../shared/utils/toast";
+import { TextInput, TouchableOpacity, ActivityIndicator } from "react-native";
 import { format, parseISO } from "date-fns";
 
 // Prescription Card Skeleton Component
@@ -184,8 +187,12 @@ const mapPrescriptionToUI = (apiPrescription) => {
 
 export default function PrescriptionsTab({ navigation }) {
   const [prescriptions, setPrescriptions] = useState([]);
+  const [requestedMedications, setRequestedMedications] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [isRequesting, setIsRequesting] = useState(false);
+  const [medicationName, setMedicationName] = useState("");
+  const [medicationGram, setMedicationGram] = useState("");
 
   const fetchPrescriptions = useCallback(async (silent = false) => {
     if (!silent) {
@@ -193,26 +200,57 @@ export default function PrescriptionsTab({ navigation }) {
     }
 
     try {
-      console.log("💊 [PRESCRIPTIONS TAB] Fetching prescriptions...");
-      const result = await getPrescriptions();
+      console.log("💊 [PRESCRIPTIONS TAB] Fetching prescriptions and requests...");
+      const [prescriptionsResult, requestsResult] = await Promise.all([
+        getPrescriptions(),
+        getMedicationRequests()
+      ]);
 
-      const mappedPrescriptions = (result.data || []).map(mapPrescriptionToUI);
+      const mappedPrescriptions = (prescriptionsResult.data || []).map(mapPrescriptionToUI);
       setPrescriptions(mappedPrescriptions);
+      setRequestedMedications(requestsResult || []);
+      
       console.log(
-        "✅ [PRESCRIPTIONS TAB] Prescriptions loaded:",
-        mappedPrescriptions.length
+        "✅ [PRESCRIPTIONS TAB] Data loaded:",
+        mappedPrescriptions.length,
+        "prescriptions,",
+        (requestsResult || []).length,
+        "requests"
       );
     } catch (error) {
       console.error(
-        "❌ [PRESCRIPTIONS TAB] Error fetching prescriptions:",
+        "❌ [PRESCRIPTIONS TAB] Error fetching data:",
         error
       );
-      setPrescriptions([]);
     } finally {
       setIsLoading(false);
       setRefreshing(false);
     }
   }, []);
+
+  const handleRequestMedication = async () => {
+    if (!medicationName.trim()) {
+      showError("Please enter a medication name");
+      return;
+    }
+
+    setIsRequesting(true);
+    try {
+      await requestMedication({
+        name: medicationName.trim(),
+        gram: medicationGram ? parseInt(medicationGram) : null
+      });
+      
+      showSuccess("Medication request sent successfully!");
+      setMedicationName("");
+      setMedicationGram("");
+      fetchPrescriptions(true);
+    } catch (error) {
+      showError(error.message || "Failed to send request");
+    } finally {
+      setIsRequesting(false);
+    }
+  };
 
   useEffect(() => {
     fetchPrescriptions();
@@ -245,6 +283,66 @@ export default function PrescriptionsTab({ navigation }) {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
+        {/* Request Medication Section */}
+        <View style={styles.requestSection}>
+          <Text style={styles.sectionTitle}>Request Medication</Text>
+          <Text style={styles.requestSubtitle}>Can't find your medication? Request it here.</Text>
+          <View style={styles.requestCard}>
+            <View style={styles.requestInputs}>
+              <TextInput
+                style={[styles.requestInput, { flex: 2 }]}
+                placeholder="Medication Name"
+                value={medicationName}
+                onChangeText={setMedicationName}
+                placeholderTextColor="#999"
+              />
+              <TextInput
+                style={[styles.requestInput, { flex: 1, marginLeft: Sizes.sm }]}
+                placeholder="Gram (e.g. 500)"
+                value={medicationGram}
+                onChangeText={setMedicationGram}
+                keyboardType="numeric"
+                placeholderTextColor="#999"
+              />
+            </View>
+            <TouchableOpacity 
+              style={[styles.requestButton, (!medicationName.trim() || isRequesting) && styles.disabledButton]}
+              onPress={handleRequestMedication}
+              disabled={!medicationName.trim() || isRequesting}
+            >
+              {isRequesting ? (
+                <ActivityIndicator color={Colors.white} size="small" />
+              ) : (
+                <Text style={styles.requestButtonText}>Send Request</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Requested Medications List */}
+        {requestedMedications.length > 0 && (
+          <View style={styles.requestedListSection}>
+            <Text style={styles.sectionTitle}>Your Requests</Text>
+            {requestedMedications.map((req) => (
+              <View key={req.id} style={styles.requestListItem}>
+                <View style={styles.requestListIcon}>
+                  <Ionicons name="time-outline" size={20} color={Colors.primary} />
+                </View>
+                <View style={styles.requestListContent}>
+                  <Text style={styles.requestListName}>{req.name}</Text>
+                  <Text style={styles.requestListDate}>
+                    {req.gram ? `${req.gram}mg · ` : ""}
+                    {format(parseISO(req.createdAt || req.requestedAt), "MMM d, yyyy")}
+                  </Text>
+                </View>
+                <View style={styles.statusBadge}>
+                  <Text style={styles.statusText}>Pending</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+
         <Text style={styles.sectionTitle}>Current Prescriptions</Text>
 
         {isLoading ? (
@@ -377,7 +475,106 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: "Poppins-Regular",
     color: Colors.grey,
+    color: Colors.grey,
     textAlign: "center",
     lineHeight: 20,
+  },
+  requestSection: {
+    marginTop: Sizes.md,
+    marginBottom: Sizes.xl,
+  },
+  requestSubtitle: {
+    fontSize: 14,
+    fontFamily: "Poppins-Regular",
+    color: Colors.textSecondary,
+    marginBottom: Sizes.md,
+    marginTop: -Sizes.xs,
+  },
+  requestCard: {
+    backgroundColor: Colors.white,
+    borderRadius: 16,
+    padding: Sizes.md,
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  requestInputs: {
+    flexDirection: "row",
+    marginBottom: Sizes.md,
+  },
+  requestInput: {
+    backgroundColor: "#F9F9F9",
+    borderRadius: 10,
+    paddingHorizontal: Sizes.md,
+    paddingVertical: Sizes.sm,
+    fontFamily: "Poppins-Regular",
+    fontSize: 14,
+    color: Colors.black,
+    borderWidth: 1,
+    borderColor: "#F0F0F0",
+  },
+  requestButton: {
+    backgroundColor: Colors.primary,
+    borderRadius: 10,
+    paddingVertical: Sizes.md,
+    alignItems: "center",
+  },
+  disabledButton: {
+    opacity: 0.6,
+  },
+  requestButtonText: {
+    color: Colors.white,
+    fontFamily: "Poppins-SemiBold",
+    fontSize: 14,
+  },
+  requestedListSection: {
+    marginBottom: Sizes.xl,
+  },
+  requestListItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: Colors.white,
+    borderRadius: 12,
+    padding: Sizes.md,
+    marginBottom: Sizes.sm,
+    borderWidth: 1,
+    borderColor: "#F0F0F0",
+  },
+  requestListIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#0098B314",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: Sizes.md,
+  },
+  requestListContent: {
+    flex: 1,
+  },
+  requestListName: {
+    fontSize: 15,
+    fontFamily: "Poppins-Medium",
+    color: Colors.black,
+  },
+  requestListDate: {
+    fontSize: 12,
+    fontFamily: "Poppins-Regular",
+    color: Colors.grey,
+  },
+  statusBadge: {
+    backgroundColor: "#F2C94C1F",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  statusText: {
+    fontSize: 10,
+    fontFamily: "Poppins-Medium",
+    color: "#F2994A",
   },
 });

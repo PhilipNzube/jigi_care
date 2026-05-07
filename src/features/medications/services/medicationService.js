@@ -198,3 +198,36 @@ export const clearCart = async () => {
     throw error;
   }
 };
+
+/**
+ * Request a medication not listed
+ * @param {object} data - Medication request data
+ * @param {string} data.name - Medication name
+ * @param {number} data.gram - Medication gram/dosage
+ * @returns {Promise<object>} - Created request data
+ */
+export const requestMedication = async (data) => {
+  try {
+    console.log("💊 [MEDICATION SERVICE] Requesting medication:", data);
+    const response = await post("/medication/request", data);
+    return response;
+  } catch (error) {
+    console.error("❌ [MEDICATION SERVICE] Error requesting medication:", error);
+    throw error;
+  }
+};
+
+/**
+ * Get all requested medications for the current user
+ * @returns {Promise<Array>} - List of requested medications
+ */
+export const getMedicationRequests = async () => {
+  try {
+    console.log("💊 [MEDICATION SERVICE] Fetching medication requests...");
+    const response = await get("/medication/requests");
+    return response.data || [];
+  } catch (error) {
+    console.error("❌ [MEDICATION SERVICE] Error fetching medication requests:", error);
+    throw error;
+  }
+};

@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, ScrollView } from "react-native";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
 import { getRecentActivities } from "../services/recentActivityService";
 import { format, parseISO } from "date-fns";
 import ShimmerLoader from "../../../shared/components/ShimmerLoader";
+import { useNavigation } from "@react-navigation/native";
 
 export default function RecentActivitySection() {
+  const navigation = useNavigation();
   const [activities, setActivities] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -122,22 +124,29 @@ export default function RecentActivitySection() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.sectionTitle}>Recent Activity</Text>
       <View style={styles.card}>
-        {activities.map((activity, index) => (
-          <View key={activity.id ? `${activity.id}-${index}` : `activity-${index}`}>
-            <View style={styles.activityItem}>
-              <View style={[styles.iconContainer, { backgroundColor: activity.bgColor }]}>
-                <Ionicons name={activity.icon} size={20} color={activity.iconColor} />
+        <View style={styles.headerRow}>
+          <Text style={styles.sectionTitle}>Recent Activity</Text>
+          <TouchableOpacity onPress={() => navigation.navigate("RecentActivity")}>
+            <Text style={styles.viewAllText}>View All</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={styles.content}>
+          {activities.slice(0, 3).map((activity, index) => (
+            <View key={activity.id ? `${activity.id}-${index}` : `activity-${index}`}>
+              <View style={styles.activityItem}>
+                <View style={[styles.iconContainer, { backgroundColor: activity.bgColor }]}>
+                  <Ionicons name={activity.icon} size={20} color={activity.iconColor} />
+                </View>
+                <View style={styles.textContent}>
+                  <Text style={styles.activityTitle} numberOfLines={1}>{activity.title}</Text>
+                  <Text style={styles.activityDate}>{activity.date}</Text>
+                </View>
               </View>
-              <View style={styles.textContent}>
-                <Text style={styles.activityTitle} numberOfLines={2}>{activity.title}</Text>
-                <Text style={styles.activityDate}>{activity.date}</Text>
-              </View>
+              {index < 2 && index < activities.length - 1 && <View style={styles.divider} />}
             </View>
-            {index < activities.length - 1 && <View style={styles.divider} />}
-          </View>
-        ))}
+          ))}
+        </View>
       </View>
     </View>
   );
@@ -145,27 +154,41 @@ export default function RecentActivitySection() {
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: Sizes.xl,
+    marginBottom: Sizes.lg,
+  },
+  headerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: Sizes.sm,
     paddingHorizontal: Sizes.sm,
+    paddingTop: Sizes.xs,
   },
   sectionTitle: {
     fontSize: 18,
-    fontFamily: "Poppins-Bold",
-    color: "#333333",
-    marginBottom: Sizes.md,
-    marginLeft: 4,
+    fontFamily: "Poppins-Medium",
+    color: Colors.black,
+    marginLeft: Sizes.sm,
+  },
+  viewAllText: {
+    fontSize: 14,
+    fontFamily: "Poppins-Medium",
+    color: Colors.primary,
   },
   card: {
     backgroundColor: Colors.white,
-    borderRadius: 20,
-    padding: Sizes.md,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 3,
-    borderWidth: 1,
-    borderColor: "#F0F0F0",
+    borderRadius: 12,
+    padding: Sizes.sm,
+    shadowColor: Colors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  content: {
+    paddingHorizontal: Sizes.md,
+    borderRadius: 8,
+    backgroundColor: "#F2F2F2",
   },
   activityItem: {
     flexDirection: "row",
@@ -197,8 +220,7 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: "#F5F5F5",
-    marginLeft: 60, // Align with text content
+    backgroundColor: "#E0E0E0",
   },
   emptyContainer: {
     alignItems: "center",

@@ -8,15 +8,27 @@ import {
   Switch,
   AppState,
   Linking,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Sizes } from "../../../shared/constants";
+import * as FileSystem from "expo-file-system/legacy";
+import * as Sharing from "expo-sharing";
 import { OneSignal } from "react-native-onesignal";
-import { showInfo } from "../../../shared/utils/toast";
+import { showInfo, showError, showSuccess } from "../../../shared/utils/toast";
+import { deleteAccount, downloadHealthReport } from "../../auth/services/authService";
+import { useAuth } from "../../../shared/context/AuthContext";
+import DeleteAccountModal from "../modals/DeleteAccountModal";
+import LoadingOverlay from "../../../shared/components/LoadingOverlay";
+import { clearStorage, getToken } from "../../../shared/utils/storage";
 
 export default function PrivacyPreferencesScreen({ navigation }) {
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const { signOut, clearAuthState } = useAuth();
   const appState = useRef(AppState.currentState);
 
   // Check notification permission status
@@ -81,6 +93,90 @@ export default function PrivacyPreferencesScreen({ navigation }) {
     );
   };
 
+  const handleDownloadData = async () => {
+    try {
+      setIsDownloading(true);
+      console.log("📥 [PRIVACY] Initiating data download...");
+      
+      const token = await getToken();
+      const downloadUrl = "https://jiggy-care.onrender.com/api/v1/users/download-report";
+      
+      console.log("📂 [PRIVACY] Document Directory:", FileSystem.documentDirectory);
+      
+      const filename = `health-report-${Date.now()}.pdf`;
+      const directory = FileSystem.documentDirectory || "";
+      const fileUri = `${directory}${filename}`;
+
+      console.log("📥 [PRIVACY] Downloading to:", fileUri);
+
+      const downloadRes = await FileSystem.downloadAsync(downloadUrl, fileUri, {
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "x-client-type": "mobile",
+        }
+      });
+
+      console.log("✅ [PRIVACY] Download complete:", downloadRes.uri);
+
+      // Save to custom folder on Android if possible, or just share
+      if (Platform.OS === "android") {
+        const permissions = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
+        if (permissions.granted) {
+          const base64 = await FileSystem.readAsStringAsync(downloadRes.uri, { encoding: FileSystem.EncodingType.Base64 });
+          await FileSystem.StorageAccessFramework.createFileAsync(permissions.directoryUri, filename, "application/pdf")
+            .then(async (uri) => {
+              await FileSystem.writeAsStringAsync(uri, base64, { encoding: FileSystem.EncodingType.Base64 });
+              showSuccess("Report saved to your selected folder");
+            })
+            .catch(e => {
+              console.error(e);
+              Sharing.shareAsync(downloadRes.uri);
+            });
+        } else {
+          Sharing.shareAsync(downloadRes.uri);
+        }
+      } else {
+        // iOS: Open sharing dialog which allows saving to Files
+        await Sharing.shareAsync(downloadRes.uri);
+      }
+    } catch (error) {
+      console.error("❌ [PRIVACY] Error downloading data:", error);
+      showError("Unable to download data. Please try again later.");
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    setShowDeleteModal(false);
+    try {
+      setIsDeleting(true);
+      console.log("⚠️ [PRIVACY] Deleting account...");
+      
+      await deleteAccount();
+      
+      showSuccess("Your account has been permanently deleted.");
+      
+      // Perform local cleanup only (state and storage)
+      if (clearAuthState) {
+        await clearAuthState();
+      } else {
+        await clearStorage();
+      }
+      
+      // Reset to Login
+      navigation.reset({
+        index: 0,
+        routes: [{ name: "Login" }],
+      });
+    } catch (error) {
+      console.error("❌ [PRIVACY] Error deleting account:", error);
+      showError(error.message || "Unable to delete account. Please contact support.");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const privacySettings = [
     {
       id: 1,
@@ -97,7 +193,7 @@ export default function PrivacyPreferencesScreen({ navigation }) {
       title: "Download My Data",
       icon: "download-outline",
       description: "Request a copy of your data",
-      onPress: () => handleFeatureNotAvailable("Download My Data"),
+      onPress: handleDownloadData,
     },
     {
       id: 2,
@@ -105,7 +201,7 @@ export default function PrivacyPreferencesScreen({ navigation }) {
       icon: "trash-outline",
       description: "Permanently delete your account",
       danger: true,
-      onPress: () => handleFeatureNotAvailable("Delete Account"),
+      onPress: () => setShowDeleteModal(true),
     },
   ];
 
@@ -192,6 +288,14 @@ export default function PrivacyPreferencesScreen({ navigation }) {
           </View>
         </View>
       </ScrollView>
+
+      <DeleteAccountModal 
+        visible={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleDeleteAccount}
+      />
+      
+      <LoadingOverlay visible={isDeleting || isDownloading} />
     </SafeAreaView>
   );
 }

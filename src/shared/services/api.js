@@ -132,7 +132,14 @@ const refreshAccessToken = async () => {
         headers: requestHeaders,
       });
 
-      const data = await response.json();
+      const contentType = response.headers.get("content-type");
+      let data = {};
+      if (contentType && contentType.includes("application/json")) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+        console.warn("⚠️ [REFRESH TOKEN] Non-JSON response:", text);
+      }
 
       console.log(
         "🔄 [REFRESH TOKEN] Refresh response status:",
@@ -301,7 +308,23 @@ export const apiRequest = async (endpoint, options = {}) => {
     }
 
     let response = await fetch(url, config);
-    let data = await response.json();
+    
+    const contentType = response.headers.get("content-type");
+    let data;
+    
+    if (contentType && contentType.includes("application/json")) {
+      data = await response.json();
+    } else {
+      // For non-JSON responses (like PDF or plain text), return a text or a blob-like representation
+      // For mobile development, often the raw response or a local URI is needed
+      const text = await response.text();
+      data = { 
+        success: response.ok, 
+        message: "Non-JSON response received", 
+        data: text,
+        contentType: contentType 
+      };
+    }
 
     console.log("🌐 [API RESPONSE] Status:", response.status);
     console.log(
@@ -356,6 +379,10 @@ export const apiRequest = async (endpoint, options = {}) => {
         }
       } catch (refreshError) {
         console.error("❌ [API REQUEST] Token refresh failed:", refreshError);
+        
+        // CENTRAL LOGOUT SYSTEM: Automatically log user out if refresh fails
+        await forceLogout();
+        
         // If refresh fails, throw the original unauthorized error
         const error = new Error(
           data.message || "Unauthorized. Please sign in again."

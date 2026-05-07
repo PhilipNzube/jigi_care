@@ -3,7 +3,7 @@
  * Handles all authentication-related API calls
  */
 
-import { post, get, patch } from "../../../shared/services/api";
+import { post, get, patch, del } from "../../../shared/services/api";
 import {
   storeSignInResponse,
   storeSignUpResponse,
@@ -527,6 +527,28 @@ export const verifyEmailVerificationOTP = async (OTP) => {
   return response;
 };
 
+/**
+ * Delete user account
+ * @returns {Promise<object>} - Response with success message
+ */
+export const deleteAccount = async () => {
+  console.log("⚠️ [DELETE ACCOUNT] Starting account deletion...");
+  const response = await del("/users/delete");
+  console.log("✅ [DELETE ACCOUNT] Account deleted successfully!");
+  return response;
+};
+
+/**
+ * Download health report / my data
+ * @returns {Promise<object>} - Response with blob/download URL
+ */
+export const downloadHealthReport = async () => {
+  console.log("📥 [DOWNLOAD DATA] Requesting health report...");
+  const response = await get("/users/download-report");
+  console.log("✅ [DOWNLOAD DATA] Report request successful!");
+  return response;
+};
+
 export default {
   signUp,
   signIn,
@@ -539,4 +561,6 @@ export default {
   verifyPasswordResetOTP,
   sendEmailVerificationOTP,
   verifyEmailVerificationOTP,
+  deleteAccount,
+  downloadHealthReport,
 };

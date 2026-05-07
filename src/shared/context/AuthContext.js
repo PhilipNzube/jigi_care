@@ -470,6 +470,27 @@ export const AuthProvider = ({ children }) => {
   };
 
   /**
+   * Local-only sign out (clears state and storage without calling API)
+   * This is useful for account deletion or when the session is already invalid
+   */
+  const clearAuthState = async () => {
+    console.log("🧹 [AUTH CONTEXT] Clearing local auth state and storage...");
+    
+    // Clear state
+    setUser(null);
+    setToken(null);
+    setIsAuthenticated(false);
+    
+    // Clear all storage
+    await clearStorage();
+    
+    // Remove from OneSignal
+    oneSignalService.removeExternalUserId();
+    
+    console.log("✅ [AUTH CONTEXT] Local auth state cleared");
+  };
+
+  /**
    * Unlock app locally (clear the persistent lock flag)
    */
   const unlockApp = async () => {
@@ -503,6 +524,7 @@ export const AuthProvider = ({ children }) => {
     updateUser,
     loadStoredAuth,
     unlockApp,
+    clearAuthState,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
