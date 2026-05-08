@@ -25,6 +25,15 @@
         {
           "mode": "development"
         }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true,
+            "extraProguardRules": "-keep class org.webrtc.** { *; }\n-keep class com.oney.WebRTCModule.** { *; }"
+          }
+        }
       ]
     ],
     "ios": {
@@ -47,9 +56,12 @@
       "screenOrientation": "portrait",
       "permissions": [
         "CAMERA",
+        "RECORD_AUDIO",
+        "MODIFY_AUDIO_SETTINGS",
+        "ACCESS_NETWORK_STATE",
+        "BLUETOOTH_CONNECT",
         "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE",
-        "RECORD_AUDIO"
+        "WRITE_EXTERNAL_STORAGE"
       ]
     },
     "web": {
