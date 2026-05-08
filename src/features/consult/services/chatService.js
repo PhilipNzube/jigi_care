@@ -31,15 +31,18 @@ export const connectSocket = (userId, userType, callbacks = {}) => {
   console.log("🔌 [CHAT SERVICE] User ID:", userId);
   console.log("🔌 [CHAT SERVICE] User Type:", userType);
 
-  // Disconnect existing socket if any
-  if (socketInstance) {
-    console.log("🔌 [CHAT SERVICE] Disconnecting existing socket...");
-    socketInstance.disconnect();
+  // Don't reconnect if already connected to the same user
+  if (socketInstance && socketInstance.connected && socketInstance._userId === userId) {
+    console.log("🔌 [CHAT SERVICE] Already connected to socket for user:", userId);
+    // Update callbacks if they changed
+    return socketInstance;
   }
 
-  // Clear pending WebRTC state on (re)connect so we don't use stale offers
-  Object.keys(pendingOfferByFromUserId).forEach((k) => delete pendingOfferByFromUserId[k]);
-  Object.keys(pendingIceCandidatesByFromUserId).forEach((k) => delete pendingIceCandidatesByFromUserId[k]);
+  // Disconnect existing socket if it's for a different user
+  if (socketInstance) {
+    console.log("🔌 [CHAT SERVICE] Disconnecting existing socket (different user or role)...");
+    socketInstance.disconnect();
+  }
 
   socketInstance = io(SOCKET_URL, {
     transports: ["websocket", "polling"],
@@ -47,6 +50,10 @@ export const connectSocket = (userId, userType, callbacks = {}) => {
     reconnectionDelay: 1000,
     reconnectionAttempts: 5,
   });
+
+  // Store metadata on instance for tracking
+  socketInstance._userId = userId;
+  socketInstance._userType = userType;
 
   socketInstance.on("connect", () => {
     console.log(
@@ -182,22 +189,27 @@ export const connectSocket = (userId, userType, callbacks = {}) => {
   // WebRTC signaling: server forwards by fromUserId. We only apply signals from our peer.
   // fromUserId = the other participant who sent the offer/answer/ICE (we validate data.fromUserId === otherUserId).
   socketInstance.on("webrtc:offer", (data) => {
-    console.log(`🏁 [CHAT SERVICE RACE] [t=${Date.now()}] webrtc:offer received fromUserId=${data?.fromUserId}`);
-    const from = data?.fromUserId;
+    console.log(`🏁 [CHAT SERVICE RACE] [t=${Date.now()}] webrtc:offer received. Payload:`, JSON.stringify(data));
+    const from = data?.fromUserId || data?.otherUserId; // Try fallbacks
     if (from) {
       pendingOfferByFromUserId[from] = { offer: data.offer, fromUserId: from };
+      console.log(`✅ [CHAT SERVICE] Stored pending offer for fromUserId: ${from}`);
+    } else {
+      console.warn("⚠️ [CHAT SERVICE] Received webrtc:offer but no fromUserId found in payload!");
     }
     if (callbacks.onWebRTCOffer) callbacks.onWebRTCOffer(data);
   });
   socketInstance.on("webrtc:answer", (data) => {
-    console.log(`🏁 [CHAT SERVICE RACE] [t=${Date.now()}] webrtc:answer received fromUserId=${data?.fromUserId}`);
+    console.log(`🏁 [CHAT SERVICE RACE] [t=${Date.now()}] webrtc:answer received fromUserId=${data?.fromUserId || 'unknown'}`);
     if (callbacks.onWebRTCAnswer) callbacks.onWebRTCAnswer(data);
   });
   socketInstance.on("webrtc:ice-candidate", (data) => {
-    const from = data?.fromUserId;
+    console.log(`🏁 [CHAT SERVICE RACE] [t=${Date.now()}] webrtc:ice-candidate received. Payload:`, JSON.stringify(data));
+    const from = data?.fromUserId || data?.otherUserId;
     if (from && data.candidate != null) {
       if (!pendingIceCandidatesByFromUserId[from]) pendingIceCandidatesByFromUserId[from] = [];
       pendingIceCandidatesByFromUserId[from].push(data.candidate);
+      console.log(`✅ [CHAT SERVICE] Stored pending ICE candidate for fromUserId: ${from}. Total: ${pendingIceCandidatesByFromUserId[from].length}`);
     }
     if (callbacks.onWebRTCIceCandidate) callbacks.onWebRTCIceCandidate(data);
   });

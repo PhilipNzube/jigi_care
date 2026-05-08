@@ -61,6 +61,7 @@ class OneSignalService {
             navigate("ChatPage", {
               bookingId: data.bookingId,
               conversationId: data.conversationId,
+              fromUserId: data.fromUserId, // Ensure we pass who is calling
               callType: data.callType || "video",
               isIncoming: true,
               timestamp: Date.now(),
@@ -70,6 +71,7 @@ class OneSignalService {
             navigate("ChatPage", {
               bookingId: data.bookingId,
               conversationId: data.conversationId,
+              fromUserId: data.fromUserId,
             });
           }
         }

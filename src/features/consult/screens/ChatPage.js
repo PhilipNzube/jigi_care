@@ -160,17 +160,25 @@ export default function ChatPage({ navigation, route }) {
         return;
       }
 
+      // Determine the caller's ID - prefer the one from notification params
+      const fromUserId = route.params.fromUserId || localDoctor?.consultantId;
+      
+      if (!fromUserId) {
+        console.log("⚠️ [CHAT PAGE] Could not determine fromUserId for incoming call. Waiting...");
+        return;
+      }
+
       setIncomingCall({
-        fromUserId: localDoctor.consultantId,
+        fromUserId: fromUserId,
         conversationId: route.params.conversationId || conversationId,
         callType: route.params.callType || "video",
       });
       startRingtone(getRingtoneURI("incoming"));
 
       // Clear the parameter immediately
-      navigation.setParams({ isIncoming: false });
+      navigation.setParams({ isIncoming: false, fromUserId: undefined });
     }
-  }, [route.params?.isIncoming, localDoctor, incomingCall, conversationId, navigation]);
+  }, [route.params?.isIncoming, route.params?.fromUserId, localDoctor, incomingCall, conversationId, navigation]);
 
   // Get consultantId, patientId, bookingId, and appointment status
   const consultantId = localDoctor?.consultantId || localDoctor?.consultantData?.userId;
@@ -204,7 +212,8 @@ export default function ChatPage({ navigation, route }) {
 
     console.log("🔌 [CHAT PAGE] Initializing WebSocket connection...");
 
-    const socket = connectSocket(patientId, "patient", {
+    const userRole = user?.role || "patient";
+    const socket = connectSocket(patientId, userRole, {
       onConnect: () => {
         console.log("✅ [CHAT PAGE] WebSocket connected");
         setIsConnected(true);
@@ -283,11 +292,9 @@ export default function ChatPage({ navigation, route }) {
     });
 
     return () => {
-      console.log("🔌 [CHAT PAGE] Cleaning up WebSocket connection...");
-      if (conversationId) {
-        leaveConversation(conversationId);
-      }
-      disconnectSocket();
+      console.log("🔌 [CHAT PAGE] Unmounting ChatPage socket effect (preserving connection for calls)");
+      // We don't disconnect or leave here because we might be navigating to a Call screen
+      // disconnectSocket();
     };
   }, [patientId]);
 
