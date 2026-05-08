@@ -86,7 +86,7 @@ export default function HealthMonitoringScreen({ navigation }) {
         <VitalSignsGrid ref={vitalSignsGridRef} onAddReading={handleAddReading} />
         <BloodPressureChart ref={bloodPressureChartRef} />
         <MedicationsSection navigation={navigation} />
-        <ExportHealthDataSection />
+        {/* <ExportHealthDataSection /> */}
       </ScrollView>
     </SafeAreaView>
   );
