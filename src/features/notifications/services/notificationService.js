@@ -224,8 +224,21 @@ export const markNotificationRead = async (id) => {
   }
 };
 
+export const markMultipleNotificationsRead = async (ids) => {
+  try {
+    console.log(`🔔 [NOTIFICATION SERVICE] Marking ${ids.length} notifications as read...`);
+    const idsQuery = ids.join(',');
+    const response = await patch(`/notification/update-notifications?ids=${idsQuery}`, { status: "read" });
+    return response.data;
+  } catch (error) {
+    console.error("❌ [NOTIFICATION SERVICE] Error marking notifications as read:", error);
+    throw error;
+  }
+};
+
 export default {
   connectNotificationStream,
   getAllNotifications,
   markNotificationRead,
+  markMultipleNotificationsRead,
 };

@@ -6,11 +6,13 @@ import {
   ImageBackground,
   Dimensions,
   RefreshControl,
+  TouchableOpacity,
+  Text,
 } from "react-native";
 import { Sizes, Colors } from "../../../shared/constants";
 import { Images } from "../../../shared/utils/imageUtils";
 // import { connectNotificationStream } from "../services/notificationService"; // Commented out - may be useful later
-import { getAllNotifications, markNotificationRead } from "../services/notificationService";
+import { getAllNotifications, markNotificationRead, markMultipleNotificationsRead } from "../services/notificationService";
 import ShimmerLoader from "../../../shared/components/ShimmerLoader";
 import { useAuth } from "../../../shared/context/AuthContext";
 
@@ -200,6 +202,34 @@ export default function NotificationsScreen({ navigation }) {
     }
   };
 
+  const hasUnread = notifications.some((n) => n.status !== "read");
+
+  const handleMarkAllRead = async () => {
+    const unreadNotifications = notifications.filter((n) => n.status !== "read");
+    if (unreadNotifications.length === 0) return;
+
+    const unreadIds = unreadNotifications.map((n) => n.id);
+
+    try {
+      // Optimistically update local state
+      setNotifications((prev) =>
+        prev.map((n) => ({ ...n, status: "read" }))
+      );
+      
+      // Update notification count in context to 0
+      if (user) {
+        updateUser({
+          ...user,
+          notificationCount: 0
+        });
+      }
+
+      await markMultipleNotificationsRead(unreadIds);
+    } catch (error) {
+      console.error("Failed to mark all notifications as read", error);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <ImageBackground
@@ -238,10 +268,19 @@ export default function NotificationsScreen({ navigation }) {
               ))}
             </View>
           ) : notifications.length > 0 ? (
-            <NotificationsList
-              notifications={notifications}
-              onNotificationAction={handleNotificationAction}
-            />
+            <View>
+              {hasUnread && (
+                <View style={styles.markAllContainer}>
+                  <TouchableOpacity onPress={handleMarkAllRead} style={styles.markAllButton}>
+                    <Text style={styles.markAllText}>Mark all as read</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+              <NotificationsList
+                notifications={notifications}
+                onNotificationAction={handleNotificationAction}
+              />
+            </View>
           ) : (
             <EmptyNotificationsState />
           )}
@@ -317,5 +356,22 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF40",
     marginTop: Sizes.sm,
     marginHorizontal: Sizes.sm,
+  },
+  markAllContainer: {
+    alignItems: "flex-end",
+    marginBottom: Sizes.sm,
+  },
+  markAllButton: {
+    paddingVertical: Sizes.xs,
+    paddingHorizontal: Sizes.sm,
+    backgroundColor: "#FFFFFF14",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.2)",
+  },
+  markAllText: {
+    fontSize: 12,
+    fontFamily: "Poppins-Medium",
+    color: Colors.white,
   },
 });
