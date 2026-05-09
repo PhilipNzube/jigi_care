@@ -194,11 +194,17 @@ export default function NotificationsScreen({ navigation }) {
 
     // Handle different notification actions based on category
     if (notification.category === "booking") {
-      // Navigate to booking details or consult screen
-      navigation.navigate("BottomTabs", { screen: "Consult" });
+      // Navigate to appointments tab
+      navigation.navigate("MainApp", {
+        screen: "BottomTabs",
+        params: { screen: "appointments" }
+      });
     } else if (notification.category === "order") {
-      // Navigate to order details
-      navigation.navigate("BottomTabs", { screen: "Medication" });
+      // Navigate to medication tab
+      navigation.navigate("MainApp", {
+        screen: "BottomTabs",
+        params: { screen: "medication" }
+      });
     }
   };
 

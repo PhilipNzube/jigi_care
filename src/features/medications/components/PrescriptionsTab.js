@@ -182,6 +182,7 @@ const mapPrescriptionToUI = (apiPrescription) => {
     pillsRemaining: pillsRemaining,
     totalPills: totalPills,
     refillDate: refillDate,
+    notes: apiPrescription.notes || apiPrescription.instructions,
   };
 };
 

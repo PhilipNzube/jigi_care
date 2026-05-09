@@ -50,8 +50,8 @@ class OneSignalService {
         const { notification } = event;
         const data = notification.additionalData;
 
-        if (data && (data.bookingId || data.conversationId)) {
-          console.log("OneSignal: Navigating to ChatPage with data:", data);
+        if (data) {
+          console.log("OneSignal: Navigating with data:", data);
 
           // Category-based navigation
           const category = data.category || "Message";
@@ -66,8 +66,22 @@ class OneSignalService {
               isIncoming: true,
               timestamp: Date.now(),
             });
-          } else {
-            // Default to ChatPage for messages or generic notifications
+          } else if (category === "booking" || category === "Appointment" || category === "FollowUp") {
+            setTimeout(() => {
+              navigate("MainApp", {
+                screen: "BottomTabs",
+                params: { screen: "appointments" }
+              });
+            }, 1000);
+          } else if (category === "order") {
+            setTimeout(() => {
+              navigate("MainApp", {
+                screen: "BottomTabs",
+                params: { screen: "medication" }
+              });
+            }, 1000);
+          } else if (data.bookingId || data.conversationId) {
+            // Default to ChatPage for messages or generic notifications if we have chat-related IDs
             navigate("ChatPage", {
               bookingId: data.bookingId,
               conversationId: data.conversationId,
