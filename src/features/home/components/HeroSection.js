@@ -140,7 +140,13 @@ export default function HeroSection({ insets, navigation }) {
                   size={24}
                   color={Colors.white}
                 />
-                <View style={styles.notificationDot} />
+                {user?.notificationCount > 0 && (
+                  <View style={styles.notificationDot}>
+                    <Text style={styles.notificationDotText}>
+                      {user.notificationCount > 99 ? '99+' : user.notificationCount}
+                    </Text>
+                  </View>
+                )}
               </TouchableOpacity>
             </View>
           </View>
@@ -314,12 +320,22 @@ const styles = StyleSheet.create({
   },
   notificationDot: {
     position: "absolute",
-    top: -2,
-    right: -2,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    top: -6,
+    right: -6,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
     backgroundColor: "#E74C3C",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 4,
+  },
+  notificationDotText: {
+    color: Colors.white,
+    fontSize: 10,
+    fontFamily: "Poppins-Bold",
+    includeFontPadding: false,
+    textAlign: "center",
   },
   carousel: {
     flex: 1,

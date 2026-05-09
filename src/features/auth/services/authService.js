@@ -349,6 +349,9 @@ export const getUserProfile = async () => {
 
     // Handle response format: response.data contains user data
     const userDataFromResponse = response.data;
+    if (response.notificationCount !== undefined) {
+      userDataFromResponse.notificationCount = response.notificationCount;
+    }
     console.log(
       "✅ [GET PROFILE] User data:",
       JSON.stringify(userDataFromResponse, null, 2)

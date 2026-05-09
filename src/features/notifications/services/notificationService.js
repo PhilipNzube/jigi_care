@@ -4,7 +4,7 @@
  */
 
 import { getToken } from "../../../shared/utils/storage";
-import { get } from "../../../shared/services/api";
+import { get, patch } from "../../../shared/services/api";
 
 const BASE_URL = "https://jiggy-care.onrender.com/api/v1";
 
@@ -213,7 +213,19 @@ export const connectNotificationStream = (onNotification, onError) => {
   return cleanup;
 };
 
+export const markNotificationRead = async (id) => {
+  try {
+    console.log(`🔔 [NOTIFICATION SERVICE] Marking notification ${id} as read...`);
+    const response = await patch(`/notification/update-notification/${id}`, { status: "read" });
+    return response.data;
+  } catch (error) {
+    console.error("❌ [NOTIFICATION SERVICE] Error marking notification as read:", error);
+    throw error;
+  }
+};
+
 export default {
   connectNotificationStream,
   getAllNotifications,
+  markNotificationRead,
 };

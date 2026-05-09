@@ -10,8 +10,9 @@ import {
 import { Sizes, Colors } from "../../../shared/constants";
 import { Images } from "../../../shared/utils/imageUtils";
 // import { connectNotificationStream } from "../services/notificationService"; // Commented out - may be useful later
-import { getAllNotifications } from "../services/notificationService";
+import { getAllNotifications, markNotificationRead } from "../services/notificationService";
 import ShimmerLoader from "../../../shared/components/ShimmerLoader";
+import { useAuth } from "../../../shared/context/AuthContext";
 
 // Import components
 import NotificationsHeader from "../components/NotificationsHeader";
@@ -50,6 +51,7 @@ const mapNotificationToUI = (apiNotification) => {
 };
 
 export default function NotificationsScreen({ navigation }) {
+  const { user, updateUser } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -163,8 +165,31 @@ export default function NotificationsScreen({ navigation }) {
     await fetchNotifications(true);
   }, [fetchNotifications]);
 
-  const handleNotificationAction = (notification) => {
-    console.log("Notification action pressed:", notification.action);
+  const handleNotificationAction = async (notification) => {
+    console.log("Notification pressed:", notification.title);
+    
+    // Mark as read if not already read
+    if (notification.status !== "read") {
+      try {
+        await markNotificationRead(notification.id);
+        // Optimistically update local state
+        setNotifications((prev) =>
+          prev.map((n) =>
+            n.id === notification.id ? { ...n, status: "read" } : n
+          )
+        );
+        // Update notification count in context so it reflects on Home Screen immediately
+        if (user && user.notificationCount > 0) {
+          updateUser({
+            ...user,
+            notificationCount: user.notificationCount - 1
+          });
+        }
+      } catch (error) {
+        console.error("Failed to mark notification as read", error);
+      }
+    }
+
     // Handle different notification actions based on category
     if (notification.category === "booking") {
       // Navigate to booking details or consult screen

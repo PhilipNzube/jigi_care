@@ -8,9 +8,15 @@ export default function NotificationCard({
   onActionPress,
   isLast = false,
 }) {
+  const isRead = notification.status === "read";
+
   return (
-    <View style={styles.notificationRow}>
-      <View style={styles.notificationContent}>
+    <TouchableOpacity 
+      style={[styles.notificationRow, isRead && styles.readNotificationRow]} 
+      onPress={() => onActionPress(notification)}
+      activeOpacity={0.7}
+    >
+      <View style={[styles.notificationContent, isRead && styles.readNotificationContent]}>
         <View style={styles.notificationText}>
           <View style={styles.notificationTitleContainer}>
             <View style={styles.notificationIcon}>
@@ -35,7 +41,7 @@ export default function NotificationCard({
         </TouchableOpacity> */}
       </View>
       {!isLast && <View style={styles.divider} />}
-    </View>
+    </TouchableOpacity>
   );
 }
 
@@ -83,6 +89,12 @@ const styles = StyleSheet.create({
     color: Colors.white,
     opacity: 0.9,
     lineHeight: 20,
+  },
+  readNotificationRow: {
+    opacity: 0.6,
+  },
+  readNotificationContent: {
+    opacity: 0.8,
   },
   actionButton: {
     backgroundColor: "#0098B3",

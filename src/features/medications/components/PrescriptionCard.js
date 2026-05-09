@@ -74,8 +74,13 @@ export default function PrescriptionCard({ prescription }) {
               return <Text style={styles.dosage}>{dosageText}</Text>;
             })()}
             <Text style={styles.doctor}>
-              Prescribed by {prescription.doctor}
+              Prescribed by {prescription.doctor || prescription.prescribedBy}
             </Text>
+            {prescription.notes ? (
+              <Text style={styles.notes} numberOfLines={2}>
+                Notes: {prescription.notes}
+              </Text>
+            ) : null}
           </View>
         </View>
 
@@ -182,6 +187,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: "Poppins-Regular",
     color: "#5B6B62",
+  },
+  notes: {
+    fontSize: 12,
+    fontFamily: "Poppins-Regular",
+    color: "#5B6B62",
+    fontStyle: "italic",
+    marginTop: 2,
   },
   pillsInfo: {
     marginTop: Sizes.sm,
