@@ -3,7 +3,7 @@
  * Manages authentication state across the app
  */
 
-import React, { createContext, useState, useEffect, useContext, useRef } from "react";
+import React, { createContext, useState, useEffect, useContext, useRef, useCallback } from "react";
 import { AppState } from "react-native";
 import * as LocalAuthentication from "expo-local-authentication";
 import {
@@ -513,6 +513,24 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  /**
+   * Refresh user profile without changing loading state
+   * Useful for background updates when screen comes into focus
+   */
+  const refreshProfile = useCallback(async () => {
+    if (!isAuthenticated) return;
+    try {
+      console.log("🔄 [AUTH CONTEXT] Refreshing profile in background...");
+      const profileData = await getUserProfile();
+      if (profileData) {
+        setUser(profileData);
+        await storeUserData(profileData);
+      }
+    } catch (error) {
+      console.error("❌ [AUTH CONTEXT] Error refreshing profile:", error);
+    }
+  }, [isAuthenticated]);
+
   const value = {
     user,
     token,
@@ -525,6 +543,7 @@ export const AuthProvider = ({ children }) => {
     loadStoredAuth,
     unlockApp,
     clearAuthState,
+    refreshProfile,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -37,7 +37,7 @@ export default function HomeScreen({ navigation, route }) {
   const refreshKeyRef = useRef(0);
   const backPressTimeoutRef = useRef(null);
   const warningShownRef = useRef(false);
-  const { user, updateUser, signOut } = useAuth();
+  const { user, updateUser, signOut, refreshProfile } = useAuth();
   const [showPolicyModal, setShowPolicyModal] = useState(false);
   const [showDeclineConfirm, setShowDeclineConfirm] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -99,21 +99,25 @@ export default function HomeScreen({ navigation, route }) {
     setShowPolicyModal(true);
   };
 
-  // Refresh when screen comes into focus (tab change)
-  useEffect(() => {
-    const unsubscribe = navigation.addListener("focus", () => {
+  // Refresh when screen comes into focus (tab change or back navigation)
+  useFocusEffect(
+    React.useCallback(() => {
       // Silently refresh data if needed
       refreshKeyRef.current += 1;
+      
       // Reset warning when screen comes into focus
       warningShownRef.current = false;
       if (backPressTimeoutRef.current) {
         clearTimeout(backPressTimeoutRef.current);
         backPressTimeoutRef.current = null;
       }
-    });
-
-    return unsubscribe;
-  }, [navigation]);
+      
+      // Pro-like background refresh: Ensure notification counts/profile stay perfectly synced
+      if (refreshProfile) {
+        refreshProfile();
+      }
+    }, [refreshProfile])
+  );
 
   // Handle back button on Android
   useFocusEffect(
