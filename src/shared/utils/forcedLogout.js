@@ -24,15 +24,15 @@ export const forceLogout = async () => {
     await clearStorage();
     console.log("✅ [FORCED LOGOUT] All cached data cleared");
 
-    // Navigate to login screen
-    resetToLogin();
-    console.log("✅ [FORCED LOGOUT] User redirected to login screen");
+    // Navigate to login screen (session expired — go straight to password, skip biometrics)
+    resetToLogin({ sessionExpired: true });
+    console.log("✅ [FORCED LOGOUT] User redirected to login screen (session expired)");
   } catch (error) {
     console.error("❌ [FORCED LOGOUT] Error during forced logout:", error);
     // Even if navigation fails, try to navigate anyway
     try {
       showError("Your session has expired. Please sign in again.", "Session Expired");
-      resetToLogin();
+      resetToLogin({ sessionExpired: true });
     } catch (navError) {
       console.error("❌ [FORCED LOGOUT] Error navigating to login:", navError);
     }

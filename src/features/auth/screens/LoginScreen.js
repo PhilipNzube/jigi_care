@@ -44,6 +44,8 @@ export default function LoginScreen({ navigation, route }) {
   const defaultMethod = route?.params?.defaultMethod ?? "password";
   // isLockedMode: true when this screen was opened due to auto-lock timeout
   const isLockedMode = !!route?.params?.defaultMethod;
+  // sessionExpired: true when refresh token has expired — go straight to password, skip biometrics
+  const isSessionExpired = !!route?.params?.sessionExpired;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -180,6 +182,12 @@ export default function LoginScreen({ navigation, route }) {
 
   const checkAvailableBiometrics = async () => {
     try {
+      // If this is a session-expired forced logout, always show the plain password screen
+      if (isSessionExpired) {
+        setAvailableBiometrics({ face: false, fingerprint: false });
+        return;
+      }
+
       // If not in locked mode and no token, user is fully logged out — hide biometrics
       if (!isLockedMode && !token) {
         setAvailableBiometrics({ face: false, fingerprint: false });

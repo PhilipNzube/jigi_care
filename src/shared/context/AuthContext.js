@@ -257,10 +257,10 @@ export const AuthProvider = ({ children }) => {
               "Session Expired"
             );
 
-        // Navigate to login screen directly
+        // Navigate to login screen directly (session expired — skip biometrics)
         // Use longer delay to ensure Activity context is ready for Google Sign-In
             setTimeout(() => {
-              resetToLogin();
+              resetToLogin({ sessionExpired: true });
         }, 1000);
 
         return;
