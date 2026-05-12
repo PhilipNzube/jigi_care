@@ -32,6 +32,7 @@ const STATUS_LABELS = {
   no_show: "No Show",
   cancelled: "Cancelled",
   disputed: "Disputed",
+  stale: "Stale",
 };
 
 /** Badge background color by status */
@@ -43,6 +44,7 @@ const STATUS_BADGE_COLORS = {
   no_show: { bg: "#FFEBEE", text: "#C62828" },
   cancelled: { bg: "#F5F5F5", text: "#616161" },
   disputed: { bg: "#FFF8E1", text: "#F57F17" },
+  stale: { bg: "#F5F5F5", text: "#757575" },
 };
 const DEFAULT_BADGE_COLOR = { bg: "#EEEEEE", text: "#424242" };
 
@@ -59,6 +61,7 @@ const SECTION_ORDER = [
   "no_show",
   "cancelled",
   "disputed",
+  "stale",
 ];
 
 function AppointmentCardSkeleton() {
@@ -460,7 +463,6 @@ export default function AppointmentsScreen({ navigation }) {
               const date = parseISO(item.date);
               const canOpenChat = [
                 "pending_confirmation",
-                "upcoming",
                 "in_progress",
               ].includes(item.status);
               const badgeStyle = getStatusBadgeStyle(item.status);
@@ -523,65 +525,124 @@ export default function AppointmentsScreen({ navigation }) {
                       )}
                     </View>
                   </TouchableOpacity>
-                  {canOpenChat && (
+                  {(canOpenChat || item.status === "upcoming") && (
                     <View style={styles.actionRow}>
-                      <TouchableOpacity
-                        style={styles.actionBtn}
-                        onPress={() => openChat(item)}
-                      >
-                        <Ionicons name="chatbubble-outline" size={16} color={Colors.primary} />
-                        <Text style={[styles.actionBtnText, styles.actionBtnPrimary]}>Open chat</Text>
-                      </TouchableOpacity>
-                      <View style={styles.actionRowRight}>
-                        {(consultantConfirmed || item.status === "pending_confirmation") && (
-                          <TouchableOpacity
-                            style={styles.actionBtn}
-                            onPress={() => openConfirmModal(item)}
-                            disabled={loading.complete}
-                          >
-                            {loading.complete ? (
-                              <ActivityIndicator size="small" color={Colors.primary} />
-                            ) : (
-                              <>
-                                <Ionicons name="checkmark-circle-outline" size={16} color={Colors.primary} />
-                                <Text style={[styles.actionBtnText, styles.actionBtnPrimary]}>Confirm</Text>
-                              </>
-                            )}
-                          </TouchableOpacity>
-                        )}
-                        {item.status === "upcoming" && (
+                      {item.status === "upcoming" ? (
+                        <>
                           <TouchableOpacity
                             style={styles.actionBtn}
                             onPress={() => handleCancelAppointment(item)}
                             disabled={loading.cancel}
                           >
                             {loading.cancel ? (
-                              <ActivityIndicator size="small" color={Colors.error} />
+                              <ActivityIndicator
+                                size="small"
+                                color={Colors.error}
+                              />
                             ) : (
                               <>
-                                <Ionicons name="trash-outline" size={16} color={Colors.error} />
-                                <Text style={[styles.actionBtnText, styles.actionBtnNoShow]}>Cancel</Text>
+                                <Ionicons
+                                  name="trash-outline"
+                                  size={16}
+                                  color={Colors.error}
+                                />
+                                <Text
+                                  style={[
+                                    styles.actionBtnText,
+                                    styles.actionBtnNoShow,
+                                  ]}
+                                >
+                                  Cancel
+                                </Text>
                               </>
                             )}
                           </TouchableOpacity>
-                        )}
-                        {item.status === "upcoming" && (
                           <TouchableOpacity
                             style={styles.actionBtn}
                             onPress={() => handleMarkNoShow(item)}
                             disabled={loading.noShow}
                           >
                             {loading.noShow ? (
-                              <ActivityIndicator size="small" color={Colors.error} />
+                              <ActivityIndicator
+                                size="small"
+                                color={Colors.error}
+                              />
                             ) : (
                               <>
-                                <Ionicons name="close-circle-outline" size={16} color={Colors.error} />
-                                <Text style={[styles.actionBtnText, styles.actionBtnNoShow]}>No show</Text>
+                                <Ionicons
+                                  name="close-circle-outline"
+                                  size={16}
+                                  color={Colors.error}
+                                />
+                                <Text
+                                  style={[
+                                    styles.actionBtnText,
+                                    styles.actionBtnNoShow,
+                                  ]}
+                                >
+                                  No show
+                                </Text>
                               </>
                             )}
                           </TouchableOpacity>
-                        )}
-                      </View>
+                        </>
+                      ) : (
+                        <>
+                          {canOpenChat && (
+                            <TouchableOpacity
+                              style={styles.actionBtn}
+                              onPress={() => openChat(item)}
+                            >
+                              <Ionicons
+                                name="chatbubble-outline"
+                                size={16}
+                                color={Colors.primary}
+                              />
+                              <Text
+                                style={[
+                                  styles.actionBtnText,
+                                  styles.actionBtnPrimary,
+                                ]}
+                              >
+                                Open chat
+                              </Text>
+                            </TouchableOpacity>
+                          )}
+                          <View style={styles.actionRowRight}>
+                            {(consultantConfirmed ||
+                              item.status === "pending_confirmation") && (
+                              <TouchableOpacity
+                                style={styles.actionBtn}
+                                onPress={() => openConfirmModal(item)}
+                                disabled={loading.complete}
+                              >
+                                {loading.complete ? (
+                                  <ActivityIndicator
+                                    size="small"
+                                    color={Colors.primary}
+                                  />
+                                ) : (
+                                  <>
+                                    <Ionicons
+                                      name="checkmark-circle-outline"
+                                      size={16}
+                                      color={Colors.primary}
+                                    />
+                                    <Text
+                                      style={[
+                                        styles.actionBtnText,
+                                        styles.actionBtnPrimary,
+                                      ]}
+                                    >
+                                      Confirm
+                                    </Text>
+                                  </>
+                                )}
+                              </TouchableOpacity>
+                            )}
+                          </View>
+                        </>
+                      )}
                     </View>
                   )}
                 </View>
