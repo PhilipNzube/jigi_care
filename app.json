@@ -14,6 +14,8 @@
       "backgroundColor": "#ffffff"
     },
     "plugins": [
+      "@config-plugins/react-native-callkeep",
+      "@react-native-firebase/app",
       [
         "@react-native-google-signin/google-signin",
         {
@@ -30,6 +32,9 @@
         "expo-build-properties",
         {
           "android": {
+            "compileSdkVersion": 34,
+            "targetSdkVersion": 34,
+            "buildToolsVersion": "34.0.0",
             "usesCleartextTraffic": true,
             "extraProguardRules": "-keep class org.webrtc.** { *; }\n-keep class com.oney.WebRTCModule.** { *; }"
           }
@@ -47,6 +52,7 @@
       }
     },
     "android": {
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/app_icon.png",
         "backgroundColor": "#ffffff"
@@ -61,7 +67,16 @@
         "ACCESS_NETWORK_STATE",
         "BLUETOOTH_CONNECT",
         "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE"
+        "WRITE_EXTERNAL_STORAGE",
+        "BIND_TELECOM_CONNECTION_SERVICE",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_PHONE_CALL",
+        "READ_PHONE_STATE",
+        "CALL_PHONE",
+        "READ_PHONE_NUMBERS",
+        "MANAGE_OWN_CALLS",
+        "USE_FULL_SCREEN_INTENT",
+        "POST_NOTIFICATIONS"
       ]
     },
     "web": {

@@ -144,7 +144,7 @@ export default function ChatPage({ navigation, route }) {
     fetchDoctorDetails();
   }, [bookingId, patientId, localDoctor]);
 
-  // Handle incoming call parameter from notification
+  // Handle incoming call parameter from notification or CallKeep answer event
   useEffect(() => {
     if (route.params?.isIncoming && localDoctor && !incomingCall) {
       console.log("📞 [CHAT PAGE] Handling incoming call from notification params");
@@ -168,17 +168,68 @@ export default function ChatPage({ navigation, route }) {
         return;
       }
 
-      setIncomingCall({
+      const callData = {
         fromUserId: fromUserId,
         conversationId: route.params.conversationId || conversationId,
         callType: route.params.callType || "video",
-      });
-      startRingtone(getRingtoneURI("incoming"));
+      };
 
-      // Clear the parameter immediately
-      navigation.setParams({ isIncoming: false, fromUserId: undefined });
+      if (route.params?.autoAccept) {
+        console.log("📞 [CHAT PAGE] Auto-accept parameter is true. Accepting call immediately...");
+        
+        // Setup incoming call state so handlers can clean up and read it
+        setIncomingCall(callData);
+        
+        // Clear the parameters immediately to prevent double execution on focus change
+        navigation.setParams({ isIncoming: false, fromUserId: undefined, autoAccept: false });
+        
+        // Eagerly execute acceptance sequence
+        setTimeout(async () => {
+          try {
+            // Eagerly start audio/video mode before navigating
+            console.log("🔊 [CHAT PAGE] Starting eager audio mode for auto-accepted:", callData.callType);
+            const initialRoute = await getInitialAudioRoute(callData.callType === "video");
+            await startInCall(callData.callType);
+            await setAudioRoute(initialRoute);
+
+            stopRingtone();
+            console.log("📞 [CHAT PAGE] Auto-answering call – fromUserId (caller):", callData.fromUserId, "conversationId:", callData.conversationId);
+            
+            acceptCall(callData.fromUserId);
+            const minimalDoctor = { name: "Consultant", consultantId: callData.fromUserId, ...localDoctor };
+            setIncomingCall(null);
+            
+            if (callData.callType === "video") {
+              navigation.navigate("VideoCall", {
+                doctor: minimalDoctor,
+                conversationId: callData.conversationId,
+                callType: callData.callType,
+                otherUserId: callData.fromUserId,
+                isInitiator: false,
+              });
+            } else {
+              navigation.navigate("VoiceCall", {
+                doctor: minimalDoctor,
+                conversationId: callData.conversationId,
+                callType: callData.callType,
+                otherUserId: callData.fromUserId,
+                isInitiator: false,
+              });
+            }
+          } catch (error) {
+            console.error("❌ [CHAT PAGE] Error during auto-accepting call:", error);
+            setIncomingCall(null);
+          }
+        }, 100);
+      } else {
+        setIncomingCall(callData);
+        startRingtone(getRingtoneURI("incoming"));
+
+        // Clear the parameter immediately
+        navigation.setParams({ isIncoming: false, fromUserId: undefined });
+      }
     }
-  }, [route.params?.isIncoming, route.params?.fromUserId, localDoctor, incomingCall, conversationId, navigation]);
+  }, [route.params?.isIncoming, route.params?.fromUserId, route.params?.autoAccept, localDoctor, incomingCall, conversationId, navigation]);
 
   // Get consultantId, patientId, bookingId, and appointment status
   const consultantId = localDoctor?.consultantId || localDoctor?.consultantData?.userId;

@@ -1,0 +1,67 @@
+{
+  "project_info": {
+    "project_number": "797281065705",
+    "project_id": "jigicare-consultant",
+    "storage_bucket": "jigicare-consultant.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:797281065705:android:b13175d9af2280e49aae78",
+        "android_client_info": {
+          "package_name": "com.jigicare.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDyc3ufxmG5xiX265MNwv1m8VghXJsPYoI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:797281065705:android:50601d1289205e399aae78",
+        "android_client_info": {
+          "package_name": "com.jigicare.consultant"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDyc3ufxmG5xiX265MNwv1m8VghXJsPYoI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:797281065705:android:9d96de56bd923b139aae78",
+        "android_client_info": {
+          "package_name": "consultant.jigicare.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDyc3ufxmG5xiX265MNwv1m8VghXJsPYoI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
