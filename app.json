@@ -14,7 +14,15 @@
       "backgroundColor": "#ffffff"
     },
     "plugins": [
-      "@config-plugins/react-native-callkeep",
+      [
+        "expo-callkit-telecom",
+        {
+          "sounds": [
+            "./src/assets/sounds/Incoming_calls.wav"
+          ],
+          "defaultRingtoneAndroid": "Incoming_calls.wav"
+        }
+      ],
       "@react-native-firebase/app",
       [
         "@react-native-google-signin/google-signin",
@@ -32,9 +40,9 @@
         "expo-build-properties",
         {
           "android": {
-            "compileSdkVersion": 35,
-            "targetSdkVersion": 34,
-            "buildToolsVersion": "35.0.0",
+            "compileSdkVersion": 36,
+            "targetSdkVersion": 35,
+            "buildToolsVersion": "36.0.0",
             "usesCleartextTraffic": true,
             "extraProguardRules": "-keep class org.webrtc.** { *; }\n-keep class com.oney.WebRTCModule.** { *; }"
           }
