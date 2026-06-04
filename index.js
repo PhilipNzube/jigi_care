@@ -11,10 +11,12 @@ import {
 
 import App from './App';
 
-// Initialize CallKeep service as early as possible
-callKeepService.setup().catch(err => {
+// Initialize CallKeep service synchronously as early as possible (before root registration)
+try {
+  callKeepService.setup();
+} catch (err) {
   console.error("❌ [INDEX] CallKeep setup error:", err);
-});
+}
 
 /**
  * Handle incoming calls when the app is in the background or completely terminated

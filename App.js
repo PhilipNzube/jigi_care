@@ -9,6 +9,7 @@ import { GOOGLE_WEB_CLIENT_ID } from "./src/shared/config/googleConfig";
 import { loadFonts } from "./src/shared/utils/fontUtils";
 import { resetToLogin } from "./src/shared/navigation/navigationRef";
 import oneSignalService from "./src/shared/services/onesignalService";
+import callKeepService from "./src/shared/services/callKeepService";
 
 // Keep the native splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
@@ -22,6 +23,13 @@ function AppContent() {
         try {
           // Pre-load fonts
           await loadFonts();
+
+          // Request CallKeep permissions safely when activity window is attached
+          try {
+            await callKeepService.requestPermissions();
+          } catch (pe) {
+            console.warn("⚠️ Failed to request call permissions during startup:", pe);
+          }
 
           // Small delay for better UX (only if authenticated to ensure smooth transition)
           if (isAuthenticated) {

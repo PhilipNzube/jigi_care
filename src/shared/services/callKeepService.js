@@ -25,29 +25,13 @@ class CallKeepService {
    * Setup CallKeep and configure native event listeners.
    * Call this as early as possible in your app's lifecycle (e.g. index.js).
    */
-  async setup() {
+  setup() {
     if (this.isInitialized) {
       console.log("📞 [CALLKEEP SERVICE] Already initialized");
       return;
     }
 
     try {
-      // Request runtime permissions on Android
-      if (Platform.OS === "android") {
-        // Request POST_NOTIFICATIONS on Android 13+ (API 33+)
-        if (Platform.Version >= 33) {
-          const { PermissionsAndroid } = require("react-native");
-          try {
-            console.log("📞 [CALLKEEP SERVICE] Requesting POST_NOTIFICATIONS permission...");
-            await PermissionsAndroid.request(
-              PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
-            );
-          } catch (err) {
-            console.warn("⚠️ [CALLKEEP SERVICE] Failed to request POST_NOTIFICATIONS permission:", err);
-          }
-        }
-      }
-
       const options = {
         ios: {
           appName: "JigiCare",
@@ -69,28 +53,47 @@ class CallKeepService {
         },
       };
 
-      console.log("📞 [CALLKEEP SERVICE] Initializing CallKeep with options...");
-      await RNCallKeep.setup(options);
+      console.log("📞 [CALLKEEP SERVICE] Synchronously setting up CallKeep options...");
+      RNCallKeep.setup(options);
       
       // Register Android Connection Service explicitly
       if (Platform.OS === "android") {
         RNCallKeep.registerPhoneAccount();
         RNCallKeep.registerAndroidEvents();
-        
-        // Check and prompt for Phone Account permission
-        try {
-          const hasPhoneAccount = await RNCallKeep.checkPhoneAccountPermission();
-          console.log("📞 [CALLKEEP SERVICE] Phone account permission status:", hasPhoneAccount);
-        } catch (err) {
-          console.warn("⚠️ [CALLKEEP SERVICE] Phone account permission check failed:", err);
-        }
       }
 
       this.registerEventListeners();
       this.isInitialized = true;
-      console.log("✅ [CALLKEEP SERVICE] CallKeep initialized successfully");
+      console.log("✅ [CALLKEEP SERVICE] CallKeep configuration registered");
     } catch (error) {
-      console.error("❌ [CALLKEEP SERVICE] Failed to initialize CallKeep:", error);
+      console.error("❌ [CALLKEEP SERVICE] Failed to setup CallKeep:", error);
+    }
+  }
+
+  /**
+   * Request calling permissions asynchronously.
+   * Call this when the UI has mounted (e.g. inside App.js init).
+   */
+  async requestPermissions() {
+    if (Platform.OS !== "android") return;
+
+    try {
+      // 1. Request POST_NOTIFICATIONS on Android 13+ (API 33+)
+      if (Platform.Version >= 33) {
+        const { PermissionsAndroid } = require("react-native");
+        console.log("📞 [CALLKEEP SERVICE] Requesting POST_NOTIFICATIONS runtime permission...");
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
+        );
+        console.log("📞 [CALLKEEP SERVICE] POST_NOTIFICATIONS status:", granted);
+      }
+
+      // 2. Check and prompt for Phone Account permission
+      console.log("📞 [CALLKEEP SERVICE] Checking Phone Account permission...");
+      const hasPhoneAccount = await RNCallKeep.checkPhoneAccountPermission();
+      console.log("📞 [CALLKEEP SERVICE] Phone account permission status:", hasPhoneAccount);
+    } catch (err) {
+      console.warn("⚠️ [CALLKEEP SERVICE] Failed requesting calling permissions:", err);
     }
   }
 
