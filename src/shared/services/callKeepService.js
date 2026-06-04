@@ -107,7 +107,7 @@ class CallKeepService {
 
       const callDetails = this.activeCalls[callUUID];
       if (callDetails) {
-        const { callerId, callerName, conversationId, callType } = callDetails;
+        const { callerId, callerName, conversationId, callType, bookingId } = callDetails;
         console.log(`📞 [CALLKEEP SERVICE] Answering call details:`, callDetails);
 
         // Tell CallKeep native side that we accepted
@@ -120,7 +120,7 @@ class CallKeepService {
         // Navigate to ChatPage with autoAccept parameter
         // ChatPage will pick up this parameter, connect socket, and accept the WebRTC offer
         navigate("ChatPage", {
-          bookingId: undefined,
+          bookingId,
           conversationId,
           fromUserId: callerId,
           callType,
@@ -186,7 +186,7 @@ class CallKeepService {
    * @param {string} conversationId - Chat conversation ID
    * @param {string} callerId - User ID of the caller
    */
-  displayIncomingCall(uuid, callerName, handle, callType, conversationId, callerId) {
+  displayIncomingCall(uuid, callerName, handle, callType, conversationId, callerId, bookingId) {
     if (!this.isInitialized) {
       console.warn("⚠️ [CALLKEEP SERVICE] Display call requested before CallKeep was initialized. Initializing now...");
       this.setup();
@@ -198,6 +198,7 @@ class CallKeepService {
       callerName,
       conversationId,
       callType,
+      bookingId,
     };
 
     console.log(`📞 [CALLKEEP SERVICE] Displaying native call for ${callerName} (UUID: ${uuid})`);

@@ -23,11 +23,13 @@ messaging().setBackgroundMessageHandler(async remoteMessage => {
   console.log("📥 [INDEX FCM BACKGROUND] Received message:", JSON.stringify(remoteMessage));
   
   const { data } = remoteMessage;
-  if (data && data.type === "INCOMING_CALL") {
-    const { uuid, callerId, callerName, conversationId, callType } = data;
+  if (data && (data.type === "INCOMING_CALL" || data.type === "incoming_call")) {
+    const { uuid, callId, callerUserId, callerId, callerName, conversationId, callType, bookingId } = data;
     
-    // CallKeep requires a UUIDv4 string. Generate a deterministic or fallback one if missing.
-    const callUUID = uuid || "550e8400-e29b-41d4-a716-446655440000";
+    // Normalize properties according to the backend data payload template
+    const callUUID = callId || uuid || "550e8400-e29b-41d4-a716-446655440000";
+    const actualCallerId = callerUserId || callerId;
+    const actualBookingId = bookingId === "null" || bookingId === "undefined" ? undefined : bookingId;
     
     console.log(`📥 [INDEX FCM BACKGROUND] Launching native CallKeep UI for caller: ${callerName}`);
     callKeepService.displayIncomingCall(
@@ -36,9 +38,10 @@ messaging().setBackgroundMessageHandler(async remoteMessage => {
       callType === "video" ? "Incoming Video Call" : "Incoming Audio Call",
       callType || "video",
       conversationId,
-      callerId
+      actualCallerId,
+      actualBookingId
     );
-  } else if (data && data.type === "CANCEL_CALL") {
+  } else if (data && (data.type === "CANCEL_CALL" || data.type === "cancel_call")) {
     console.log("📥 [INDEX FCM BACKGROUND] Call canceled. Stopping active call keep ringtone/UI.");
     callKeepService.endAllCalls();
   }
@@ -51,8 +54,11 @@ messaging().onMessage(async remoteMessage => {
   console.log("📥 [INDEX FCM FOREGROUND] Received message:", JSON.stringify(remoteMessage));
   
   const { data } = remoteMessage;
-  if (data && data.type === "INCOMING_CALL") {
-    const { callerId, callerName, conversationId, callType } = data;
+  if (data && (data.type === "INCOMING_CALL" || data.type === "incoming_call")) {
+    const { callerUserId, callerId, callerName, conversationId, callType, bookingId } = data;
+    
+    const actualCallerId = callerUserId || callerId;
+    const actualBookingId = bookingId === "null" || bookingId === "undefined" ? undefined : bookingId;
     
     // Check if user is currently on the ChatPage
     const currentRoute = navigationRef.isReady() ? navigationRef.getCurrentRoute() : null;
@@ -71,15 +77,15 @@ messaging().onMessage(async remoteMessage => {
       // Automatically navigate to ChatPage with isIncoming parameters
       // This displays the user's custom in-app calling modal
       navigate("ChatPage", {
-        bookingId: undefined,
+        bookingId: actualBookingId,
         conversationId,
-        fromUserId: callerId,
+        fromUserId: actualCallerId,
         callType,
         isIncoming: true,
         timestamp: Date.now(),
       });
     }
-  } else if (data && data.type === "CANCEL_CALL") {
+  } else if (data && (data.type === "CANCEL_CALL" || data.type === "cancel_call")) {
     console.log("📥 [INDEX FCM FOREGROUND] Call canceled. Stopping ringtone.");
     stopRingtone();
   }

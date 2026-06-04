@@ -26,6 +26,8 @@ import {
 import { showError } from "../utils/toast";
 import { resetToLogin } from "../navigation/navigationRef";
 import oneSignalService from "../services/onesignalService";
+import { patch } from "../services/api";
+import messaging from "@react-native-firebase/messaging";
 
 const AuthContext = createContext(null);
 
@@ -82,6 +84,59 @@ export const AuthProvider = ({ children }) => {
       subscription.remove();
     };
   }, [isAuthenticated]);
+
+  /**
+   * Fetch and register Firebase Cloud Messaging (FCM) token with backend
+   */
+  const syncFCMToken = useCallback(async () => {
+    try {
+      console.log("🔄 [FCM SYNC] Checking notification permissions...");
+      const authStatus = await messaging().requestPermission();
+      const enabled =
+        authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+        authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+
+      if (!enabled) {
+        console.warn("⚠️ [FCM SYNC] FCM permission not granted.");
+        return;
+      }
+
+      console.log("🔄 [FCM SYNC] Requesting FCM token from Firebase...");
+      const fcmToken = await messaging().getToken();
+      
+      if (fcmToken) {
+        console.log("🔄 [FCM SYNC] Registering FCM token with backend...");
+        await patch("/users/fcm-token", { token: fcmToken });
+        console.log("✅ [FCM SYNC] FCM token successfully registered with backend");
+      } else {
+        console.warn("⚠️ [FCM SYNC] No FCM token returned from Firebase.");
+      }
+    } catch (error) {
+      console.error("❌ [FCM SYNC] Failed to sync FCM token with backend:", error);
+    }
+  }, []);
+
+  /**
+   * Monitor authentication changes to sync and refresh FCM token
+   */
+  useEffect(() => {
+    if (isAuthenticated) {
+      syncFCMToken();
+
+      // Listen for token refreshes while authenticated
+      const unsubscribe = messaging().onTokenRefresh(async (token) => {
+        console.log("🔄 [FCM SYNC] Token refreshed: registering new token with backend...");
+        try {
+          await patch("/users/fcm-token", { token });
+          console.log("✅ [FCM SYNC] Refreshed FCM token registered successfully!");
+        } catch (error) {
+          console.error("❌ [FCM SYNC] Failed to register refreshed FCM token:", error);
+        }
+      });
+
+      return unsubscribe;
+    }
+  }, [isAuthenticated, syncFCMToken]);
 
   /**
    * Check if the app should be locked based on last active time
