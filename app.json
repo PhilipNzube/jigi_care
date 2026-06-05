@@ -47,7 +47,10 @@
             "extraProguardRules": "-keep class org.webrtc.** { *; }\n-keep class com.oney.WebRTCModule.** { *; }"
           }
         }
-      ]
+      ],
+      "./withExcludeWebrtc",
+      "expo-asset",
+      "expo-font"
     ],
     "ios": {
       "supportsTablet": true,
