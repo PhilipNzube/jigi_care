@@ -186,16 +186,41 @@ export default function VideoCallPage({ navigation, route }) {
 
     const initializeCall = async () => {
       try {
-        // If recipient: ringtone already started on ChatPage when incoming UI appeared; don't start again.
-        // If initiator: wait for call:ringing event to play ringback (see onCallRinging).
-        if (!isInitiator) {
-          console.log(`🏁 [VIDEO RACE] ${t()} Recipient: initializeCall done. NOT calling setupWebRTC – waiting for call:connected. peerConnectionRef.current=${!!peerConnectionRef.current}`);
-        }
+        // Set up WebRTC immediately for BOTH initiator AND recipient.
+        // Previously the recipient waited for call:connected, but that event can
+        // fire while still on ChatPage (cold-start / background answer), meaning
+        // VideoCallPage never received it and froze on "Ringing".
+        console.log(`🏁 [VIDEO CALL] ${t()} Initializing call (isInitiator=${isInitiator}). Calling setupWebRTC immediately for both roles.`);
+        await setupWebRTC();
 
-        // If initiator, set up WebRTC immediately
-        // If recipient, wait for call:accepted
-        if (isInitiator) {
-          await setupWebRTC();
+        // For recipient: drain any buffered offer + ICE candidates that arrived
+        // before this screen mounted (e.g. CallerPage already sent the offer
+        // while the recipient was still navigating through ChatPage).
+        if (!isInitiator) {
+          const pending = getAndClearPendingOffer(otherUserId);
+          if (pending?.offer && peerConnectionRef.current) {
+            try {
+              console.log("📥 [VIDEO CALL] Draining buffered offer from chatService after immediate setupWebRTC");
+              await handleOffer({
+                peerConnection: peerConnectionRef.current,
+                offer: pending.offer,
+                otherUserId,
+                isVideo: true,
+              });
+              const iceCandidates = getAndClearPendingIceCandidates(otherUserId);
+              for (const candidate of iceCandidates || []) {
+                await handleIceCandidate({
+                  peerConnection: peerConnectionRef.current,
+                  candidate,
+                });
+              }
+              console.log(`✅ [VIDEO CALL] Buffered offer + ${iceCandidates?.length ?? 0} ICE candidates applied`);
+            } catch (e) {
+              console.error("❌ [VIDEO CALL] Error applying buffered offer:", e);
+            }
+          } else {
+            console.log(`🏁 [VIDEO CALL] ${t()} No buffered offer found – will apply via live webrtc:offer event`);
+          }
         }
       } catch (error) {
         console.error("❌ [VIDEO CALL] Error initializing call:", error);

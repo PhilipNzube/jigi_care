@@ -74,6 +74,9 @@ class CallKeepService {
       const { id: callSessionId, requestId } = event;
       console.log(`📞 [CALLKIT TELECOM SERVICE] Native call answered! Session ID: ${callSessionId}, Request ID: ${requestId}`);
       
+      // Stop the ringtone immediately when call is answered
+      stopRingtone();
+
       try {
         // 1. Confirm that incoming call media is connected (fulfills native OS flow)
         await Calls.fulfillIncomingCallConnected(requestId);
@@ -82,7 +85,7 @@ class CallKeepService {
       }
 
       // 2. Fetch call session details to retrieve metadata (supports terminated cold starts)
-      let bookingId, conversationId, callerId, callType;
+      let bookingId, conversationId, callerId, callType, callerName;
       
       try {
         const session = await Calls.getActiveCallSession();
@@ -94,6 +97,7 @@ class CallKeepService {
           conversationId = metadata.conversationId;
           callerId = metadata.callerUserId;
           callType = metadata.callType;
+          callerName = metadata.callerName;
         }
       } catch (err) {
         console.warn("⚠️ [CALLKIT TELECOM SERVICE] Failed to fetch active session details:", err);
@@ -109,6 +113,7 @@ class CallKeepService {
           conversationId = localCall.conversationId;
           callerId = localCall.callerId;
           callType = localCall.callType;
+          callerName = localCall.callerName;
         }
       }
 
@@ -121,6 +126,7 @@ class CallKeepService {
           bookingId,
           conversationId,
           fromUserId: callerId,
+          callerName,
           callType: callType || "video",
           isIncoming: true,
           autoAccept: true,
@@ -135,6 +141,9 @@ class CallKeepService {
     Calls.addCallEndedListener(async (event) => {
       const { id: callSessionId } = event;
       console.log(`📞 [CALLKIT TELECOM SERVICE] Native call ended! Session ID: ${callSessionId}`);
+
+      // Stop the ringtone immediately
+      stopRingtone();
 
       // Locate details in our local map before clean up
       const localCall = Object.values(this.activeCalls)[0];
@@ -200,6 +209,14 @@ class CallKeepService {
 
     console.log(`📞 [CALLKIT TELECOM SERVICE] Reporting native incoming call for ${callerName} (UUID: ${uuid})`);
     
+    // Start custom audio ringtone playback so it rings when locked/backgrounded
+    try {
+      startRingtone(getRingtoneURI("incoming"));
+      console.log(`✅ [CALLKIT TELECOM SERVICE] Ringtone started successfully`);
+    } catch (e) {
+      console.warn("⚠️ [CALLKIT TELECOM SERVICE] Failed to play custom ringtone:", e);
+    }
+    
     try {
       await Calls.reportIncomingCall({
         eventId: uuid, // unique event identifier for deduplication
@@ -214,6 +231,7 @@ class CallKeepService {
           conversationId,
           callerUserId: callerId,
           callType,
+          callerName, // Persist callerName in metadata
         }
       });
       console.log(`✅ [CALLKIT TELECOM SERVICE] Reported incoming call successfully to native system`);
@@ -227,6 +245,9 @@ class CallKeepService {
    */
   async endAllCalls() {
     console.log("📞 [CALLKIT TELECOM SERVICE] Ending all native calls");
+    
+    // Stop the ringtone
+    stopRingtone();
     
     try {
       const session = await Calls.getActiveCallSession();

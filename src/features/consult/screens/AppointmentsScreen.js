@@ -68,16 +68,25 @@ function AppointmentCardSkeleton() {
   return (
     <ShimmerLoader>
       <View style={styles.card}>
-        <View style={styles.cardTop}>
-          <View style={styles.skeletonLine} />
-          <View style={[styles.skeletonLine, { width: "60%" }]} />
+        {/* Row 1: Date chip + Status badge */}
+        <View style={styles.skeletonTopRow}>
+          <View style={styles.skeletonDate} />
+          <View style={styles.skeletonBadge} />
         </View>
+
+        {/* Row 2: Doctor info – avatar + name / specialty */}
         <View style={styles.doctorInfo}>
           <View style={styles.skeletonAvatar} />
-          <View style={styles.skeletonDetails}>
-            <View style={[styles.skeletonLine, { width: "80%" }]} />
-            <View style={[styles.skeletonLine, { width: "50%" }]} />
+          <View style={styles.skeletonDoctorTextBlock}>
+            <View style={styles.skeletonDoctorName} />
+            <View style={styles.skeletonDoctorSpecialty} />
           </View>
+        </View>
+
+        {/* Row 3: Action buttons */}
+        <View style={styles.skeletonActionRow}>
+          <View style={styles.skeletonButton} />
+          <View style={styles.skeletonButton} />
         </View>
       </View>
     </ShimmerLoader>
@@ -991,21 +1000,63 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins-Medium",
     color: Colors.white,
   },
-  skeletonLine: {
+  // ── Skeleton-specific styles ───────────────────────────────────────────────
+  skeletonTopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: Sizes.sm,
+    paddingHorizontal: Sizes.lg,
+  },
+  skeletonDate: {
     height: 14,
+    width: "55%",
+    borderRadius: 6,
     backgroundColor: Colors.lightGray,
-    borderRadius: 4,
-    marginBottom: Sizes.xs,
-    width: "100%",
+  },
+  skeletonBadge: {
+    height: 22,
+    width: "30%",
+    borderRadius: 12,
+    backgroundColor: Colors.lightGray,
   },
   skeletonAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     backgroundColor: Colors.lightGray,
     marginRight: Sizes.md,
   },
-  skeletonDetails: {
+  skeletonDoctorTextBlock: {
     flex: 1,
+  },
+  skeletonDoctorName: {
+    height: 14,
+    width: "70%",
+    borderRadius: 6,
+    backgroundColor: Colors.lightGray,
+    marginBottom: Sizes.xs,
+  },
+  skeletonDoctorSpecialty: {
+    height: 12,
+    width: "45%",
+    borderRadius: 6,
+    backgroundColor: Colors.lightGray,
+  },
+  skeletonActionRow: {
+    flexDirection: "row",
+    gap: Sizes.md,
+    marginTop: Sizes.sm,
+    paddingTop: Sizes.sm,
+    paddingBottom: Sizes.sm,
+    paddingHorizontal: Sizes.xs,
+    borderTopWidth: 1,
+    borderTopColor: "#EEEEEE",
+  },
+  skeletonButton: {
+    flex: 1,
+    height: 30,
+    borderRadius: 8,
+    backgroundColor: Colors.lightGray,
   },
 });

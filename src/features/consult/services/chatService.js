@@ -408,9 +408,42 @@ export const initiateCall = (toUserId, conversationId, callType) => {
  * @param {string} toUserId - Caller user ID (same as fromUserId from call:incoming)
  */
 export const acceptCall = (toUserId) => {
-  if (!socketInstance || !socketInstance.connected) return;
-  console.log("📞 [CHAT SERVICE] Emitting call:accept – toUserId (caller/fromUserId):", toUserId);
-  socketInstance.emit("call:accept", { toUserId });
+  if (socketInstance && socketInstance.connected) {
+    console.log("📞 [CHAT SERVICE] Emitting call:accept – toUserId (caller/fromUserId):", toUserId);
+    socketInstance.emit("call:accept", { toUserId });
+    return;
+  }
+
+  console.log(`⚠️ [CHAT SERVICE] Socket not connected or ready. Queuing call:accept for user: ${toUserId}...`);
+
+  const tryEmit = () => {
+    if (socketInstance && socketInstance.connected) {
+      console.log(`🔌 [CHAT SERVICE] Socket now active. Emitting queued call:accept – toUserId: ${toUserId}`);
+      socketInstance.emit("call:accept", { toUserId });
+      return true;
+    }
+    return false;
+  };
+
+  // 1. Try to set up a 'connect' listener if the instance exists
+  if (socketInstance) {
+    socketInstance.once("connect", () => {
+      console.log("🔌 [CHAT SERVICE] Socket connected event fired. Sending queued call:accept...");
+      socketInstance.emit("call:accept", { toUserId });
+    });
+  }
+
+  // 2. Also run a periodic check (polling fallback) to handle cases where socketInstance is replaced/connected
+  const interval = setInterval(() => {
+    if (tryEmit()) {
+      clearInterval(interval);
+    }
+  }, 300);
+
+  // Clear interval after 15 seconds to avoid memory leak
+  setTimeout(() => {
+    clearInterval(interval);
+  }, 15000);
 };
 
 /**
