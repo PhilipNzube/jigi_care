@@ -173,8 +173,6 @@ export default function ChatPage({ navigation, route }) {
         conversationId: route.params.conversationId || conversationId,
         callType: route.params.callType || "video",
       };
-<<<<<<< Updated upstream
-=======
 
       if (route.params?.autoAccept) {
         console.log("📞 [CHAT PAGE] Auto-accept parameter is true. Accepting call immediately...");
@@ -203,58 +201,6 @@ export default function ChatPage({ navigation, route }) {
             const doctorName = route.params?.callerName || localDoctor?.name || "Consultant";
             const minimalDoctor = { name: doctorName, consultantId: callData.fromUserId, bookingId: route.params.bookingId || bookingId };
             
-            setIncomingCall(null);
-            
-            if (callData.callType === "video") {
-              navigation.navigate("VideoCall", {
-                doctor: minimalDoctor,
-                conversationId: callData.conversationId,
-                callType: callData.callType,
-                otherUserId: callData.fromUserId,
-                isInitiator: false,
-              });
-            } else {
-              navigation.navigate("VoiceCall", {
-                doctor: minimalDoctor,
-                conversationId: callData.conversationId,
-                callType: callData.callType,
-                otherUserId: callData.fromUserId,
-                isInitiator: false,
-              });
-            }
-          } catch (error) {
-            console.error("❌ [CHAT PAGE] Error during auto-accepting call:", error);
-            setIncomingCall(null);
-          }
-        }, 100);
-      } else {
-        setIncomingCall(callData);
-        startRingtone(getRingtoneURI("incoming"));
->>>>>>> Stashed changes
-
-      if (route.params?.autoAccept) {
-        console.log("📞 [CHAT PAGE] Auto-accept parameter is true. Accepting call immediately...");
-        
-        // Setup incoming call state so handlers can clean up and read it
-        setIncomingCall(callData);
-        
-        // Clear the parameters immediately to prevent double execution on focus change
-        navigation.setParams({ isIncoming: false, fromUserId: undefined, autoAccept: false });
-        
-        // Eagerly execute acceptance sequence
-        setTimeout(async () => {
-          try {
-            // Eagerly start audio/video mode before navigating
-            console.log("🔊 [CHAT PAGE] Starting eager audio mode for auto-accepted:", callData.callType);
-            const initialRoute = await getInitialAudioRoute(callData.callType === "video");
-            await startInCall(callData.callType);
-            await setAudioRoute(initialRoute);
-
-            stopRingtone();
-            console.log("📞 [CHAT PAGE] Auto-answering call – fromUserId (caller):", callData.fromUserId, "conversationId:", callData.conversationId);
-            
-            acceptCall(callData.fromUserId);
-            const minimalDoctor = { name: "Consultant", consultantId: callData.fromUserId, ...localDoctor };
             setIncomingCall(null);
             
             if (callData.callType === "video") {
