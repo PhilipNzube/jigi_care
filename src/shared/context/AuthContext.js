@@ -26,7 +26,7 @@ import {
 import { showError } from "../utils/toast";
 import { resetToLogin } from "../navigation/navigationRef";
 import oneSignalService from "../services/onesignalService";
-import { patch } from "../services/api";
+import { patch, del } from "../services/api";
 import messaging from "@react-native-firebase/messaging";
 
 const AuthContext = createContext(null);
@@ -502,6 +502,15 @@ export const AuthProvider = ({ children }) => {
       console.log("🚪 [SIGN OUT] Clearing all cached tokens and storage...");
       await clearStorage();
 
+      // Wipe FCM token from backend
+      try {
+        console.log("🚪 [SIGN OUT] Deleting FCM token from server...");
+        await del("/users/fcm-token");
+        console.log("✅ [SIGN OUT] FCM token deleted successfully.");
+      } catch (delError) {
+        console.warn("⚠️ [SIGN OUT] Failed to delete FCM token:", delError);
+      }
+
       // Remove from OneSignal
       oneSignalService.removeExternalUserId();
 
@@ -538,6 +547,15 @@ export const AuthProvider = ({ children }) => {
     
     // Clear all storage
     await clearStorage();
+    
+    // Wipe FCM token from backend (used for logout/account deletion)
+    try {
+      console.log("🧹 [AUTH CONTEXT] Deleting FCM token from server during local clear...");
+      await del("/users/fcm-token");
+      console.log("✅ [AUTH CONTEXT] FCM token deleted successfully during local clear.");
+    } catch (delError) {
+      console.warn("⚠️ [AUTH CONTEXT] Failed to delete FCM token during local clear:", delError);
+    }
     
     // Remove from OneSignal
     oneSignalService.removeExternalUserId();
