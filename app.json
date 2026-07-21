@@ -43,12 +43,10 @@
             "compileSdkVersion": 36,
             "targetSdkVersion": 35,
             "buildToolsVersion": "36.0.0",
-            "usesCleartextTraffic": true,
-            "extraProguardRules": "-keep class org.webrtc.** { *; }\n-keep class com.oney.WebRTCModule.** { *; }"
+            "usesCleartextTraffic": true
           }
         }
       ],
-      "./withExcludeWebrtc",
       "expo-asset",
       "expo-font"
     ],

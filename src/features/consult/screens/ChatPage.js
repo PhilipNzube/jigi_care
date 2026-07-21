@@ -46,7 +46,6 @@ import {
   getBookingById,
 } from "../services/bookingService";
 import { startRingtone, stopRingtone, getRingtoneURI } from "../utils/ringtone";
-import { startInCall, setAudioRoute, getInitialAudioRoute } from "../services/webrtcService";
 import { format, parseISO } from "date-fns";
 import { showError, showSuccess } from "../../../shared/utils/toast";
 import ShimmerLoader from "../../../shared/components/ShimmerLoader";
@@ -186,12 +185,6 @@ export default function ChatPage({ navigation, route }) {
         // Eagerly execute acceptance sequence
         setTimeout(async () => {
           try {
-            // Eagerly start audio/video mode before navigating
-            console.log("🔊 [CHAT PAGE] Starting eager audio mode for auto-accepted:", callData.callType);
-            const initialRoute = await getInitialAudioRoute(callData.callType === "video");
-            await startInCall(callData.callType);
-            await setAudioRoute(initialRoute);
-
             stopRingtone();
             console.log("📞 [CHAT PAGE] Auto-answering call – fromUserId (caller):", callData.fromUserId, "conversationId:", callData.conversationId);
             

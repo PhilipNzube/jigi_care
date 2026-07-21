@@ -13,10 +13,6 @@ const SOCKET_URL = `${BASE_URL}/chat`;
 // Store socket instance
 let socketInstance = null;
 
-// Pending WebRTC offer/ICE received before call screen mounted (e.g. while on ChatPage).
-// Keyed by fromUserId (caller). Recipient uses getAndClearPendingOffer(otherUserId) after setupWebRTC.
-const pendingOfferByFromUserId = {};
-const pendingIceCandidatesByFromUserId = {};
 
 /**
  * Initialize WebSocket connection
@@ -186,33 +182,6 @@ export const connectSocket = (userId, userType, callbacks = {}) => {
     console.log("📞 [CHAT SERVICE] Call ended:", data);
     if (callbacks.onCallEnded) callbacks.onCallEnded(data);
   });
-  // WebRTC signaling: server forwards by fromUserId. We only apply signals from our peer.
-  // fromUserId = the other participant who sent the offer/answer/ICE (we validate data.fromUserId === otherUserId).
-  socketInstance.on("webrtc:offer", (data) => {
-    console.log(`🏁 [CHAT SERVICE RACE] [t=${Date.now()}] webrtc:offer received. Payload:`, JSON.stringify(data));
-    const from = data?.fromUserId || data?.otherUserId; // Try fallbacks
-    if (from) {
-      pendingOfferByFromUserId[from] = { offer: data.offer, fromUserId: from };
-      console.log(`✅ [CHAT SERVICE] Stored pending offer for fromUserId: ${from}`);
-    } else {
-      console.warn("⚠️ [CHAT SERVICE] Received webrtc:offer but no fromUserId found in payload!");
-    }
-    if (callbacks.onWebRTCOffer) callbacks.onWebRTCOffer(data);
-  });
-  socketInstance.on("webrtc:answer", (data) => {
-    console.log(`🏁 [CHAT SERVICE RACE] [t=${Date.now()}] webrtc:answer received fromUserId=${data?.fromUserId || 'unknown'}`);
-    if (callbacks.onWebRTCAnswer) callbacks.onWebRTCAnswer(data);
-  });
-  socketInstance.on("webrtc:ice-candidate", (data) => {
-    console.log(`🏁 [CHAT SERVICE RACE] [t=${Date.now()}] webrtc:ice-candidate received. Payload:`, JSON.stringify(data));
-    const from = data?.fromUserId || data?.otherUserId;
-    if (from && data.candidate != null) {
-      if (!pendingIceCandidatesByFromUserId[from]) pendingIceCandidatesByFromUserId[from] = [];
-      pendingIceCandidatesByFromUserId[from].push(data.candidate);
-      console.log(`✅ [CHAT SERVICE] Stored pending ICE candidate for fromUserId: ${from}. Total: ${pendingIceCandidatesByFromUserId[from].length}`);
-    }
-    if (callbacks.onWebRTCIceCandidate) callbacks.onWebRTCIceCandidate(data);
-  });
 
   return socketInstance;
 };
@@ -234,29 +203,6 @@ export const disconnectSocket = () => {
  */
 export const getSocket = () => {
   return socketInstance;
-};
-
-/**
- * Get and clear pending WebRTC offer for a caller (fromUserId).
- * Used when the offer arrived before the call screen mounted (e.g. while on ChatPage).
- * @param {string} fromUserId - Caller user ID (otherUserId on recipient)
- * @returns {{ offer: object, fromUserId: string }|null}
- */
-export const getAndClearPendingOffer = (fromUserId) => {
-  const pending = pendingOfferByFromUserId[fromUserId] || null;
-  delete pendingOfferByFromUserId[fromUserId];
-  return pending;
-};
-
-/**
- * Get and clear pending ICE candidates for a caller (fromUserId).
- * @param {string} fromUserId - Caller user ID (otherUserId on recipient)
- * @returns {object[]}
- */
-export const getAndClearPendingIceCandidates = (fromUserId) => {
-  const list = pendingIceCandidatesByFromUserId[fromUserId] || [];
-  delete pendingIceCandidatesByFromUserId[fromUserId];
-  return list;
 };
 
 /**
@@ -463,36 +409,6 @@ export const rejectCall = (toUserId, reason = "Declined") => {
 export const endCall = (toUserId) => {
   if (!socketInstance || !socketInstance.connected) return;
   socketInstance.emit("call:end", { toUserId });
-};
-
-/**
- * Send WebRTC offer
- * @param {string} toUserId - Other user ID
- * @param {RTCSessionDescriptionInit} offer - SDP offer
- */
-export const sendWebRTCOffer = (toUserId, offer) => {
-  if (!socketInstance || !socketInstance.connected) return;
-  socketInstance.emit("webrtc:offer", { toUserId, offer });
-};
-
-/**
- * Send WebRTC answer
- * @param {string} toUserId - Other user ID
- * @param {RTCSessionDescriptionInit} answer - SDP answer
- */
-export const sendWebRTCAnswer = (toUserId, answer) => {
-  if (!socketInstance || !socketInstance.connected) return;
-  socketInstance.emit("webrtc:answer", { toUserId, answer });
-};
-
-/**
- * Send WebRTC ICE candidate
- * @param {string} toUserId - Other user ID
- * @param {RTCIceCandidateInit} candidate - ICE candidate
- */
-export const sendWebRTCIceCandidate = (toUserId, candidate) => {
-  if (!socketInstance || !socketInstance.connected) return;
-  socketInstance.emit("webrtc:ice-candidate", { toUserId, candidate });
 };
 
 // ==================== REST API ENDPOINTS ====================

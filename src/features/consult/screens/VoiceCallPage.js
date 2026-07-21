@@ -5,42 +5,14 @@ import {
   StyleSheet,
   TouchableOpacity,
   SafeAreaView,
-  Platform,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, Sizes } from "../../../shared/constants";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import EndCallModal from "../components/EndCallModal";
-import {
-  getSocket,
-  endCall,
-  sendWebRTCOffer,
-  sendWebRTCAnswer,
-  sendWebRTCIceCandidate,
-  getAndClearPendingOffer,
-  getAndClearPendingIceCandidates,
-} from "../services/chatService";
-import {
-  setupWebRTCConnection,
-  handleOffer,
-  handleAnswer,
-  handleIceCandidate,
-  cleanupWebRTC,
-  toggleAudioTrack,
-  setAudioRoute,
-  startInCall,
-  stopInCall,
-  checkBluetoothAvailable,
-  getInitialAudioRoute,
-} from "../services/webrtcService";
+import { getSocket, endCall } from "../services/chatService";
+import agoraService from "../services/agoraService";
 import { showError } from "../../../shared/utils/toast";
-import {
-  logStreamInfo,
-  monitorStreamTracks,
-  logPeerConnectionStats,
-  monitorPeerConnection,
-  checkStreamingStatus,
-} from "../utils/webrtcDebug";
 import { startRingtone, stopRingtone, getRingtoneURI } from "../utils/ringtone";
 
 export default function VoiceCallPage({ navigation, route }) {
@@ -52,288 +24,69 @@ export default function VoiceCallPage({ navigation, route }) {
     callType,
     isInitiator = true,
   } = route.params || {};
+
   const [showEndModal, setShowEndModal] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [audioDevice, setAudioDevice] = useState("earpiece");
   const [showAudioMenu, setShowAudioMenu] = useState(false);
-  const [isBluetoothPresent, setIsBluetoothPresent] = useState(false);
   const [callStatus, setCallStatus] = useState("ringing");
   const [callDuration, setCallDuration] = useState(0);
-  const [localStream, setLocalStream] = useState(null);
-  const [remoteStream, setRemoteStream] = useState(null);
+  const [remoteUid, setRemoteUid] = useState(null);
 
-  const peerConnectionRef = useRef(null);
-  const localStreamRef = useRef(null);
   const callTimerRef = useRef(null);
-  const webrtcSetupRef = useRef(false);
   const hasEndedCallRef = useRef(false);
+  const agoraJoinedRef = useRef(false);
 
-  // Setup socket listeners and WebRTC
   useEffect(() => {
     const socket = getSocket();
-    if (!socket || !otherUserId) return;
+    if (!socket || !otherUserId || !conversationId) return;
 
-    const setupWebRTC = async () => {
-      if (webrtcSetupRef.current) {
-        console.log("⚠️ [VOICE CALL] WebRTC setup already in progress or completed");
-        return;
-      }
-      webrtcSetupRef.current = true;
-
+    const setupAgoraAndJoin = async () => {
       try {
-        console.log("🔧 [VOICE CALL] Starting WebRTC setup...", {
-          isInitiator,
-          otherUserId,
-        });
-        
-        const { peerConnection, localStream: stream } =
-          await setupWebRTCConnection({
-            otherUserId,
-            isInitiator,
-            isVideo: false,
-            onLocalStream: (stream) => {
-              console.log("✅ [VOICE CALL] Local stream received:", {
-                streamId: stream?.id,
-                audioTracks: stream?.getAudioTracks()?.length || 0,
-                videoTracks: stream?.getVideoTracks()?.length || 0,
-              });
-              setLocalStream(stream);
-              localStreamRef.current = stream;
-              // Debug: Log local stream info
-              logStreamInfo(stream, "Local");
-              monitorStreamTracks(stream, "Local");
-            },
-            onRemoteStream: (stream) => {
-              console.log("✅ [VOICE CALL] Remote stream received:", {
-                streamId: stream?.id,
-                audioTracks: stream?.getAudioTracks()?.length || 0,
-                videoTracks: stream?.getVideoTracks()?.length || 0,
-              });
-              setRemoteStream(stream);
-              console.log("✅ [VOICE CALL] Setting status to 'connected' - remote stream arrived");
-              setCallStatus("connected");
-              stopRingingSound();
-              // Debug: Log remote stream info
-              logStreamInfo(stream, "Remote");
-              monitorStreamTracks(stream, "Remote");
-              // Log peer connection stats when remote stream arrives
-              setTimeout(async () => {
-                if (peerConnectionRef.current) {
-                  await logPeerConnectionStats(peerConnectionRef.current, "VoiceCall");
-                }
-              }, 2000);
-            },
-            onConnectionStateChange: (state) => {
-              console.log("🔄 [VOICE CALL] Connection state changed:", state);
-              if (state === "connected") {
-                console.log("✅ [VOICE CALL] Peer connection connected - updating status");
-                setCallStatus("connected");
-                stopRingingSound();
-              } else if (state === "connecting") {
-                console.log("🔄 [VOICE CALL] Peer connection connecting...");
-                setCallStatus("connecting");
-              } else if (state === "disconnected" || state === "failed") {
-                console.log("❌ [VOICE CALL] Peer connection failed/disconnected");
-                handleEndCall();
-              }
-            },
-          });
+        console.log("🎤 [VOICE CALL] Initializing Agora Engine & Joining channel...");
+        await agoraService.initEngine(
+          (uid) => {
+            console.log("🎤 [VOICE CALL] Remote user joined Agora:", uid);
+            setRemoteUid(uid);
+            setCallStatus("connected");
+            stopRingingSound();
+          },
+          (uid) => {
+            console.log("🎤 [VOICE CALL] Remote user offline Agora:", uid);
+            setRemoteUid(null);
+          }
+        );
 
-        console.log("✅ [VOICE CALL] WebRTC setup completed:", {
-          hasPeerConnection: !!peerConnection,
-          hasLocalStream: !!stream,
-          peerConnectionState: peerConnection?.connectionState,
-          iceConnectionState: peerConnection?.iceConnectionState,
-        });
-        
-        peerConnectionRef.current = peerConnection;
-        
-        // Debug: Monitor peer connection
-        monitorPeerConnection(peerConnection, "VoiceCall");
-        
-        // Debug: Log peer connection stats after a delay
-        setTimeout(async () => {
-          await logPeerConnectionStats(peerConnection, "VoiceCall");
-        }, 3000);
-        
-        // Debug: Monitor peer connection
-        monitorPeerConnection(peerConnection, "VoiceCall");
-        
-        // Debug: Log peer connection stats after a delay
-        setTimeout(async () => {
-          await logPeerConnectionStats(peerConnection, "VoiceCall");
-        }, 3000);
-      } catch (error) {
-        console.error("❌ [VOICE CALL] Error setting up WebRTC:", error);
-        webrtcSetupRef.current = false;
-        const errorMessage = error?.message || "Failed to start call";
-        if (
-          errorMessage.includes("permission") ||
-          errorMessage.includes("Permission")
-        ) {
-          showError(
-            "Microphone permission is required for voice calls. Please grant permission in settings.",
-            "Permission Required",
-          );
-        } else {
-          showError(errorMessage, "Call Error");
+        if (!agoraJoinedRef.current) {
+          agoraJoinedRef.current = true;
+          await agoraService.joinChannel(conversationId, false);
         }
+      } catch (error) {
+        console.error("❌ [VOICE CALL] Error setting up Agora:", error);
+        agoraJoinedRef.current = false;
+        showError(error?.message || "Failed to join audio call", "Call Error");
         setTimeout(() => {
           navigation.goBack();
         }, 2000);
       }
     };
 
-    const t = () => `[t=${Date.now()}]`;
-
-    const initializeCall = async () => {
-      try {
-        // Set up WebRTC immediately for BOTH initiator AND recipient.
-        // Previously the recipient did nothing here and waited for call:connected,
-        // but that event fires while still on ChatPage for cold-start / background
-        // answers, so VoiceCallPage never received it and froze on "Ringing".
-        console.log(`🏁 [VOICE CALL] ${t()} Initializing call (isInitiator=${isInitiator}). Calling setupWebRTC immediately for both roles.`);
-        await setupWebRTC();
-
-        // For recipient: drain any buffered offer + ICE candidates that arrived
-        // before this screen mounted.
-        if (!isInitiator) {
-          const pending = getAndClearPendingOffer(otherUserId);
-          if (pending?.offer && peerConnectionRef.current) {
-            try {
-              console.log("📥 [VOICE CALL] Draining buffered offer from chatService after immediate setupWebRTC");
-              await handleOffer({
-                peerConnection: peerConnectionRef.current,
-                offer: pending.offer,
-                otherUserId,
-                isVideo: false,
-              });
-              const iceCandidates = getAndClearPendingIceCandidates(otherUserId);
-              for (const candidate of iceCandidates || []) {
-                await handleIceCandidate({
-                  peerConnection: peerConnectionRef.current,
-                  candidate,
-                });
-              }
-              console.log(`✅ [VOICE CALL] Buffered offer + ${iceCandidates?.length ?? 0} ICE candidates applied`);
-            } catch (e) {
-              console.error("❌ [VOICE CALL] Error applying buffered offer:", e);
-            }
-          } else {
-            console.log(`🏁 [VOICE CALL] ${t()} No buffered offer found – will apply via live webrtc:offer event`);
-          }
-        }
-      } catch (error) {
-        console.error("❌ [VOICE CALL] Error initializing call:", error);
-        navigation.goBack();
+    const onCallRinging = () => {
+      if (isInitiator) {
+        playRingingSound();
       }
     };
 
-    // WebRTC signaling handlers
-    const onWebRTCOffer = async (data) => {
-      const hasPc = !!peerConnectionRef.current;
-      const fromMatch = data.fromUserId === otherUserId;
-      console.log(`🏁 [VOICE RACE] ${t()} webrtc:offer received. fromUserId=${data?.fromUserId} otherUserId=${otherUserId} fromMatch=${fromMatch} hasPeerConnection=${hasPc}`);
-      if (data.fromUserId === otherUserId && peerConnectionRef.current) {
-        try {
-          console.log(`🏁 [VOICE RACE] ${t()} Handling offer (peer connection ready)`);
-          await handleOffer({
-            peerConnection: peerConnectionRef.current,
-            offer: data.offer,
-            otherUserId,
-            isVideo: false,
-          });
-        } catch (error) {
-          console.error("❌ [VOICE CALL] Error handling offer:", error);
-        }
-      } else if (!hasPc) {
-        console.warn(`🏁 [VOICE RACE] ${t()} RACE? Skipping offer – peerConnectionRef is null (call:connected/setupWebRTC not done yet)`);
-      }
-    };
-
-    const onWebRTCAnswer = async (data) => {
-      const hasPc = !!peerConnectionRef.current;
-      console.log(`🏁 [VOICE RACE] ${t()} webrtc:answer received. hasPeerConnection=${hasPc}`);
-      if (data.fromUserId === otherUserId && peerConnectionRef.current) {
-        try {
-          console.log("📥 [VOICE CALL] WebRTC answer received");
-          await handleAnswer({
-            peerConnection: peerConnectionRef.current,
-            answer: data.answer,
-          });
-          console.log("✅ [VOICE CALL] Answer processed, waiting for connection...");
-        } catch (error) {
-          console.error("❌ [VOICE CALL] Error handling answer:", error);
-        }
-      } else if (!hasPc) {
-        console.warn(`🏁 [VOICE RACE] ${t()} RACE? Skipping answer – peerConnectionRef is null`);
-      }
-    };
-
-    const onWebRTCIceCandidate = async (data) => {
-      const hasPc = !!peerConnectionRef.current;
-      if (!hasPc && data.fromUserId === otherUserId) {
-        console.warn(`🏁 [VOICE RACE] ${t()} webrtc:ice-candidate received but peerConnectionRef is null (skipping)`);
-      }
-      if (data.fromUserId === otherUserId && peerConnectionRef.current) {
-        try {
-          await handleIceCandidate({
-            peerConnection: peerConnectionRef.current,
-            candidate: data.candidate,
-          });
-        } catch (error) {
-          console.error("❌ [VOICE CALL] Error handling ICE candidate:", error);
-        }
-      }
-    };
-
-    // Call event handlers
-    const onCallAccepted = async () => {
-      console.log("✅ [VOICE CALL] Call accepted - setting status to connecting");
-      setCallStatus("connecting");
-      stopRingingSound();
-      // If recipient, set up WebRTC now that call is accepted
-      if (!isInitiator && !webrtcSetupRef.current) {
-        await setupWebRTC();
-      }
-      // If initiator, the status will change to "connected" when:
-      // 1. Remote stream arrives (onRemoteStream callback)
-      // 2. Peer connection state changes to "connected" (onConnectionStateChange)
-    };
-
-    const onCallConnected = async () => {
-      console.log(`🏁 [VOICE RACE] ${t()} call:connected received (recipient). Will call setupWebRTC now. peerConnectionRef.current before=${!!peerConnectionRef.current}`);
-      console.log("✅ [VOICE CALL] Call connected (you answered) – fromUserId (caller) = otherUserId:", otherUserId);
+    const onCallAccepted = () => {
+      console.log("✅ [VOICE CALL] Call accepted");
       setCallStatus("connected");
       stopRingingSound();
-      // Recipient gets call:connected (not call:accepted) — set up WebRTC here so mic works
-      if (!isInitiator && !webrtcSetupRef.current) {
-        console.log(`🏁 [VOICE RACE] ${t()} setupWebRTC starting (async)...`);
-        await setupWebRTC();
-        console.log(`🏁 [VOICE RACE] ${t()} setupWebRTC finished. peerConnectionRef.current now=${!!peerConnectionRef.current}`);
-        // Apply offer that may have arrived before this screen mounted (e.g. while on ChatPage)
-        const pending = getAndClearPendingOffer(otherUserId);
-        if (pending?.offer && peerConnectionRef.current) {
-          try {
-            console.log("📥 [VOICE CALL] Applying pending offer (received before call screen mounted)");
-            await handleOffer({
-              peerConnection: peerConnectionRef.current,
-              offer: pending.offer,
-              otherUserId,
-              isVideo: false,
-            });
-            const iceCandidates = getAndClearPendingIceCandidates(otherUserId);
-            for (const candidate of iceCandidates || []) {
-              await handleIceCandidate({
-                peerConnection: peerConnectionRef.current,
-                candidate,
-              });
-            }
-          } catch (e) {
-            console.error("❌ [VOICE CALL] Error applying pending offer:", e);
-          }
-        }
-      }
+    };
+
+    const onCallConnected = () => {
+      console.log("✅ [VOICE CALL] Call connected");
+      setCallStatus("connected");
+      stopRingingSound();
     };
 
     const onCallRejected = () => {
@@ -351,15 +104,7 @@ export default function VoiceCallPage({ navigation, route }) {
       handleEndCall();
     };
 
-    const onCallRinging = () => {
-      // Caller receives this - start ringback tone
-      if (isInitiator) {
-        playRingingSound();
-      }
-    };
-
     const onCallStopRinging = () => {
-      // Caller receives this when recipient answers - stop ringback
       if (isInitiator) {
         stopRingingSound();
       }
@@ -373,12 +118,12 @@ export default function VoiceCallPage({ navigation, route }) {
     socket.on("call:no-answer", onCallNoAnswer);
     socket.on("call:ended", onCallEnded);
     socket.on("call:stop-ringing", onCallStopRinging);
-    socket.on("webrtc:offer", onWebRTCOffer);
-    socket.on("webrtc:answer", onWebRTCAnswer);
-    socket.on("webrtc:ice-candidate", onWebRTCIceCandidate);
 
-    // Initialize call
-    initializeCall();
+    if (isInitiator) {
+      playRingingSound();
+    }
+
+    setupAgoraAndJoin();
 
     return () => {
       socket.off("call:ringing", onCallRinging);
@@ -388,31 +133,10 @@ export default function VoiceCallPage({ navigation, route }) {
       socket.off("call:no-answer", onCallNoAnswer);
       socket.off("call:ended", onCallEnded);
       socket.off("call:stop-ringing", onCallStopRinging);
-      socket.off("webrtc:offer", onWebRTCOffer);
-      socket.off("webrtc:answer", onWebRTCAnswer);
-      socket.off("webrtc:ice-candidate", onWebRTCIceCandidate);
       stopRingingSound();
-      stopInCall();
-      cleanupWebRTC(peerConnectionRef.current, localStreamRef.current);
+      agoraService.cleanup();
     };
-  }, [otherUserId, navigation]);
-
-  // Sync initial audio routing icons with hardware state
-  useEffect(() => {
-    const initAudio = async () => {
-      const initialRoute = await getInitialAudioRoute(false);
-      setAudioDevice(initialRoute);
-      setIsBluetoothPresent(checkBluetoothAvailable());
-    };
-    initAudio();
-  }, []);
-
-  // Monitor bluetooth presence changes
-  useEffect(() => {
-    if (callStatus === "connected") {
-      setIsBluetoothPresent(checkBluetoothAvailable());
-    }
-  }, [callStatus]);
+  }, [otherUserId, conversationId, navigation]);
 
   // Call duration timer
   useEffect(() => {
@@ -433,43 +157,6 @@ export default function VoiceCallPage({ navigation, route }) {
     };
   }, [callStatus]);
 
-  // Monitor stream status for debugging
-  useEffect(() => {
-    if (callStatus === "connected") {
-      const statusInterval = setInterval(() => {
-        const peerConnection = peerConnectionRef.current;
-        const localStatus = checkStreamingStatus(localStream);
-        const remoteStatus = checkStreamingStatus(remoteStream);
-        
-        // Log to console for debugging
-        console.log("📊 [VOICE CALL] Stream Status:", {
-          local: localStatus,
-          remote: remoteStatus,
-          peerConnectionState: peerConnection?.connectionState || "not initialized",
-          iceConnectionState: peerConnection?.iceConnectionState || "not initialized",
-          signalingState: peerConnection?.signalingState || "not initialized",
-          iceGatheringState: peerConnection?.iceGatheringState || "not initialized",
-          hasPeerConnection: !!peerConnection,
-          hasLocalStream: !!localStream,
-          hasRemoteStream: !!remoteStream,
-        });
-        
-        // Warn if critical components are missing
-        if (!peerConnection) {
-          console.warn("⚠️ [VOICE CALL] Peer connection not initialized!");
-        }
-        if (!localStream) {
-          console.warn("⚠️ [VOICE CALL] Local stream not available!");
-        }
-        if (localStream && localStatus.audioTracks === 0) {
-          console.warn("⚠️ [VOICE CALL] Local stream has no audio tracks!");
-        }
-      }, 3000);
-
-      return () => clearInterval(statusInterval);
-    }
-  }, [callStatus, localStream, remoteStream]);
-
   const playRingingSound = () => {
     const type = isInitiator ? "outgoing" : "incoming";
     startRingtone(getRingtoneURI(type));
@@ -483,11 +170,10 @@ export default function VoiceCallPage({ navigation, route }) {
     if (hasEndedCallRef.current) return;
     hasEndedCallRef.current = true;
     stopRingingSound();
-    stopInCall();
     if (otherUserId) {
       endCall(otherUserId);
     }
-    cleanupWebRTC(peerConnectionRef.current, localStreamRef.current);
+    agoraService.cleanup();
     setCallDuration(0);
     navigation.goBack();
   };
@@ -508,15 +194,14 @@ export default function VoiceCallPage({ navigation, route }) {
   const toggleMute = () => {
     const newMuted = !isMuted;
     setIsMuted(newMuted);
-    if (localStreamRef.current) {
-      toggleAudioTrack(localStreamRef.current, !newMuted);
-    }
+    agoraService.toggleAudio(!newMuted);
   };
 
-  const handleAudioRoute = async (route) => {
+  const handleAudioRoute = (route) => {
     setAudioDevice(route);
     setShowAudioMenu(false);
-    await setAudioRoute(route);
+    const isSpeaker = route === "speaker";
+    agoraService.toggleSpeaker(isSpeaker);
   };
 
   const toggleAudioMenu = () => {
@@ -580,31 +265,49 @@ export default function VoiceCallPage({ navigation, route }) {
         <View>
           {showAudioMenu && (
             <View style={styles.audioPopup}>
-              <TouchableOpacity 
-                style={[styles.audioOption, audioDevice === 'earpiece' && styles.audioOptionActive]} 
-                onPress={() => handleAudioRoute('earpiece')}
+              <TouchableOpacity
+                style={[
+                  styles.audioOption,
+                  audioDevice === "earpiece" && styles.audioOptionActive,
+                ]}
+                onPress={() => handleAudioRoute("earpiece")}
               >
-                <Ionicons name="phone-portrait-outline" size={20} color={audioDevice === 'earpiece' ? Colors.white : Colors.black} />
-                <Text style={[styles.audioOptionText, audioDevice === 'earpiece' && styles.audioOptionTextActive]}>Earpiece</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={[styles.audioOption, audioDevice === 'speaker' && styles.audioOptionActive]} 
-                onPress={() => handleAudioRoute('speaker')}
-              >
-                <Ionicons name="volume-high" size={20} color={audioDevice === 'speaker' ? Colors.white : Colors.black} />
-                <Text style={[styles.audioOptionText, audioDevice === 'speaker' && styles.audioOptionTextActive]}>Speaker</Text>
-              </TouchableOpacity>
-              
-              {isBluetoothPresent && (
-                <TouchableOpacity 
-                  style={[styles.audioOption, audioDevice === 'bluetooth' && styles.audioOptionActive]} 
-                  onPress={() => handleAudioRoute('bluetooth')}
+                <Ionicons
+                  name="phone-portrait-outline"
+                  size={20}
+                  color={audioDevice === "earpiece" ? Colors.white : Colors.black}
+                />
+                <Text
+                  style={[
+                    styles.audioOptionText,
+                    audioDevice === "earpiece" && styles.audioOptionTextActive,
+                  ]}
                 >
-                  <Ionicons name="bluetooth" size={20} color={audioDevice === 'bluetooth' ? Colors.white : Colors.black} />
-                  <Text style={[styles.audioOptionText, audioDevice === 'bluetooth' && styles.audioOptionTextActive]}>Bluetooth</Text>
-                </TouchableOpacity>
-              )}
+                  Earpiece
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.audioOption,
+                  audioDevice === "speaker" && styles.audioOptionActive,
+                ]}
+                onPress={() => handleAudioRoute("speaker")}
+              >
+                <Ionicons
+                  name="volume-high"
+                  size={20}
+                  color={audioDevice === "speaker" ? Colors.white : Colors.black}
+                />
+                <Text
+                  style={[
+                    styles.audioOptionText,
+                    audioDevice === "speaker" && styles.audioOptionTextActive,
+                  ]}
+                >
+                  Speaker
+                </Text>
+              </TouchableOpacity>
             </View>
           )}
           <TouchableOpacity style={styles.controlButton} onPress={toggleAudioMenu}>
@@ -612,9 +315,7 @@ export default function VoiceCallPage({ navigation, route }) {
               name={
                 audioDevice === "speaker"
                   ? "volume-high"
-                  : audioDevice === "bluetooth"
-                    ? "bluetooth"
-                    : "phone-portrait-outline"
+                  : "phone-portrait-outline"
               }
               size={24}
               color={Colors.black}
@@ -687,8 +388,8 @@ const styles = StyleSheet.create({
     paddingVertical: Sizes.xs,
     borderRadius: 20,
   },
-  completeModalBtnSubmitText: {
-    fontSize: 14,
+  statusText: {
+    fontSize: 12,
     fontFamily: "Poppins-Medium",
     color: Colors.white,
   },

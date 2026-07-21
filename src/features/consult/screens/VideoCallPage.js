@@ -4,36 +4,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, Sizes } from "../../../shared/constants";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import EndCallModal from "../components/EndCallModal";
-import {
-  getSocket,
-  endCall,
-  getAndClearPendingOffer,
-  getAndClearPendingIceCandidates,
-} from "../services/chatService";
-import {
-  setupWebRTCConnection,
-  handleOffer,
-  handleAnswer,
-  handleIceCandidate,
-  cleanupWebRTC,
-  toggleAudioTrack,
-  toggleVideoTrack,
-  setAudioRoute,
-  startInCall,
-  stopInCall,
-  checkBluetoothAvailable,
-  getInitialAudioRoute,
-} from "../services/webrtcService";
-import { RTCView } from "react-native-webrtc";
+import { getSocket, endCall } from "../services/chatService";
+import agoraService from "../services/agoraService";
+import { RtcSurfaceView } from "react-native-agora";
 import { showError } from "../../../shared/utils/toast";
-import {
-  logStreamInfo,
-  monitorStreamTracks,
-  logPeerConnectionStats,
-  monitorPeerConnection,
-  checkStreamingStatus,
-  startStatsMonitoring,
-} from "../utils/webrtcDebug";
 import { startRingtone, stopRingtone, getRingtoneURI } from "../utils/ringtone";
 
 export default function VideoCallPage({ navigation, route }) {
@@ -45,286 +19,70 @@ export default function VideoCallPage({ navigation, route }) {
     callType,
     isInitiator = true,
   } = route.params || {};
+
   const [showEndModal, setShowEndModal] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [audioDevice, setAudioDevice] = useState("speaker");
   const [showAudioMenu, setShowAudioMenu] = useState(false);
-  const [isBluetoothPresent, setIsBluetoothPresent] = useState(false);
   const [isVideoOn, setIsVideoOn] = useState(true);
   const [callStatus, setCallStatus] = useState("ringing");
   const [callDuration, setCallDuration] = useState(0);
-  const [localStream, setLocalStream] = useState(null);
-  const [remoteStream, setRemoteStream] = useState(null);
-  const [remoteVideoRefreshKey, setRemoteVideoRefreshKey] = useState(0);
-  const [streamStatus, setStreamStatus] = useState({
-    localAudio: false,
-    localVideo: false,
-    remoteAudio: false,
-    remoteVideo: false,
-  });
+  const [remoteUid, setRemoteUid] = useState(null);
 
-  const peerConnectionRef = useRef(null);
-  const localStreamRef = useRef(null);
   const callTimerRef = useRef(null);
-  const webrtcSetupRef = useRef(false);
   const hasEndedCallRef = useRef(false);
+  const agoraJoinedRef = useRef(false);
 
   useEffect(() => {
     const socket = getSocket();
-    if (!socket || !otherUserId) return;
+    if (!socket || !otherUserId || !conversationId) return;
 
-    const setupWebRTC = async () => {
-      if (webrtcSetupRef.current) return;
-      webrtcSetupRef.current = true;
-
+    const setupAgoraAndJoin = async () => {
       try {
-        const { peerConnection, localStream: stream } =
-          await setupWebRTCConnection({
-            otherUserId,
-            isInitiator,
-            isVideo: true,
-            onLocalStream: (stream) => {
-              setLocalStream(stream);
-              localStreamRef.current = stream;
-              // Debug: Log local stream info
-              logStreamInfo(stream, "Local");
-              monitorStreamTracks(stream, "Local");
-            },
-            onRemoteStream: (stream) => {
-              setRemoteStream(stream);
-              setRemoteVideoRefreshKey((prev) => prev + 1);
-              setCallStatus("connected");
-              stopRingingSound();
-              // Start in-call mode for video
-              startInCall("video");
-              
-              // Debug: Log remote stream info
-              logStreamInfo(stream, "Remote");
-              monitorStreamTracks(stream, "Remote");
-              // Log peer connection stats when remote stream arrives
-              setTimeout(async () => {
-                if (peerConnectionRef.current) {
-                  await logPeerConnectionStats(
-                    peerConnectionRef.current,
-                    "VideoCall",
-                  );
-                }
-              }, 2000);
-            },
-            onConnectionStateChange: (state) => {
-              if (state === "connected") {
-                setCallStatus("connected");
-                stopRingingSound();
-                startInCall("video");
-              } else if (state === "disconnected" || state === "failed") {
-                stopInCall();
-                handleEndCall();
-              }
-            },
-          });
-
-        peerConnectionRef.current = peerConnection;
-
-        // Debug: Monitor peer connection
-        monitorPeerConnection(peerConnection, "VideoCall");
-
-        // Debug: Log peer connection stats after a delay
-        setTimeout(async () => {
-          await logPeerConnectionStats(peerConnection, "VideoCall");
-        }, 3000);
-
-        // Debug: Monitor peer connection
-        monitorPeerConnection(peerConnection, "VideoCall");
-
-        // Debug: Start periodic stats monitoring (every 5 seconds)
-        // Uncomment to enable:
-        // const statsCleanup = startStatsMonitoring(
-        //   peerConnection,
-        //   localStreamRef.current,
-        //   null,
-        //   5000
-        // );
-      } catch (error) {
-        console.error("❌ [VIDEO CALL] Error setting up WebRTC:", error);
-        webrtcSetupRef.current = false;
-        const errorMessage = error?.message || "Failed to start call";
-        if (
-          errorMessage.includes("permission") ||
-          errorMessage.includes("Permission")
-        ) {
-          const isVideo =
-            errorMessage.includes("Camera") || errorMessage.includes("camera");
-          const isAudio =
-            errorMessage.includes("Audio") ||
-            errorMessage.includes("microphone");
-          if (isVideo && isAudio) {
-            showError(
-              "Camera and microphone permissions are required for video calls. Please grant permissions in settings.",
-              "Permissions Required",
-            );
-          } else if (isVideo) {
-            showError(
-              "Camera permission is required for video calls. Please grant permission in settings.",
-              "Permission Required",
-            );
-          } else {
-            showError(
-              "Microphone permission is required for video calls. Please grant permission in settings.",
-              "Permission Required",
-            );
+        console.log("📹 [VIDEO CALL] Initializing Agora Engine & Joining channel...");
+        await agoraService.initEngine(
+          (uid) => {
+            console.log("📹 [VIDEO CALL] Remote user joined Agora:", uid);
+            setRemoteUid(uid);
+            setCallStatus("connected");
+            stopRingingSound();
+          },
+          (uid) => {
+            console.log("📹 [VIDEO CALL] Remote user offline Agora:", uid);
+            setRemoteUid(null);
           }
-        } else {
-          showError(errorMessage, "Call Error");
+        );
+
+        if (!agoraJoinedRef.current) {
+          agoraJoinedRef.current = true;
+          await agoraService.joinChannel(conversationId, true);
         }
+      } catch (error) {
+        console.error("❌ [VIDEO CALL] Error setting up Agora:", error);
+        agoraJoinedRef.current = false;
+        showError(error?.message || "Failed to join video call", "Call Error");
         setTimeout(() => {
           navigation.goBack();
         }, 2000);
       }
     };
 
-    const t = () => `[t=${Date.now()}]`;
-
-    const initializeCall = async () => {
-      try {
-        // Set up WebRTC immediately for BOTH initiator AND recipient.
-        // Previously the recipient waited for call:connected, but that event can
-        // fire while still on ChatPage (cold-start / background answer), meaning
-        // VideoCallPage never received it and froze on "Ringing".
-        console.log(`🏁 [VIDEO CALL] ${t()} Initializing call (isInitiator=${isInitiator}). Calling setupWebRTC immediately for both roles.`);
-        await setupWebRTC();
-
-        // For recipient: drain any buffered offer + ICE candidates that arrived
-        // before this screen mounted (e.g. CallerPage already sent the offer
-        // while the recipient was still navigating through ChatPage).
-        if (!isInitiator) {
-          const pending = getAndClearPendingOffer(otherUserId);
-          if (pending?.offer && peerConnectionRef.current) {
-            try {
-              console.log("📥 [VIDEO CALL] Draining buffered offer from chatService after immediate setupWebRTC");
-              await handleOffer({
-                peerConnection: peerConnectionRef.current,
-                offer: pending.offer,
-                otherUserId,
-                isVideo: true,
-              });
-              const iceCandidates = getAndClearPendingIceCandidates(otherUserId);
-              for (const candidate of iceCandidates || []) {
-                await handleIceCandidate({
-                  peerConnection: peerConnectionRef.current,
-                  candidate,
-                });
-              }
-              console.log(`✅ [VIDEO CALL] Buffered offer + ${iceCandidates?.length ?? 0} ICE candidates applied`);
-            } catch (e) {
-              console.error("❌ [VIDEO CALL] Error applying buffered offer:", e);
-            }
-          } else {
-            console.log(`🏁 [VIDEO CALL] ${t()} No buffered offer found – will apply via live webrtc:offer event`);
-          }
-        }
-      } catch (error) {
-        console.error("❌ [VIDEO CALL] Error initializing call:", error);
-        navigation.goBack();
+    const onCallRinging = () => {
+      if (isInitiator) {
+        playRingingSound();
       }
     };
 
-    const onWebRTCOffer = async (data) => {
-      const hasPc = !!peerConnectionRef.current;
-      const fromMatch = data.fromUserId === otherUserId;
-      console.log(`🏁 [VIDEO RACE] ${t()} webrtc:offer received. fromUserId=${data?.fromUserId} otherUserId=${otherUserId} fromMatch=${fromMatch} hasPeerConnection=${hasPc}`);
-      if (data.fromUserId === otherUserId && peerConnectionRef.current) {
-        try {
-          console.log(`🏁 [VIDEO RACE] ${t()} Handling offer (peer connection ready)`);
-          await handleOffer({
-            peerConnection: peerConnectionRef.current,
-            offer: data.offer,
-            otherUserId,
-            isVideo: true,
-          });
-        } catch (error) {
-          console.error("❌ [VIDEO CALL] Error handling offer:", error);
-        }
-      } else if (!hasPc) {
-        console.warn(`🏁 [VIDEO RACE] ${t()} RACE? Skipping offer – peerConnectionRef is null (call:connected/setupWebRTC not done yet)`);
-      }
-    };
-
-    const onWebRTCAnswer = async (data) => {
-      const hasPc = !!peerConnectionRef.current;
-      console.log(`🏁 [VIDEO RACE] ${t()} webrtc:answer received. hasPeerConnection=${hasPc}`);
-      if (data.fromUserId === otherUserId && peerConnectionRef.current) {
-        try {
-          await handleAnswer({
-            peerConnection: peerConnectionRef.current,
-            answer: data.answer,
-          });
-        } catch (error) {
-          console.error("❌ [VIDEO CALL] Error handling answer:", error);
-        }
-      } else if (!hasPc) {
-        console.warn(`🏁 [VIDEO RACE] ${t()} RACE? Skipping answer – peerConnectionRef is null`);
-      }
-    };
-
-    const onWebRTCIceCandidate = async (data) => {
-      const hasPc = !!peerConnectionRef.current;
-      if (!hasPc && data.fromUserId === otherUserId) {
-        console.warn(`🏁 [VIDEO RACE] ${t()} webrtc:ice-candidate received but peerConnectionRef is null (skipping)`);
-      }
-      if (data.fromUserId === otherUserId && peerConnectionRef.current) {
-        try {
-          await handleIceCandidate({
-            peerConnection: peerConnectionRef.current,
-            candidate: data.candidate,
-          });
-        } catch (error) {
-          console.error("❌ [VIDEO CALL] Error handling ICE candidate:", error);
-        }
-      }
-    };
-
-    const onCallAccepted = async () => {
-      setCallStatus("connecting");
-      stopRingingSound();
-      // If recipient, set up WebRTC now that call is accepted
-      if (!isInitiator && !webrtcSetupRef.current) {
-        await setupWebRTC();
-      }
-    };
-
-    const onCallConnected = async () => {
-      console.log(`🏁 [VIDEO RACE] ${t()} call:connected received (recipient). Will call setupWebRTC now. peerConnectionRef.current before=${!!peerConnectionRef.current}`);
-      console.log("✅ [VIDEO CALL] Call connected (you answered) – fromUserId (caller) = otherUserId:", otherUserId);
+    const onCallAccepted = () => {
+      console.log("✅ [VIDEO CALL] Call accepted");
       setCallStatus("connected");
       stopRingingSound();
-      // Recipient gets call:connected (not call:accepted) — set up WebRTC here so local camera appears
-      if (!isInitiator && !webrtcSetupRef.current) {
-        console.log(`🏁 [VIDEO RACE] ${t()} setupWebRTC starting (async)...`);
-        await setupWebRTC();
-        console.log(`🏁 [VIDEO RACE] ${t()} setupWebRTC finished. peerConnectionRef.current now=${!!peerConnectionRef.current}`);
-        // Apply offer that may have arrived before this screen mounted (e.g. while on ChatPage)
-        const pending = getAndClearPendingOffer(otherUserId);
-        if (pending?.offer && peerConnectionRef.current) {
-          try {
-            console.log("📥 [VIDEO CALL] Applying pending offer (received before call screen mounted)");
-            await handleOffer({
-              peerConnection: peerConnectionRef.current,
-              offer: pending.offer,
-              otherUserId,
-              isVideo: true,
-            });
-            const iceCandidates = getAndClearPendingIceCandidates(otherUserId);
-            for (const candidate of iceCandidates || []) {
-              await handleIceCandidate({
-                peerConnection: peerConnectionRef.current,
-                candidate,
-              });
-            }
-          } catch (e) {
-            console.error("❌ [VIDEO CALL] Error applying pending offer:", e);
-          }
-        }
-      }
+    };
+
+    const onCallConnected = () => {
+      console.log("✅ [VIDEO CALL] Call connected");
+      setCallStatus("connected");
+      stopRingingSound();
     };
 
     const onCallRejected = () => {
@@ -342,15 +100,7 @@ export default function VideoCallPage({ navigation, route }) {
       handleEndCall();
     };
 
-    const onCallRinging = () => {
-      // Caller receives this - start ringback tone
-      if (isInitiator) {
-        playRingingSound();
-      }
-    };
-
     const onCallStopRinging = () => {
-      // Caller receives this when recipient answers - stop ringback
       if (isInitiator) {
         stopRingingSound();
       }
@@ -363,11 +113,12 @@ export default function VideoCallPage({ navigation, route }) {
     socket.on("call:no-answer", onCallNoAnswer);
     socket.on("call:ended", onCallEnded);
     socket.on("call:stop-ringing", onCallStopRinging);
-    socket.on("webrtc:offer", onWebRTCOffer);
-    socket.on("webrtc:answer", onWebRTCAnswer);
-    socket.on("webrtc:ice-candidate", onWebRTCIceCandidate);
 
-    initializeCall();
+    if (isInitiator) {
+      playRingingSound();
+    }
+
+    setupAgoraAndJoin();
 
     return () => {
       socket.off("call:ringing", onCallRinging);
@@ -377,32 +128,12 @@ export default function VideoCallPage({ navigation, route }) {
       socket.off("call:no-answer", onCallNoAnswer);
       socket.off("call:ended", onCallEnded);
       socket.off("call:stop-ringing", onCallStopRinging);
-      socket.off("webrtc:offer", onWebRTCOffer);
-      socket.off("webrtc:answer", onWebRTCAnswer);
-      socket.off("webrtc:ice-candidate", onWebRTCIceCandidate);
       stopRingingSound();
-      stopInCall();
-      cleanupWebRTC(peerConnectionRef.current, localStreamRef.current);
+      agoraService.cleanup();
     };
-  }, [otherUserId, navigation]);
+  }, [otherUserId, conversationId, navigation]);
 
-  // Sync initial audio routing icons with hardware state
-  useEffect(() => {
-    const initAudio = async () => {
-      const initialRoute = await getInitialAudioRoute(true);
-      setAudioDevice(initialRoute);
-      setIsBluetoothPresent(checkBluetoothAvailable());
-    };
-    initAudio();
-  }, []);
-
-  // Monitor bluetooth presence changes
-  useEffect(() => {
-    if (callStatus === "connected") {
-      setIsBluetoothPresent(checkBluetoothAvailable());
-    }
-  }, [callStatus]);
-
+  // Call duration timer
   useEffect(() => {
     if (callStatus === "connected") {
       callTimerRef.current = setInterval(() => {
@@ -421,31 +152,6 @@ export default function VideoCallPage({ navigation, route }) {
     };
   }, [callStatus]);
 
-  // Monitor stream status for debugging
-  useEffect(() => {
-    if (callStatus === "connected") {
-      const statusInterval = setInterval(() => {
-        const localStatus = checkStreamingStatus(localStream);
-        const remoteStatus = checkStreamingStatus(remoteStream);
-
-        setStreamStatus({
-          localAudio: localStatus.hasAudio,
-          localVideo: localStatus.hasVideo,
-          remoteAudio: remoteStatus.hasAudio,
-          remoteVideo: remoteStatus.hasVideo,
-        });
-
-        // Log to console for debugging
-        console.log("📊 [VIDEO CALL] Stream Status:", {
-          local: localStatus,
-          remote: remoteStatus,
-        });
-      }, 2000);
-
-      return () => clearInterval(statusInterval);
-    }
-  }, [callStatus, localStream, remoteStream]);
-
   const playRingingSound = () => {
     const type = isInitiator ? "outgoing" : "incoming";
     startRingtone(getRingtoneURI(type));
@@ -459,11 +165,10 @@ export default function VideoCallPage({ navigation, route }) {
     if (hasEndedCallRef.current) return;
     hasEndedCallRef.current = true;
     stopRingingSound();
-    stopInCall();
     if (otherUserId) {
       endCall(otherUserId);
     }
-    cleanupWebRTC(peerConnectionRef.current, localStreamRef.current);
+    agoraService.cleanup();
     setCallDuration(0);
     navigation.goBack();
   };
@@ -481,10 +186,10 @@ export default function VideoCallPage({ navigation, route }) {
     setShowEndModal(false);
   };
 
-  const handleAudioRoute = async (route) => {
+  const handleAudioRoute = (route) => {
     setAudioDevice(route);
     setShowAudioMenu(false);
-    await setAudioRoute(route);
+    agoraService.toggleSpeaker(route === "speaker");
   };
 
   const toggleAudioMenu = () => {
@@ -494,32 +199,26 @@ export default function VideoCallPage({ navigation, route }) {
   const toggleMute = () => {
     const newMuted = !isMuted;
     setIsMuted(newMuted);
-    if (localStreamRef.current) {
-      toggleAudioTrack(localStreamRef.current, !newMuted);
-    }
+    agoraService.toggleAudio(!newMuted);
   };
 
   const toggleVideo = () => {
     const newVideoOn = !isVideoOn;
     setIsVideoOn(newVideoOn);
-    if (localStreamRef.current) {
-      toggleVideoTrack(localStreamRef.current, newVideoOn);
-    }
+    agoraService.toggleVideo(newVideoOn);
   };
 
-  const toggleSpeaker = async () => {
-    const next = !isSpeakerOn;
-    setIsSpeakerOn(next);
-    await setAudioRoute(next);
+  const switchCamera = () => {
+    agoraService.switchCamera();
   };
-
-  // Monitoring stream status for debugging (keeps existing logic)
 
   const formatCallDuration = (seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
+
+  const isConnected = callStatus === "connected";
 
   return (
     <View style={styles.container}>
@@ -540,7 +239,7 @@ export default function VideoCallPage({ navigation, route }) {
 
         <View style={styles.statusButton}>
           <Text style={styles.statusText}>
-            {callStatus === "connected"
+            {isConnected
               ? formatCallDuration(callDuration)
               : callStatus === "connecting"
                 ? "Connecting..."
@@ -550,15 +249,30 @@ export default function VideoCallPage({ navigation, route }) {
       </View>
 
       <View style={styles.videoContainer}>
-        {/* Remote video feed (caller) - key refreshes so their video keeps updating */}
-        {remoteStream && remoteStream.getVideoTracks().length > 0 ? (
-          <RTCView
-            key={`remote-${remoteVideoRefreshKey}`}
-            streamURL={remoteStream.toURL()}
+        {/* Remote video feed if connected */}
+        {isConnected && remoteUid ? (
+          <RtcSurfaceView
+            canvas={{ uid: remoteUid }}
             style={styles.mainVideo}
-            objectFit="cover"
-            mirror={false}
+            zOrderMediaOverlay={false}
           />
+        ) : !isConnected && isVideoOn ? (
+          /* Show local preview full screen while calling/ringing */
+          <View style={styles.mainVideo}>
+            <RtcSurfaceView
+              canvas={{ uid: 0 }}
+              style={styles.mainVideo}
+              zOrderMediaOverlay={false}
+            />
+            <View style={styles.callingOverlay}>
+              <View style={styles.doctorVideoPlaceholder}>
+                <Ionicons name="person" size={80} color={Colors.white} />
+              </View>
+              <Text style={styles.callingStatusText}>
+                {callStatus === "ringing" ? "Ringing..." : "Connecting..."}
+              </Text>
+            </View>
+          </View>
         ) : (
           <View style={styles.mainVideo}>
             <View style={styles.doctorVideoPlaceholder}>
@@ -567,24 +281,16 @@ export default function VideoCallPage({ navigation, route }) {
           </View>
         )}
 
-        {/* Local video feed - Picture-in-picture */}
-        {localStream && isVideoOn ? (
+        {/* Local PIP Video Stream - when connected */}
+        {isConnected && isVideoOn && (
           <View style={[styles.userVideoContainer, { top: insets.top + 60 }]}>
-            <RTCView
-              streamURL={localStream.toURL()}
+            <RtcSurfaceView
+              canvas={{ uid: 0 }}
               style={styles.userVideo}
-              objectFit="cover"
-              mirror={true}
-              zOrder={1}
+              zOrderMediaOverlay={true}
             />
           </View>
-        ) : localStream ? (
-          <View style={[styles.userVideoContainer, { top: insets.top + 60 }]}>
-            <View style={styles.userVideoPlaceholder}>
-              <Ionicons name="person" size={40} color={Colors.white} />
-            </View>
-          </View>
-        ) : null}
+        )}
       </View>
 
       <View
@@ -596,31 +302,49 @@ export default function VideoCallPage({ navigation, route }) {
         <View>
           {showAudioMenu && (
             <View style={styles.audioPopup}>
-              <TouchableOpacity 
-                style={[styles.audioOption, audioDevice === 'earpiece' && styles.audioOptionActive]} 
-                onPress={() => handleAudioRoute('earpiece')}
+              <TouchableOpacity
+                style={[
+                  styles.audioOption,
+                  audioDevice === "earpiece" && styles.audioOptionActive,
+                ]}
+                onPress={() => handleAudioRoute("earpiece")}
               >
-                <Ionicons name="phone-portrait-outline" size={20} color={audioDevice === 'earpiece' ? Colors.white : Colors.black} />
-                <Text style={[styles.audioOptionText, audioDevice === 'earpiece' && styles.audioOptionTextActive]}>Earpiece</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={[styles.audioOption, audioDevice === 'speaker' && styles.audioOptionActive]} 
-                onPress={() => handleAudioRoute('speaker')}
-              >
-                <Ionicons name="volume-high" size={20} color={audioDevice === 'speaker' ? Colors.white : Colors.black} />
-                <Text style={[styles.audioOptionText, audioDevice === 'speaker' && styles.audioOptionTextActive]}>Speaker</Text>
-              </TouchableOpacity>
-              
-              {isBluetoothPresent && (
-                <TouchableOpacity 
-                  style={[styles.audioOption, audioDevice === 'bluetooth' && styles.audioOptionActive]} 
-                  onPress={() => handleAudioRoute('bluetooth')}
+                <Ionicons
+                  name="phone-portrait-outline"
+                  size={20}
+                  color={audioDevice === "earpiece" ? Colors.white : Colors.black}
+                />
+                <Text
+                  style={[
+                    styles.audioOptionText,
+                    audioDevice === "earpiece" && styles.audioOptionTextActive,
+                  ]}
                 >
-                  <Ionicons name="bluetooth" size={20} color={audioDevice === 'bluetooth' ? Colors.white : Colors.black} />
-                  <Text style={[styles.audioOptionText, audioDevice === 'bluetooth' && styles.audioOptionTextActive]}>Bluetooth</Text>
-                </TouchableOpacity>
-              )}
+                  Earpiece
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.audioOption,
+                  audioDevice === "speaker" && styles.audioOptionActive,
+                ]}
+                onPress={() => handleAudioRoute("speaker")}
+              >
+                <Ionicons
+                  name="volume-high"
+                  size={20}
+                  color={audioDevice === "speaker" ? Colors.white : Colors.black}
+                />
+                <Text
+                  style={[
+                    styles.audioOptionText,
+                    audioDevice === "speaker" && styles.audioOptionTextActive,
+                  ]}
+                >
+                  Speaker
+                </Text>
+              </TouchableOpacity>
             </View>
           )}
           <TouchableOpacity style={styles.controlButton} onPress={toggleAudioMenu}>
@@ -628,9 +352,7 @@ export default function VideoCallPage({ navigation, route }) {
               name={
                 audioDevice === "speaker"
                   ? "volume-high"
-                  : audioDevice === "bluetooth"
-                    ? "bluetooth"
-                    : "phone-portrait-outline"
+                  : "phone-portrait-outline"
               }
               size={24}
               color={Colors.black}
@@ -647,6 +369,10 @@ export default function VideoCallPage({ navigation, route }) {
             size={24}
             color={Colors.black}
           />
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.controlButton} onPress={switchCamera}>
+          <Ionicons name="camera-reverse" size={24} color={Colors.black} />
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -719,10 +445,52 @@ const styles = StyleSheet.create({
     paddingVertical: Sizes.xs,
     borderRadius: 20,
   },
-  completeModalBtnSubmitText: {
-    fontSize: 14,
+  statusText: {
+    fontSize: 12,
     fontFamily: "Poppins-Medium",
     color: Colors.white,
+  },
+  videoContainer: {
+    flex: 1,
+    position: "relative",
+  },
+  mainVideo: {
+    flex: 1,
+    backgroundColor: "#000000",
+  },
+  callingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  callingStatusText: {
+    fontSize: 20,
+    fontFamily: "Poppins-SemiBold",
+    color: Colors.white,
+    marginTop: 16,
+  },
+  doctorVideoPlaceholder: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#000000",
+  },
+  userVideoContainer: {
+    position: "absolute",
+    right: 20,
+    width: 120,
+    height: 160,
+    borderRadius: 10,
+    overflow: "hidden",
+    backgroundColor: "#000000",
+    borderWidth: 2,
+    borderColor: Colors.white,
+    zIndex: 20,
+  },
+  userVideo: {
+    width: "100%",
+    height: "100%",
   },
   audioPopup: {
     position: "absolute",
@@ -758,61 +526,24 @@ const styles = StyleSheet.create({
   audioOptionTextActive: {
     color: Colors.white,
   },
-  statusText: {
-    fontSize: 12,
-    fontFamily: "Poppins-Medium",
-    color: Colors.white,
-  },
-  videoContainer: {
-    flex: 1,
-    position: "relative",
-  },
-  mainVideo: {
-    flex: 1,
-    backgroundColor: "#000000",
-  },
-  doctorVideoPlaceholder: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#000000",
-  },
-  userVideoContainer: {
-    position: "absolute",
-    right: 20,
-    width: 120,
-    height: 160,
-    borderRadius: 10,
-    overflow: "hidden",
-    backgroundColor: "#000000",
-    borderWidth: 2,
-    borderColor: Colors.white,
-    // top is set dynamically in component to account for header height
-  },
-  userVideo: {
-    width: "100%",
-    height: "100%",
-  },
-  userVideoPlaceholder: {
-    width: "100%",
-    height: "100%",
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#000000",
-  },
   controlsContainer: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: Sizes.xl,
     paddingVertical: Sizes.xl,
-    backgroundColor: "rgba(0, 0, 0, 0.3)",
-    gap: Sizes.lg,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    gap: Sizes.md,
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    zIndex: 30,
   },
   controlButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     backgroundColor: Colors.white,
     justifyContent: "center",
     alignItems: "center",
@@ -823,12 +554,12 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   disabledButton: {
-    backgroundColor: "#E0E0E0",
+    backgroundColor: "rgba(255, 255, 255, 0.4)",
   },
   endCallButton: {
     backgroundColor: "#F44336",
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
   },
 });

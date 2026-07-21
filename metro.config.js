@@ -27,15 +27,4 @@ config.resolver.nodeModulesPaths = [
   path.resolve(__dirname, 'node_modules'),
 ];
 
-// Expo-recommended alias mapping using a custom resolver
-const ALIASES = {
-  'react-native-webrtc': '@livekit/react-native-webrtc',
-};
-
-config.resolver.resolveRequest = (context, moduleName, platform) => {
-  // Intercept the vanilla import and swap it with LiveKit's version
-  const mappedModuleName = ALIASES[moduleName] ?? moduleName;
-  return context.resolveRequest(context, mappedModuleName, platform);
-};
-
 module.exports = config;
