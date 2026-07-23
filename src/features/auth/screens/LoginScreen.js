@@ -251,7 +251,7 @@ export default function LoginScreen({ navigation, route }) {
         setTimeout(() => {
           navigate(pending.name, pending.params);
           clearPendingNavigation();
-        }, 100);
+        }, 800);
       }
     } catch (error) {
       console.error("❌ [LOGIN SCREEN] Login error:", error);
@@ -325,7 +325,7 @@ export default function LoginScreen({ navigation, route }) {
         setTimeout(() => {
           navigate(pending.name, pending.params);
           clearPendingNavigation();
-        }, 100);
+        }, 800);
       }
     } catch (error) {
       console.error("❌ [GOOGLE SIGN IN] Google sign in error:", error);
@@ -390,7 +390,7 @@ export default function LoginScreen({ navigation, route }) {
           setTimeout(() => {
             navigate(pending.name, pending.params);
             clearPendingNavigation();
-          }, 100);
+          }, 800);
         }
       } else {
         // User cancelled or authentication failed
