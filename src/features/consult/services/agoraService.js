@@ -138,6 +138,12 @@ class AgoraService {
         this.engine.enableAudio();
       }
 
+      // Start InCallManager BEFORE joining — this locks in the audio session
+      // mode before Agora's native layer touches the hardware.
+      // For voice calls we want speaker; for video calls same.
+      InCallManager.start({ media: isVideo ? "video" : "audio", auto: false, ringback: "" });
+      InCallManager.setForceSpeakerphoneOn(!isVideo); // Voice → speaker by default
+
       console.log(`📡 [AGORA SERVICE] Joining channel: ${channelName} with UID: ${uid}`);
       this.engine.joinChannel(token, channelName, uid, {
         channelProfile: ChannelProfileType.ChannelProfileCommunication,
@@ -149,7 +155,6 @@ class AgoraService {
       });
 
       this.currentChannel = channelName;
-      InCallManager.start({ media: isVideo ? "video" : "audio" });
     } catch (e) {
       console.error("❌ [AGORA SERVICE] Failed to join channel:", e);
       throw e;

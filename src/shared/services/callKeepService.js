@@ -1,4 +1,4 @@
-import { Platform, AppState } from "react-native";
+import { Platform, AppState, DeviceEventEmitter } from "react-native";
 import * as Calls from "expo-callkit-telecom";
 import { navigate, navigationRef } from "../navigation/navigationRef";
 import {
@@ -121,17 +121,35 @@ class CallKeepService {
         // Clean up locally
         this.activeCalls = {};
 
-        // Navigate to ChatPage with autoAccept parameter
-        navigate("ChatPage", {
-          bookingId,
-          conversationId,
-          fromUserId: callerId,
-          callerName,
-          callType: callType || "video",
-          isIncoming: true,
-          autoAccept: true,
-          timestamp: Date.now(),
-        });
+        // Check if app is in terminated (cold-start) state
+        // In that case navigation stack is not ready yet — we emit an event
+        // and let AppNavigator handle routing once the stack is mounted.
+        const appState = AppState.currentState;
+        console.log(`📞 [CALLKIT TELECOM SERVICE] AppState on answer: ${appState}`);
+
+        if (appState === "active" || appState === "background") {
+          navigate("ChatPage", {
+            bookingId,
+            conversationId,
+            fromUserId: callerId,
+            callerName,
+            callType: callType || "video",
+            isIncoming: true,
+            autoAccept: true,
+            timestamp: Date.now(),
+          });
+        } else {
+          // Terminated cold-start: store as pending AND emit event
+          console.log("📞 [CALLKIT TELECOM SERVICE] Cold-start answer — emitting callAnsweredFromTerminated");
+          DeviceEventEmitter.emit("callAnsweredFromTerminated", {
+            bookingId,
+            conversationId,
+            fromUserId: callerId,
+            callerName,
+            callType: callType || "video",
+            timestamp: Date.now(),
+          });
+        }
       } else {
         console.warn(`⚠️ [CALLKIT TELECOM SERVICE] Answered call, but no caller metadata could be resolved.`);
       }
@@ -209,12 +227,18 @@ class CallKeepService {
 
     console.log(`📞 [CALLKIT TELECOM SERVICE] Reporting native incoming call for ${callerName} (UUID: ${uuid})`);
     
-    // Start custom audio ringtone playback so it rings when locked/backgrounded
-    try {
-      startRingtone(getRingtoneURI("incoming"));
-      console.log(`✅ [CALLKIT TELECOM SERVICE] Ringtone started successfully`);
-    } catch (e) {
-      console.warn("⚠️ [CALLKIT TELECOM SERVICE] Failed to play custom ringtone:", e);
+    // Start custom audio ringtone ONLY if app is in foreground or background
+    // When terminated, the native OS handles ringtone via expo-callkit-telecom
+    const appState = AppState.currentState;
+    if (appState === "active" || appState === "background") {
+      try {
+        startRingtone(getRingtoneURI("incoming"));
+        console.log(`✅ [CALLKIT TELECOM SERVICE] Ringtone started (app state: ${appState})`);
+      } catch (e) {
+        console.warn("⚠️ [CALLKIT TELECOM SERVICE] Failed to play custom ringtone:", e);
+      }
+    } else {
+      console.log("📞 [CALLKIT TELECOM SERVICE] Skipping custom ringtone — app is terminated, native handles it");
     }
     
     try {
@@ -237,6 +261,46 @@ class CallKeepService {
       console.log(`✅ [CALLKIT TELECOM SERVICE] Reported incoming call successfully to native system`);
     } catch (err) {
       console.error("❌ [CALLKIT TELECOM SERVICE] Failed to report incoming call natively:", err);
+    }
+  }
+
+  /**
+   * Report an outgoing or answered in-app call to the OS so Android
+   * keeps the app alive and shows the active call indicator.
+   * @param {string} conversationId
+   * @param {string} callerName - Display name shown in OS call UI
+   * @param {string} callType - 'video' or 'audio'
+   */
+  async startOutgoingCall(conversationId, callerName, callType = "audio") {
+    if (!this.isInitialized) this.setup();
+    const uuid = `call-${conversationId}`;
+
+    try {
+      console.log(`📞 [CALLKIT TELECOM SERVICE] Reporting outgoing/accepted call to OS: ${uuid}`);
+      await Calls.reportCallConnected(uuid, {
+        hasVideo: callType === "video",
+        displayName: callerName || "Consultant",
+        handle: callType === "video" ? "Video Call" : "Voice Call",
+      });
+      this._outgoingCallUuid = uuid;
+      console.log(`✅ [CALLKIT TELECOM SERVICE] OS call reported: ${uuid}`);
+    } catch (err) {
+      console.warn("⚠️ [CALLKIT TELECOM SERVICE] reportCallConnected failed (non-critical):", err?.message);
+    }
+  }
+
+  /**
+   * Tell the OS the call has ended (matched with startOutgoingCall).
+   */
+  async endOutgoingCall() {
+    if (!this._outgoingCallUuid) return;
+    try {
+      console.log(`📞 [CALLKIT TELECOM SERVICE] Ending OS-registered call: ${this._outgoingCallUuid}`);
+      await Calls.endCall(this._outgoingCallUuid);
+    } catch (err) {
+      console.warn("⚠️ [CALLKIT TELECOM SERVICE] endCall failed (non-critical):", err?.message);
+    } finally {
+      this._outgoingCallUuid = null;
     }
   }
 

@@ -54,6 +54,7 @@ import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
 import { uploadFile } from "../../../shared/services/uploadService";
 import LoadingOverlay from "../../../shared/components/LoadingOverlay";
+import callKeepService from "../../../shared/services/callKeepService";
 
 export default function ChatPage({ navigation, route }) {
   const insets = useSafeAreaInsets();
@@ -939,6 +940,8 @@ export default function ChatPage({ navigation, route }) {
     
     try {
       initiateCall(consultantId, conversationId, "audio");
+      const doctorName = localDoctor?.name || "Consultant";
+      callKeepService.startOutgoingCall(conversationId, doctorName, "audio");
       navigation.navigate("VoiceCall", {
         doctor: localDoctor,
         conversationId,
@@ -959,6 +962,8 @@ export default function ChatPage({ navigation, route }) {
     
     try {
       initiateCall(consultantId, conversationId, "video");
+      const doctorName = localDoctor?.name || "Consultant";
+      callKeepService.startOutgoingCall(conversationId, doctorName, "video");
       navigation.navigate("VideoCall", {
         doctor: localDoctor,
         conversationId,
@@ -981,6 +986,7 @@ export default function ChatPage({ navigation, route }) {
       console.log("📞 [CHAT PAGE] Answering call – fromUserId (caller):", fromUserId, "conversationId:", convId, "callType:", callType);
       acceptCall(fromUserId);
       const minimalDoctor = { name: "Consultant", consultantId: fromUserId, ...localDoctor };
+      callKeepService.startOutgoingCall(convId, minimalDoctor.name, callType);
       setIncomingCall(null);
       if (callType === "video") {
         navigation.navigate("VideoCall", {

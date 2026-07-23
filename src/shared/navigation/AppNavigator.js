@@ -1,10 +1,12 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
+import { DeviceEventEmitter } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { navigationRef } from "./navigationRef";
 import { useAuth } from "../../shared/context/AuthContext";
+import { setPendingNavigation } from "./navigationRef";
 
 // Import screens
 import OnboardingScreen from "../../features/onboarding/screens/OnboardingScreen";
@@ -22,6 +24,50 @@ const Stack = createStackNavigator();
 
 function AppNavigatorContent() {
   const { isLoading, isAuthenticated } = useAuth();
+  const pendingCallRef = useRef(null);
+
+  // Listen for call answered from terminated state (cold-start)
+  useEffect(() => {
+    const sub = DeviceEventEmitter.addListener(
+      "callAnsweredFromTerminated",
+      (callParams) => {
+        console.log("📞 [APP NAVIGATOR] Received callAnsweredFromTerminated:", callParams);
+        pendingCallRef.current = callParams;
+      }
+    );
+    return () => sub.remove();
+  }, []);
+
+  // Once auth resolves and stack is ready, execute pending call navigation
+  useEffect(() => {
+    if (isLoading || !isAuthenticated || !pendingCallRef.current) return;
+
+    const callParams = pendingCallRef.current;
+    pendingCallRef.current = null;
+
+    // If the user is locked, store as pending so LoginScreen picks it up after unlock
+    const navigateToCall = () => {
+      const navParams = {
+        ...callParams,
+        isIncoming: true,
+        autoAccept: true,
+      };
+      // Use setPendingNavigation so the lock screen can execute it after unlock
+      setPendingNavigation("ChatPage", navParams);
+
+      // Also attempt direct navigation in case we're already unlocked
+      if (navigationRef.isReady()) {
+        try {
+          navigationRef.navigate("ChatPage", navParams);
+        } catch (e) {
+          console.warn("⚠️ [APP NAVIGATOR] Direct navigate failed, pending nav will handle it:", e?.message);
+        }
+      }
+    };
+
+    // Small delay to let navigator fully mount after auth resolves
+    setTimeout(navigateToCall, 800);
+  }, [isLoading, isAuthenticated]);
 
   // Don't render navigator until we know auth status
   // This prevents any flash of onboarding screen

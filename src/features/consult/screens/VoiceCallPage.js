@@ -16,6 +16,7 @@ import agoraService from "../services/agoraService";
 import { showError } from "../../../shared/utils/toast";
 import { startRingtone, stopRingtone, getRingtoneURI } from "../utils/ringtone";
 import LoadingOverlay from "../../../shared/components/LoadingOverlay";
+import callKeepService from "../../../shared/services/callKeepService";
 
 export default function VoiceCallPage({ navigation, route }) {
   const insets = useSafeAreaInsets();
@@ -38,6 +39,8 @@ export default function VoiceCallPage({ navigation, route }) {
   const callTimerRef = useRef(null);
   const hasEndedCallRef = useRef(false);
   const agoraJoinedRef = useRef(false);
+  // Tracks the user's CHOSEN route so we can push back any unwanted hardware changes
+  const audioDeviceRef = useRef("speaker");
 
   useEffect(() => {
     const socket = getSocket();
@@ -62,8 +65,9 @@ export default function VoiceCallPage({ navigation, route }) {
         if (!agoraJoinedRef.current) {
           agoraJoinedRef.current = true;
           await agoraService.joinChannel(conversationId, false);
-          // Sync UI state to hardware after joining
-          agoraService.setAudioRoute(audioDevice);
+          // Sync hardware to user's chosen route after joining
+          // (InCallManager.start fires first, so we wait a tick before overriding)
+          setTimeout(() => agoraService.setAudioRoute(audioDeviceRef.current), 300);
         }
       } catch (error) {
         console.error("❌ [VOICE CALL] Error setting up Agora:", error);
@@ -127,14 +131,20 @@ export default function VoiceCallPage({ navigation, route }) {
     const audioDeviceListener = DeviceEventEmitter.addListener(
       "agoraAudioRouteChanged",
       (routing) => {
-        // Agora AudioRoute Enums:
-        // 0: Headset, 1: Earpiece, 2: HeadsetNoMic, 3: Speakerphone, 4: Loudspeaker, 5: BluetoothDeviceHfp
-        if (routing === 5) {
-          setAudioDevice("bluetooth");
-        } else if (routing === 3 || routing === 4) {
-          setAudioDevice("speaker");
-        } else if (routing === 0 || routing === 1 || routing === 2) {
-          setAudioDevice("earpiece");
+        // Map Agora routing int to label
+        // 0: Headset, 1: Earpiece, 2: HeadsetNoMic, 3: Speakerphone, 4: Loudspeaker, 5: BT HFP
+        let newDevice;
+        if (routing === 5) newDevice = "bluetooth";
+        else if (routing === 3 || routing === 4) newDevice = "speaker";
+        else newDevice = "earpiece";
+
+        if (newDevice !== audioDeviceRef.current) {
+          // Hardware changed without user action — push it back immediately
+          console.log(`🎧 [VOICE CALL] Hardware switched to ${newDevice}, forcing back to ${audioDeviceRef.current}`);
+          setTimeout(() => agoraService.setAudioRoute(audioDeviceRef.current), 100);
+        } else {
+          // Hardware confirmed the user's choice — update the display symbol
+          setAudioDevice(newDevice);
         }
       }
     );
@@ -155,6 +165,7 @@ export default function VoiceCallPage({ navigation, route }) {
       socket.off("call:stop-ringing", onCallStopRinging);
       audioDeviceListener.remove();
       stopRingingSound();
+      callKeepService.endOutgoingCall();
       agoraService.cleanup();
     };
   }, [otherUserId, conversationId, navigation]);
@@ -219,6 +230,7 @@ export default function VoiceCallPage({ navigation, route }) {
   };
 
   const handleAudioRoute = (route) => {
+    audioDeviceRef.current = route; // Record user's intent FIRST
     setAudioDevice(route);
     setShowAudioMenu(false);
     agoraService.setAudioRoute(route);
