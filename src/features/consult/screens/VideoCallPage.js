@@ -56,6 +56,8 @@ export default function VideoCallPage({ navigation, route }) {
         if (!agoraJoinedRef.current) {
           agoraJoinedRef.current = true;
           await agoraService.joinChannel(conversationId, true);
+          // Sync UI state to hardware after joining
+          agoraService.setAudioRoute(audioDevice);
         }
       } catch (error) {
         console.error("❌ [VIDEO CALL] Error setting up Agora:", error);
@@ -189,7 +191,7 @@ export default function VideoCallPage({ navigation, route }) {
   const handleAudioRoute = (route) => {
     setAudioDevice(route);
     setShowAudioMenu(false);
-    agoraService.toggleSpeaker(route === "speaker");
+    agoraService.setAudioRoute(route);
   };
 
   const toggleAudioMenu = () => {
@@ -345,6 +347,27 @@ export default function VideoCallPage({ navigation, route }) {
                   Speaker
                 </Text>
               </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.audioOption,
+                  audioDevice === "bluetooth" && styles.audioOptionActive,
+                ]}
+                onPress={() => handleAudioRoute("bluetooth")}
+              >
+                <Ionicons
+                  name="bluetooth"
+                  size={20}
+                  color={audioDevice === "bluetooth" ? Colors.white : Colors.black}
+                />
+                <Text
+                  style={[
+                    styles.audioOptionText,
+                    audioDevice === "bluetooth" && styles.audioOptionTextActive,
+                  ]}
+                >
+                  Bluetooth
+                </Text>
+              </TouchableOpacity>
             </View>
           )}
           <TouchableOpacity style={styles.controlButton} onPress={toggleAudioMenu}>
@@ -352,6 +375,8 @@ export default function VideoCallPage({ navigation, route }) {
               name={
                 audioDevice === "speaker"
                   ? "volume-high"
+                  : audioDevice === "bluetooth"
+                  ? "bluetooth"
                   : "phone-portrait-outline"
               }
               size={24}

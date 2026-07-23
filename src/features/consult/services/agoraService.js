@@ -199,13 +199,25 @@ class AgoraService {
   }
 
   /**
-   * Toggle speakerphone
-   * @param {boolean} enabled - true for speaker, false for earpiece
+   * Set the audio routing device
+   * @param {string} route - "speaker", "earpiece", or "bluetooth"
    */
-  toggleSpeaker(enabled) {
+  setAudioRoute(route) {
     if (this.engine) {
-      this.engine.setEnableSpeakerphone(enabled);
-      InCallManager.setForceSpeakerphoneOn(enabled);
+      if (route === "speaker") {
+        this.engine.setEnableSpeakerphone(true);
+        InCallManager.setForceSpeakerphoneOn(true);
+        InCallManager.chooseAudioRoute("SPEAKER_PHONE");
+      } else if (route === "bluetooth") {
+        this.engine.setEnableSpeakerphone(false);
+        InCallManager.setForceSpeakerphoneOn(false);
+        InCallManager.chooseAudioRoute("BLUETOOTH");
+      } else {
+        // earpiece (default)
+        this.engine.setEnableSpeakerphone(false);
+        InCallManager.setForceSpeakerphoneOn(false);
+        InCallManager.chooseAudioRoute("EARPIECE");
+      }
     }
   }
 
