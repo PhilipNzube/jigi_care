@@ -95,6 +95,7 @@ class AgoraService {
    * @param {boolean} isVideo - Whether this is a video call
    */
   async joinChannel(channelName, isVideo) {
+    // uid is returned by the backend and must match what the token was generated for
     if (!this.engine) {
       throw new Error("Agora engine not initialized");
     }
@@ -111,7 +112,14 @@ class AgoraService {
           ? response
           : response?.token || response?.data?.token || response?.data;
 
+      // Use the UID the backend used to generate the token — must match exactly
+      const uid =
+        typeof response === "object"
+          ? (response?.uid || response?.data?.uid || 0)
+          : 0;
+
       console.log(`🔑 [AGORA SERVICE] Resolved token (first 30 chars): ${typeof token === "string" ? token.substring(0, 30) : token}`);
+      console.log(`🔑 [AGORA SERVICE] Using UID: ${uid}`);
 
       if (!token) {
         throw new Error("Failed to fetch valid Agora token from backend");
@@ -124,8 +132,8 @@ class AgoraService {
         this.engine.enableAudio();
       }
 
-      console.log(`📡 [AGORA SERVICE] Joining channel: ${channelName}`);
-      this.engine.joinChannel(token, channelName, 0, {
+      console.log(`📡 [AGORA SERVICE] Joining channel: ${channelName} with UID: ${uid}`);
+      this.engine.joinChannel(token, channelName, uid, {
         channelProfile: ChannelProfileType.ChannelProfileCommunication,
         clientRoleType: ClientRoleType.ClientRoleBroadcaster,
         publishMicrophoneTrack: true,
