@@ -12,7 +12,7 @@ import { get } from "../../../shared/services/api";
 import InCallManager from "react-native-incall-manager";
 import { PermissionsAndroid, Platform } from "react-native";
 
-const APP_ID = process.env.EXPO_PUBLIC_AGORA_APP_ID || "";
+const APP_ID = "20f2238665744f4a890994eaf313adc5";
 
 class AgoraService {
   engine = null;
