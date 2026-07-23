@@ -5,6 +5,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   SafeAreaView,
+  DeviceEventEmitter,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, Sizes } from "../../../shared/constants";
@@ -14,6 +15,7 @@ import { getSocket, endCall } from "../services/chatService";
 import agoraService from "../services/agoraService";
 import { showError } from "../../../shared/utils/toast";
 import { startRingtone, stopRingtone, getRingtoneURI } from "../utils/ringtone";
+import LoadingOverlay from "../../../shared/components/LoadingOverlay";
 
 export default function VoiceCallPage({ navigation, route }) {
   const insets = useSafeAreaInsets();
@@ -29,7 +31,7 @@ export default function VoiceCallPage({ navigation, route }) {
   const [isMuted, setIsMuted] = useState(false);
   const [audioDevice, setAudioDevice] = useState("earpiece");
   const [showAudioMenu, setShowAudioMenu] = useState(false);
-  const [callStatus, setCallStatus] = useState("ringing");
+  const [callStatus, setCallStatus] = useState(isInitiator ? "ringing" : "connecting");
   const [callDuration, setCallDuration] = useState(0);
   const [remoteUid, setRemoteUid] = useState(null);
 
@@ -121,6 +123,22 @@ export default function VoiceCallPage({ navigation, route }) {
     socket.on("call:ended", onCallEnded);
     socket.on("call:stop-ringing", onCallStopRinging);
 
+    // Listen for Agora's native hardware routing changes
+    const audioDeviceListener = DeviceEventEmitter.addListener(
+      "agoraAudioRouteChanged",
+      (routing) => {
+        // Agora AudioRoute Enums:
+        // 0: Headset, 1: Earpiece, 2: HeadsetNoMic, 3: Speakerphone, 4: Loudspeaker, 5: BluetoothDeviceHfp
+        if (routing === 5) {
+          setAudioDevice("bluetooth");
+        } else if (routing === 3 || routing === 4) {
+          setAudioDevice("speaker");
+        } else if (routing === 0 || routing === 1 || routing === 2) {
+          setAudioDevice("earpiece");
+        }
+      }
+    );
+
     if (isInitiator) {
       playRingingSound();
     }
@@ -135,6 +153,7 @@ export default function VoiceCallPage({ navigation, route }) {
       socket.off("call:no-answer", onCallNoAnswer);
       socket.off("call:ended", onCallEnded);
       socket.off("call:stop-ringing", onCallStopRinging);
+      audioDeviceListener.remove();
       stopRingingSound();
       agoraService.cleanup();
     };
@@ -367,6 +386,11 @@ export default function VoiceCallPage({ navigation, route }) {
         visible={showEndModal}
         onClose={handleContinueCall}
         onConfirm={handleConfirmEnd}
+      />
+      
+      <LoadingOverlay 
+        visible={callStatus === "connecting"} 
+        message="Please wait, connecting to the call..." 
       />
     </View>
   );

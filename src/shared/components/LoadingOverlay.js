@@ -4,10 +4,10 @@
  */
 
 import React, { useEffect, useRef } from "react";
-import { View, StyleSheet, Animated, Modal } from "react-native";
+import { View, Text, StyleSheet, Animated, Modal } from "react-native";
 import { Images } from "../utils/imageUtils";
 
-export default function LoadingOverlay({ visible = false }) {
+export default function LoadingOverlay({ visible = false, message }) {
   const spinValue = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -55,6 +55,9 @@ export default function LoadingOverlay({ visible = false }) {
             },
           ]}
         />
+        {message && (
+          <Text style={styles.messageText}>{message}</Text>
+        )}
       </View>
     </Modal>
   );
@@ -71,6 +74,14 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     tintColor: "#FFFFFF",
+  },
+  messageText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontFamily: "Poppins-Medium",
+    marginTop: 16,
+    textAlign: "center",
+    paddingHorizontal: 20,
   },
 });
 

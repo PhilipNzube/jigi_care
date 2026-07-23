@@ -273,6 +273,10 @@ export default function ChatPage({ navigation, route }) {
       onError: (error) => {
         console.error("❌ [CHAT PAGE] WebSocket error:", error);
         setIsConnected(false);
+        if (error && error.message) {
+          showError(error.message);
+          navigation.goBack();
+        }
       },
       onNewMessage: (data) => {
         console.log("💬 [CHAT PAGE] New message received via WebSocket:", data);

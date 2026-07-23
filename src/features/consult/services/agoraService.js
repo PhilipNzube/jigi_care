@@ -79,6 +79,12 @@ class AgoraService {
         onError: (err, msg) => {
           console.error("❌ [AGORA SERVICE] Error event:", err, msg);
         },
+        onAudioRoutingChanged: (routing) => {
+          console.log("🎧 [AGORA SERVICE] Audio routing changed natively:", routing);
+          import("react-native").then(({ DeviceEventEmitter }) => {
+            DeviceEventEmitter.emit("agoraAudioRouteChanged", routing);
+          });
+        },
       });
 
       this.isInitialized = true;
@@ -199,24 +205,20 @@ class AgoraService {
   }
 
   /**
-   * Set the audio routing device
+   * Set the audio routing device natively via Agora
    * @param {string} route - "speaker", "earpiece", or "bluetooth"
    */
   setAudioRoute(route) {
     if (this.engine) {
       if (route === "speaker") {
-        this.engine.setEnableSpeakerphone(true);
-        InCallManager.setForceSpeakerphoneOn(true);
-        InCallManager.chooseAudioRoute("SPEAKER_PHONE");
+        // 3: Speakerphone
+        this.engine.setRouteInCommunicationMode(3);
       } else if (route === "bluetooth") {
-        this.engine.setEnableSpeakerphone(false);
-        InCallManager.setForceSpeakerphoneOn(false);
-        InCallManager.chooseAudioRoute("BLUETOOTH");
+        // 5: BluetoothDeviceHfp
+        this.engine.setRouteInCommunicationMode(5);
       } else {
-        // earpiece (default)
-        this.engine.setEnableSpeakerphone(false);
-        InCallManager.setForceSpeakerphoneOn(false);
-        InCallManager.chooseAudioRoute("EARPIECE");
+        // 1: Earpiece
+        this.engine.setRouteInCommunicationMode(1);
       }
     }
   }
