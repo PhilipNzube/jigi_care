@@ -104,11 +104,14 @@ class AgoraService {
     try {
       console.log(`🔑 [AGORA SERVICE] Fetching token for channelName: ${channelName}`);
       const response = await get(`/agora/token?channelName=${encodeURIComponent(channelName)}`);
-      
+      console.log(`🔑 [AGORA SERVICE] Raw token response:`, JSON.stringify(response));
+
       const token =
         typeof response === "string"
           ? response
           : response?.token || response?.data?.token || response?.data;
+
+      console.log(`🔑 [AGORA SERVICE] Resolved token (first 30 chars): ${typeof token === "string" ? token.substring(0, 30) : token}`);
 
       if (!token) {
         throw new Error("Failed to fetch valid Agora token from backend");

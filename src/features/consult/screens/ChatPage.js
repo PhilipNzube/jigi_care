@@ -934,11 +934,6 @@ export default function ChatPage({ navigation, route }) {
     }
     
     try {
-      // Eagerly start audio mode
-      const initialRoute = await getInitialAudioRoute(false);
-      await startInCall("audio");
-      await setAudioRoute(initialRoute);
-      
       initiateCall(consultantId, conversationId, "audio");
       navigation.navigate("VoiceCall", {
         doctor: localDoctor,
@@ -959,11 +954,6 @@ export default function ChatPage({ navigation, route }) {
     }
     
     try {
-      // Eagerly start video mode
-      const initialRoute = await getInitialAudioRoute(true);
-      await startInCall("video");
-      await setAudioRoute(initialRoute);
-
       initiateCall(consultantId, conversationId, "video");
       navigation.navigate("VideoCall", {
         doctor: localDoctor,
@@ -983,13 +973,6 @@ export default function ChatPage({ navigation, route }) {
     try {
       const { fromUserId, conversationId: convId, callType } = incomingCall;
       
-      // Eagerly start audio/video mode before navigating
-      // This ensures the hardware is ready before the connection is established
-      console.log("🔊 [CHAT PAGE] Starting eager audio mode for:", callType);
-      const initialRoute = await getInitialAudioRoute(callType === "video");
-      await startInCall(callType);
-      await setAudioRoute(initialRoute);
-
       stopRingtone();
       console.log("📞 [CHAT PAGE] Answering call – fromUserId (caller):", fromUserId, "conversationId:", convId, "callType:", callType);
       acceptCall(fromUserId);
