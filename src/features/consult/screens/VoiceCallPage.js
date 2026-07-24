@@ -172,6 +172,15 @@ export default function VoiceCallPage({ navigation, route }) {
       }
     );
 
+    // Listen for CallKeep native UI hangup event
+    const callKeepEndSub = DeviceEventEmitter.addListener(
+      "callEndedFromCallKeep",
+      () => {
+        console.log("🔴 [VOICE CALL] Call ended via native CallKeep UI");
+        handleEndCall();
+      }
+    );
+
     if (isInitiator) {
       playRingingSound();
     }
@@ -188,6 +197,7 @@ export default function VoiceCallPage({ navigation, route }) {
       socket.off("call:stop-ringing", onCallStopRinging);
       audioDeviceListener.remove();
       callEndedFcmSub.remove();
+      callKeepEndSub.remove();
       stopRingingSound();
       callKeepService.endOutgoingCall();
       agoraService.cleanup();

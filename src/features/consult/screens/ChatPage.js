@@ -360,9 +360,20 @@ export default function ChatPage({ navigation, route }) {
       }
     );
 
+    // Listen for CallKeep native UI hangup event
+    const callKeepEndSub = DeviceEventEmitter.addListener(
+      "callEndedFromCallKeep",
+      () => {
+        console.log("🔴 [CHAT PAGE] Call ended via native CallKeep UI");
+        stopRingtone();
+        setIncomingCall(null);
+      }
+    );
+
     return () => {
       console.log("🔌 [CHAT PAGE] Unmounting ChatPage socket effect (preserving connection for calls)");
       callEndedFcmSub.remove();
+      callKeepEndSub.remove();
       // We don't disconnect or leave here because we might be navigating to a Call screen
       // disconnectSocket();
     };

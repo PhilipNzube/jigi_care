@@ -6,7 +6,8 @@ import {
   stopRingtone,
   getRingtoneURI,
 } from "../../features/consult/utils/ringtone";
-import { rejectCall, connectSocket, getSocket } from "../../features/consult/services/chatService";
+import { rejectCall, connectSocket, getSocket, endCall } from "../../features/consult/services/chatService";
+import agoraService from "../../features/consult/services/agoraService";
 
 /**
  * CallKeep Service (expo-callkit-telecom Adapter)
@@ -158,28 +159,38 @@ class CallKeepService {
     // Triggered when user declines or ends call in native UI
     Calls.addCallEndedListener(async (event) => {
       const { id: callSessionId } = event;
-      console.log(`📞 [CALLKIT TELECOM SERVICE] Native call ended! Session ID: ${callSessionId}`);
+      console.log(`📞 [CALLKIT TELECOM SERVICE] Native call ended from CallKeep UI! Session ID: ${callSessionId}`);
 
-      // Stop the ringtone immediately
+      // 1. Stop ringtone immediately
       stopRingtone();
 
-      // Locate details in our local map before clean up
+      // 2. Cleanup Agora audio engine
+      try {
+        agoraService.cleanup();
+      } catch (e) {
+        console.warn("⚠️ [CALLKIT TELECOM SERVICE] Error cleaning up Agora on native call end:", e?.message);
+      }
+
+      // 3. Emit event to close active call screen in app
+      DeviceEventEmitter.emit("callEndedFromCallKeep", { callSessionId });
+
+      // 4. Notify socket backend
       const localCall = Object.values(this.activeCalls)[0];
       const callerId = localCall?.callerId;
 
       if (callerId) {
-        // Notify backend of rejection so the caller stops ringing
         try {
           const socket = getSocket();
           if (socket && socket.connected) {
-            console.log("📞 [CALLKIT TELECOM SERVICE] Emitting reject call via active socket");
+            console.log("📞 [CALLKIT TELECOM SERVICE] Emitting reject/end call via active socket");
             rejectCall(callerId, "Declined");
+            endCall(callerId);
           } else {
-            console.log("🔌 [CALLKIT TELECOM SERVICE] Socket disconnected, establishing quick connection to reject call...");
+            console.log("🔌 [CALLKIT TELECOM SERVICE] Socket disconnected, establishing quick connection to end call...");
             const tempSocket = connectSocket(callerId, "patient", {
               onConnect: () => {
-                console.log("🔌 [CALLKIT TELECOM SERVICE] Temp socket connected, rejecting call...");
                 rejectCall(callerId, "Declined");
+                endCall(callerId);
                 setTimeout(() => {
                   tempSocket.disconnect();
                 }, 1000);
@@ -187,11 +198,11 @@ class CallKeepService {
             });
           }
         } catch (e) {
-          console.error("❌ [CALLKIT TELECOM SERVICE] Error emitting reject call:", e);
+          console.error("❌ [CALLKIT TELECOM SERVICE] Error emitting end/reject call:", e);
         }
       }
 
-      // Clean up local tracking
+      // 5. Clean up local tracking
       this.activeCalls = {};
     });
 
