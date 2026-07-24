@@ -11,6 +11,7 @@ import {
 import { get } from "../../../shared/services/api";
 import InCallManager from "react-native-incall-manager";
 import { PermissionsAndroid, Platform } from "react-native";
+import * as Calls from "expo-callkit-telecom";
 
 const APP_ID = "20f2238665744f4a890994eaf313adc5";
 
@@ -210,21 +211,48 @@ class AgoraService {
   }
 
   /**
-   * Set the audio routing device natively via Agora
+   * Set the audio routing device natively via Agora & System AudioManager
    * @param {string} route - "speaker", "earpiece", or "bluetooth"
    */
   setAudioRoute(route) {
+    console.log(`🎧 [AGORA SERVICE] Enforcing audio route: ${route}`);
+    const isSpeaker = route === "speaker";
+    const isBluetooth = route === "bluetooth";
+
     if (this.engine) {
-      if (route === "speaker") {
-        // 3: Speakerphone
-        this.engine.setRouteInCommunicationMode(3);
-      } else if (route === "bluetooth") {
-        // 5: BluetoothDeviceHfp
-        this.engine.setRouteInCommunicationMode(5);
-      } else {
-        // 1: Earpiece
-        this.engine.setRouteInCommunicationMode(1);
+      try {
+        if (isSpeaker) {
+          this.engine.setEnableSpeakerphone(true);
+          this.engine.setRouteInCommunicationMode(3); // 3: Speakerphone
+        } else if (isBluetooth) {
+          this.engine.setEnableSpeakerphone(false);
+          this.engine.setRouteInCommunicationMode(5); // 5: BluetoothDeviceHfp
+        } else {
+          this.engine.setEnableSpeakerphone(false);
+          this.engine.setRouteInCommunicationMode(1); // 1: Earpiece
+        }
+      } catch (e) {
+        console.warn("⚠️ [AGORA SERVICE] Engine setAudioRoute error:", e?.message);
       }
+    }
+
+    // Force system AudioManager via InCallManager & Calls port overrides
+    try {
+      if (isSpeaker) {
+        InCallManager.setForceSpeakerphoneOn(true);
+        InCallManager.chooseAudioRoute("SPEAKER_PHONE");
+        if (Calls.setAudioSessionPortOverride) Calls.setAudioSessionPortOverride(true);
+      } else if (isBluetooth) {
+        InCallManager.setForceSpeakerphoneOn(false);
+        InCallManager.chooseAudioRoute("BLUETOOTH");
+        if (Calls.setAudioSessionPortOverride) Calls.setAudioSessionPortOverride(false);
+      } else {
+        InCallManager.setForceSpeakerphoneOn(false);
+        InCallManager.chooseAudioRoute("EARPIECE");
+        if (Calls.setAudioSessionPortOverride) Calls.setAudioSessionPortOverride(false);
+      }
+    } catch (e) {
+      console.warn("⚠️ [AGORA SERVICE] System audio override error:", e?.message);
     }
   }
 

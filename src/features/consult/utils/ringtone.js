@@ -45,6 +45,12 @@ export const startRingtone = (source) => {
   const asset = source ?? OUTGOING_RING;
   const isUrl = typeof asset === "string";
 
+  // Prevent duplicate playback if the exact same ringtone is already playing
+  if (_shouldLoop && _currentAsset === asset) {
+    console.log("🔔 [RINGTONE] Ringtone is already playing, skipping duplicate play request.");
+    return;
+  }
+
   try {
     _shouldLoop = true;
     _currentAsset = asset;

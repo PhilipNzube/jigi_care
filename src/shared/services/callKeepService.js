@@ -227,20 +227,6 @@ class CallKeepService {
 
     console.log(`📞 [CALLKIT TELECOM SERVICE] Reporting native incoming call for ${callerName} (UUID: ${uuid})`);
     
-    // Start custom audio ringtone ONLY if app is in foreground or background
-    // When terminated, the native OS handles ringtone via expo-callkit-telecom
-    const appState = AppState.currentState;
-    if (appState === "active" || appState === "background") {
-      try {
-        startRingtone(getRingtoneURI("incoming"));
-        console.log(`✅ [CALLKIT TELECOM SERVICE] Ringtone started (app state: ${appState})`);
-      } catch (e) {
-        console.warn("⚠️ [CALLKIT TELECOM SERVICE] Failed to play custom ringtone:", e);
-      }
-    } else {
-      console.log("📞 [CALLKIT TELECOM SERVICE] Skipping custom ringtone — app is terminated, native handles it");
-    }
-    
     try {
       await Calls.reportIncomingCall({
         eventId: uuid, // unique event identifier for deduplication
@@ -265,27 +251,46 @@ class CallKeepService {
   }
 
   /**
-   * Report an outgoing or answered in-app call to the OS so Android
-   * keeps the app alive and shows the active call indicator.
+   * Report an outgoing or answered in-app call to the OS so Android/iOS
+   * keeps the app alive and maintains a steady connection in background.
    * @param {string} conversationId
    * @param {string} callerName - Display name shown in OS call UI
    * @param {string} callType - 'video' or 'audio'
    */
   async startOutgoingCall(conversationId, callerName, callType = "audio") {
     if (!this.isInitialized) this.setup();
-    const uuid = `call-${conversationId}`;
+    const callUUID = `call-${conversationId}`;
 
     try {
-      console.log(`📞 [CALLKIT TELECOM SERVICE] Reporting outgoing/accepted call to OS: ${uuid}`);
-      await Calls.reportCallConnected(uuid, {
-        hasVideo: callType === "video",
-        displayName: callerName || "Consultant",
-        handle: callType === "video" ? "Video Call" : "Voice Call",
-      });
-      this._outgoingCallUuid = uuid;
-      console.log(`✅ [CALLKIT TELECOM SERVICE] OS call reported: ${uuid}`);
+      console.log(`📞 [CALLKIT TELECOM SERVICE] Registering active call session with OS: ${callUUID}`);
+      
+      const activeSession = await Calls.getActiveCallSession();
+      if (activeSession) {
+        console.log(`📞 [CALLKIT TELECOM SERVICE] Active session already exists (${activeSession.id}). Reporting connected.`);
+        await Calls.reportOutgoingCallConnected(activeSession.id);
+        this._outgoingCallUuid = activeSession.id;
+        return;
+      }
+
+      // Initiate native call session via expo-callkit-telecom
+      const sessionId = await Calls.startOutgoingCall(
+        {
+          id: conversationId || callUUID,
+          displayName: callerName || "Consultant",
+        },
+        {
+          hasVideo: callType === "video",
+        }
+      );
+
+      console.log(`✅ [CALLKIT TELECOM SERVICE] Native call session started: ${sessionId}`);
+      this._outgoingCallUuid = sessionId || callUUID;
+
+      if (sessionId) {
+        await Calls.reportOutgoingCallConnected(sessionId);
+      }
     } catch (err) {
-      console.warn("⚠️ [CALLKIT TELECOM SERVICE] reportCallConnected failed (non-critical):", err?.message);
+      console.warn("⚠️ [CALLKIT TELECOM SERVICE] startOutgoingCall failed:", err?.message || err);
     }
   }
 
@@ -293,12 +298,17 @@ class CallKeepService {
    * Tell the OS the call has ended (matched with startOutgoingCall).
    */
   async endOutgoingCall() {
-    if (!this._outgoingCallUuid) return;
     try {
-      console.log(`📞 [CALLKIT TELECOM SERVICE] Ending OS-registered call: ${this._outgoingCallUuid}`);
-      await Calls.endCall(this._outgoingCallUuid);
+      const activeSession = await Calls.getActiveCallSession();
+      if (activeSession) {
+        console.log(`📞 [CALLKIT TELECOM SERVICE] Ending active native call session: ${activeSession.id}`);
+        await Calls.endCall(activeSession.id);
+      } else if (this._outgoingCallUuid) {
+        console.log(`📞 [CALLKIT TELECOM SERVICE] Ending OS call UUID: ${this._outgoingCallUuid}`);
+        await Calls.endCall(this._outgoingCallUuid);
+      }
     } catch (err) {
-      console.warn("⚠️ [CALLKIT TELECOM SERVICE] endCall failed (non-critical):", err?.message);
+      console.warn("⚠️ [CALLKIT TELECOM SERVICE] endOutgoingCall failed:", err?.message || err);
     } finally {
       this._outgoingCallUuid = null;
     }

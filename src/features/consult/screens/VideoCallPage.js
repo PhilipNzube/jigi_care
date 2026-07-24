@@ -83,12 +83,16 @@ export default function VideoCallPage({ navigation, route }) {
       console.log("✅ [VIDEO CALL] Call accepted");
       setCallStatus("connected");
       stopRingingSound();
+      callKeepService.startOutgoingCall(conversationId, doctor?.name || "Consultant", "video");
+      agoraService.setAudioRoute(audioDeviceRef.current);
     };
 
     const onCallConnected = () => {
       console.log("✅ [VIDEO CALL] Call connected");
       setCallStatus("connected");
       stopRingingSound();
+      callKeepService.startOutgoingCall(conversationId, doctor?.name || "Consultant", "video");
+      agoraService.setAudioRoute(audioDeviceRef.current);
     };
 
     const onCallRejected = () => {

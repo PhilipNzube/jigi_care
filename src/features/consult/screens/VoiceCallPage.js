@@ -89,12 +89,16 @@ export default function VoiceCallPage({ navigation, route }) {
       console.log("✅ [VOICE CALL] Call accepted");
       setCallStatus("connected");
       stopRingingSound();
+      callKeepService.startOutgoingCall(conversationId, doctor?.name || "Consultant", "audio");
+      agoraService.setAudioRoute(audioDeviceRef.current);
     };
 
     const onCallConnected = () => {
       console.log("✅ [VOICE CALL] Call connected");
       setCallStatus("connected");
       stopRingingSound();
+      callKeepService.startOutgoingCall(conversationId, doctor?.name || "Consultant", "audio");
+      agoraService.setAudioRoute(audioDeviceRef.current);
     };
 
     const onCallRejected = () => {
