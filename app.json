@@ -14,6 +14,7 @@
       "backgroundColor": "#ffffff"
     },
     "plugins": [
+      "./plugins/withAbiSplits",
       [
         "expo-callkit-telecom",
         {
