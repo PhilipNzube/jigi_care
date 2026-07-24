@@ -1,4 +1,5 @@
 import { registerRootComponent } from 'expo';
+import { DeviceEventEmitter } from 'react-native';
 import '@react-native-firebase/app';
 import messaging from '@react-native-firebase/messaging';
 import callKeepService from './src/shared/services/callKeepService';
@@ -25,9 +26,12 @@ messaging().setBackgroundMessageHandler(async remoteMessage => {
   console.log("📥 [INDEX FCM BACKGROUND] Received message:", JSON.stringify(remoteMessage));
   
   const { data } = remoteMessage;
+  if (!data) return;
+
+  const msgType = (data.type || "").toLowerCase();
 
   // ── Incoming call ─────────────────────────────────────────────────────────
-  if (data && (data.type === "INCOMING_CALL" || data.type === "incoming_call")) {
+  if (msgType === "incoming_call") {
     const { uuid, callId, callerUserId, callerId, callerName, conversationId, callType, bookingId } = data;
     
     // Normalize properties according to the backend data payload template
@@ -47,15 +51,26 @@ messaging().setBackgroundMessageHandler(async remoteMessage => {
     );
 
   // ── Call cancelled by caller ───────────────────────────────────────────────
-  } else if (data && (data.type === "CANCEL_CALL" || data.type === "cancel_call")) {
+  } else if (msgType === "cancel_call") {
     console.log(`📥 [INDEX FCM BACKGROUND] ❌ CANCEL_CALL — callId: ${data.callId || 'n/a'}, conversationId: ${data.conversationId || 'n/a'}. Stopping ringtone + CallKeep UI.`);
-    callKeepService.endAllCalls();
-
-  // ── Call ended by either party ─────────────────────────────────────────────
-  } else if (data && (data.type === "CALL_ENDED" || data.type === "call_ended")) {
-    console.log(`📥 [INDEX FCM BACKGROUND] 🔴 CALL_ENDED — callId: ${data.callId || 'n/a'}, conversationId: ${data.conversationId || 'n/a'}, reason: ${data.reason || 'n/a'}. Stopping ringtone + CallKeep UI.`);
     stopRingtone();
     callKeepService.endAllCalls();
+    DeviceEventEmitter.emit("callEndedNotification", {
+      conversationId: data.conversationId || data.callId,
+      reason: "cancelled",
+    });
+
+  // ── Call ended by either party (reasons: 'missed', 'cancelled', etc.) ──────
+  } else if (msgType === "call_ended") {
+    const reason = data.reason || "cancelled";
+    const conversationId = data.conversationId || data.callId;
+    console.log(`📥 [INDEX FCM BACKGROUND] 🔴 CALL_ENDED — conversationId: ${conversationId}, reason: ${reason}. Stopping ringtone + CallKeep UI.`);
+    stopRingtone();
+    callKeepService.endAllCalls();
+    DeviceEventEmitter.emit("callEndedNotification", {
+      conversationId,
+      reason,
+    });
 
   } else {
     console.log(`📥 [INDEX FCM BACKGROUND] ℹ️  Unhandled FCM type: "${data?.type || 'none'}" — passing through.`);
@@ -69,9 +84,12 @@ messaging().onMessage(async remoteMessage => {
   console.log("📥 [INDEX FCM FOREGROUND] Received message:", JSON.stringify(remoteMessage));
   
   const { data } = remoteMessage;
+  if (!data) return;
+
+  const msgType = (data.type || "").toLowerCase();
 
   // ── Incoming call ─────────────────────────────────────────────────────────
-  if (data && (data.type === "INCOMING_CALL" || data.type === "incoming_call")) {
+  if (msgType === "incoming_call") {
     const { callerUserId, callerId, callerName, conversationId, callType, bookingId } = data;
     
     const actualCallerId = callerUserId || callerId;
@@ -104,15 +122,26 @@ messaging().onMessage(async remoteMessage => {
     }
 
   // ── Call cancelled by caller ───────────────────────────────────────────────
-  } else if (data && (data.type === "CANCEL_CALL" || data.type === "cancel_call")) {
-    console.log(`📥 [INDEX FCM FOREGROUND] ❌ CANCEL_CALL — callId: ${data.callId || 'n/a'}, conversationId: ${data.conversationId || 'n/a'}. Stopping ringtone.`);
-    stopRingtone();
-
-  // ── Call ended by either party ─────────────────────────────────────────────
-  } else if (data && (data.type === "CALL_ENDED" || data.type === "call_ended")) {
-    console.log(`📥 [INDEX FCM FOREGROUND] 🔴 CALL_ENDED — callId: ${data.callId || 'n/a'}, conversationId: ${data.conversationId || 'n/a'}, reason: ${data.reason || 'n/a'}. Stopping ringtone + CallKeep UI.`);
+  } else if (msgType === "cancel_call") {
+    console.log(`📥 [INDEX FCM FOREGROUND] ❌ CANCEL_CALL — callId: ${data.callId || 'n/a'}, conversationId: ${data.conversationId || 'n/a'}. Stopping ringtone + CallKeep UI.`);
     stopRingtone();
     callKeepService.endAllCalls();
+    DeviceEventEmitter.emit("callEndedNotification", {
+      conversationId: data.conversationId || data.callId,
+      reason: "cancelled",
+    });
+
+  // ── Call ended by either party (reasons: 'missed', 'cancelled', etc.) ──────
+  } else if (msgType === "call_ended") {
+    const reason = data.reason || "cancelled";
+    const conversationId = data.conversationId || data.callId;
+    console.log(`📥 [INDEX FCM FOREGROUND] 🔴 CALL_ENDED — conversationId: ${conversationId}, reason: ${reason}. Stopping ringtone + CallKeep UI.`);
+    stopRingtone();
+    callKeepService.endAllCalls();
+    DeviceEventEmitter.emit("callEndedNotification", {
+      conversationId,
+      reason,
+    });
 
   } else {
     console.log(`📥 [INDEX FCM FOREGROUND] ℹ️  Unhandled FCM type: "${data?.type || 'none'}" — passing through.`);

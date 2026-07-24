@@ -16,6 +16,7 @@ import {
   Dimensions,
   Linking,
   BackHandler,
+  DeviceEventEmitter,
 } from "react-native";
 const { width, height } = Dimensions.get("window");
 import { Video, ResizeMode } from "expo-av";
@@ -344,8 +345,24 @@ export default function ChatPage({ navigation, route }) {
       },
     });
 
+    // Listen for FCM call_ended notifications (reasons: 'missed', 'cancelled')
+    const callEndedFcmSub = DeviceEventEmitter.addListener(
+      "callEndedNotification",
+      ({ conversationId: endConvId, reason }) => {
+        console.log(`🔴 [CHAT PAGE] Call ended via FCM notification (reason: ${reason})`);
+        stopRingtone();
+        setIncomingCall(null);
+        if (reason === "missed") {
+          showError("Missed call", "Call Ended");
+        } else if (reason === "cancelled") {
+          showError("Call cancelled by caller", "Call Ended");
+        }
+      }
+    );
+
     return () => {
       console.log("🔌 [CHAT PAGE] Unmounting ChatPage socket effect (preserving connection for calls)");
+      callEndedFcmSub.remove();
       // We don't disconnect or leave here because we might be navigating to a Call screen
       // disconnectSocket();
     };

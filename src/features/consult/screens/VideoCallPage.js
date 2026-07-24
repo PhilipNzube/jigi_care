@@ -141,6 +141,25 @@ export default function VideoCallPage({ navigation, route }) {
       }
     );
 
+    // Listen for FCM call_ended notifications (reasons: 'missed', 'cancelled')
+    const callEndedFcmSub = DeviceEventEmitter.addListener(
+      "callEndedNotification",
+      ({ conversationId: endConvId, reason }) => {
+        if (!endConvId || endConvId === conversationId) {
+          console.log(`🔴 [VIDEO CALL] Call ended via FCM notification (reason: ${reason})`);
+          stopRingingSound();
+          if (reason === "missed") {
+            showError("Call missed", "Call Ended");
+          } else if (reason === "cancelled") {
+            showError("Call cancelled by caller", "Call Ended");
+          } else {
+            showError("Call ended", "Call Ended");
+          }
+          handleEndCall();
+        }
+      }
+    );
+
     if (isInitiator) {
       playRingingSound();
     }
@@ -156,6 +175,7 @@ export default function VideoCallPage({ navigation, route }) {
       socket.off("call:ended", onCallEnded);
       socket.off("call:stop-ringing", onCallStopRinging);
       audioDeviceListener.remove();
+      callEndedFcmSub.remove();
       stopRingingSound();
       callKeepService.endOutgoingCall();
       agoraService.cleanup();
