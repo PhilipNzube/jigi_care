@@ -29,6 +29,8 @@ import { calculateAge } from "../../../shared/utils/validationUtils";
 import { updateProfile } from "../../auth/services/authService";
 import storage from "../../../shared/utils/storage";
 
+import callKeepService from "../../../shared/services/callKeepService";
+
 export default function HomeScreen({ navigation, route }) {
   const insets = useSafeAreaInsets();
   const [showChatBotInterface, setShowChatBotInterface] = useState(false);
@@ -43,6 +45,26 @@ export default function HomeScreen({ navigation, route }) {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const userAge = calculateAge(user?.dateOfBirth);
   const isUnder18 = userAge > 0 && userAge < 18;
+
+  // Fallback safety net: check if there is an answered call waiting from a cold start launch
+  useFocusEffect(
+    React.useCallback(() => {
+      let isMounted = true;
+      const checkCall = async () => {
+        const pendingCall = await callKeepService.getAndClearPendingAnsweredCall();
+        if (pendingCall && isMounted) {
+          console.log("📞 [HOME SCREEN] Found pending answered call on focus — navigating to ChatPage:", pendingCall);
+          navigation.navigate("ChatPage", {
+            ...pendingCall,
+            isIncoming: true,
+            autoAccept: true,
+          });
+        }
+      };
+      checkCall();
+      return () => { isMounted = false; };
+    }, [navigation])
+  );
 
   useEffect(() => {
     // Check if user has accepted the privacy policy locally

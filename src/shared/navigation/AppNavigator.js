@@ -20,6 +20,8 @@ import PersonalizationScreen from "../../features/auth/screens/PersonalizationSc
 import MainAppNavigator from "./MainAppNavigator";
 import NotificationsScreen from "../../features/notifications/screens/NotificationsScreen";
 
+import callKeepService from "../services/callKeepService";
+
 const Stack = createStackNavigator();
 
 function AppNavigatorContent() {
@@ -40,33 +42,39 @@ function AppNavigatorContent() {
 
   // Once auth resolves and stack is ready, execute pending call navigation
   useEffect(() => {
-    if (isLoading || !isAuthenticated || !pendingCallRef.current) return;
+    if (isLoading || !isAuthenticated) return;
 
-    const callParams = pendingCallRef.current;
-    pendingCallRef.current = null;
+    let timerId;
+    const processPendingCall = async () => {
+      let callParams = pendingCallRef.current;
+      pendingCallRef.current = null;
 
-    // If the user is locked, store as pending so LoginScreen picks it up after unlock
-    const navigateToCall = () => {
-      const navParams = {
-        ...callParams,
-        isIncoming: true,
-        autoAccept: true,
-      };
-      // Use setPendingNavigation so the lock screen can execute it after unlock
-      setPendingNavigation("ChatPage", navParams);
+      // Check persistent record if ref was not populated
+      if (!callParams) {
+        callParams = await callKeepService.getAndClearPendingAnsweredCall();
+      }
 
-      // Also attempt direct navigation in case we're already unlocked
-      if (navigationRef.isReady()) {
-        try {
-          navigationRef.navigate("ChatPage", navParams);
-        } catch (e) {
-          console.warn("⚠️ [APP NAVIGATOR] Direct navigate failed, pending nav will handle it:", e?.message);
+      if (callParams) {
+        console.log("📞 [APP NAVIGATOR] Processing pending call navigation:", callParams);
+        const navParams = {
+          ...callParams,
+          isIncoming: true,
+          autoAccept: true,
+        };
+        setPendingNavigation("ChatPage", navParams);
+
+        if (navigationRef.isReady()) {
+          try {
+            navigationRef.navigate("ChatPage", navParams);
+          } catch (e) {
+            console.warn("⚠️ [APP NAVIGATOR] Direct navigate failed, pending nav will handle it:", e?.message);
+          }
         }
       }
     };
 
-    // Small delay to let navigator fully mount after auth resolves
-    setTimeout(navigateToCall, 800);
+    timerId = setTimeout(processPendingCall, 500);
+    return () => clearTimeout(timerId);
   }, [isLoading, isAuthenticated]);
 
   // Don't render navigator until we know auth status

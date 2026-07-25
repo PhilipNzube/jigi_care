@@ -1,10 +1,13 @@
 import { Platform, AppState, DeviceEventEmitter } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Calls from "expo-callkit-telecom";
 import { navigate, navigationRef } from "../navigation/navigationRef";
 import {
   startRingtone,
   stopRingtone,
   getRingtoneURI,
+  startSystemRingtone,
+  stopSystemRingtone,
 } from "../../features/consult/utils/ringtone";
 import { rejectCall, connectSocket, getSocket, endCall } from "../../features/consult/services/chatService";
 import agoraService from "../../features/consult/services/agoraService";
@@ -19,7 +22,54 @@ class CallKeepService {
   constructor() {
     this.isInitialized = false;
     this.activeCalls = {}; // Map of UUID -> { callerId, callerName, conversationId, callType, bookingId }
+    this.pendingAnsweredCall = null;
     this.isRegistered = false;
+  }
+
+  /**
+   * Persist answered call metadata to memory AND AsyncStorage so cold-start launches
+   * never lose the call details even if event listeners were not registered in time.
+   */
+  async storePendingAnsweredCall(callParams) {
+    this.pendingAnsweredCall = callParams;
+    try {
+      await AsyncStorage.setItem("@pending_answered_call", JSON.stringify(callParams));
+      console.log("📌 [CALLKIT TELECOM SERVICE] Persisted answered call details:", callParams);
+    } catch (e) {
+      console.warn("⚠️ [CALLKIT TELECOM SERVICE] Failed to persist answered call:", e?.message);
+    }
+  }
+
+  /**
+   * Retrieve and clear any pending answered call metadata.
+   * Called by AppNavigator or HomeScreen once navigation stack is mounted.
+   */
+  async getAndClearPendingAnsweredCall() {
+    let pending = this.pendingAnsweredCall;
+    this.pendingAnsweredCall = null;
+
+    if (!pending) {
+      try {
+        const stored = await AsyncStorage.getItem("@pending_answered_call");
+        if (stored) {
+          pending = JSON.parse(stored);
+        }
+      } catch (e) {
+        console.warn("⚠️ [CALLKIT TELECOM SERVICE] Error reading stored answered call:", e?.message);
+      }
+    }
+
+    try {
+      await AsyncStorage.removeItem("@pending_answered_call");
+    } catch (e) {}
+
+    // Expire if call is older than 2 minutes (120000 ms)
+    if (pending && pending.timestamp && Date.now() - pending.timestamp > 120000) {
+      console.log("⌛ [CALLKIT TELECOM SERVICE] Expired pending answered call (>2m old)");
+      return null;
+    }
+
+    return pending;
   }
 
   /**
@@ -77,6 +127,7 @@ class CallKeepService {
       
       // Stop the ringtone immediately when call is answered
       stopRingtone();
+      stopSystemRingtone();
 
       try {
         // 1. Confirm that incoming call media is connected (fulfills native OS flow)
@@ -106,7 +157,6 @@ class CallKeepService {
 
       // Fallback to local map if active session details were not loaded
       if (!callerId) {
-        // Attempt to find any active call details in our memory map
         const localCall = Object.values(this.activeCalls)[0];
         if (localCall) {
           console.log("📞 [CALLKIT TELECOM SERVICE] Falling back to local memory details:", localCall);
@@ -119,37 +169,35 @@ class CallKeepService {
       }
 
       if (callerId) {
-        // Clean up locally
         this.activeCalls = {};
 
-        // Check if app is in terminated (cold-start) state
-        // In that case navigation stack is not ready yet — we emit an event
-        // and let AppNavigator handle routing once the stack is mounted.
+        const callParams = {
+          bookingId,
+          conversationId,
+          fromUserId: callerId,
+          callerName,
+          callType: callType || "video",
+          isIncoming: true,
+          autoAccept: true,
+          timestamp: Date.now(),
+        };
+
+        // Always store as pending in persistent storage (AsyncStorage + memory)
+        await this.storePendingAnsweredCall(callParams);
+
         const appState = AppState.currentState;
         console.log(`📞 [CALLKIT TELECOM SERVICE] AppState on answer: ${appState}`);
 
-        if (appState === "active" || appState === "background") {
-          navigate("ChatPage", {
-            bookingId,
-            conversationId,
-            fromUserId: callerId,
-            callerName,
-            callType: callType || "video",
-            isIncoming: true,
-            autoAccept: true,
-            timestamp: Date.now(),
-          });
-        } else {
-          // Terminated cold-start: store as pending AND emit event
-          console.log("📞 [CALLKIT TELECOM SERVICE] Cold-start answer — emitting callAnsweredFromTerminated");
-          DeviceEventEmitter.emit("callAnsweredFromTerminated", {
-            bookingId,
-            conversationId,
-            fromUserId: callerId,
-            callerName,
-            callType: callType || "video",
-            timestamp: Date.now(),
-          });
+        // Emit event for any already-mounted listeners
+        DeviceEventEmitter.emit("callAnsweredFromTerminated", callParams);
+
+        if (navigationRef.isReady()) {
+          try {
+            console.log("📞 [CALLKIT TELECOM SERVICE] Navigation ref is ready — navigating directly to ChatPage");
+            navigate("ChatPage", callParams);
+          } catch (e) {
+            console.warn("⚠️ Direct navigate error:", e?.message);
+          }
         }
       } else {
         console.warn(`⚠️ [CALLKIT TELECOM SERVICE] Answered call, but no caller metadata could be resolved.`);
@@ -163,6 +211,11 @@ class CallKeepService {
 
       // 1. Stop ringtone immediately
       stopRingtone();
+      stopSystemRingtone();
+      this.pendingAnsweredCall = null;
+      try {
+        await AsyncStorage.removeItem("@pending_answered_call");
+      } catch (e) {}
 
       // 2. Cleanup Agora audio engine
       try {
@@ -235,6 +288,9 @@ class CallKeepService {
       callType,
       bookingId,
     };
+
+    // Play device system default ringtone via InCallManager when incoming call arrives in background/terminated state
+    startSystemRingtone();
 
     console.log(`📞 [CALLKIT TELECOM SERVICE] Reporting native incoming call for ${callerName} (UUID: ${uuid})`);
     
@@ -333,7 +389,12 @@ class CallKeepService {
     
     // Stop the ringtone
     stopRingtone();
-    
+    stopSystemRingtone();
+    this.pendingAnsweredCall = null;
+    try {
+      await AsyncStorage.removeItem("@pending_answered_call");
+    } catch (e) {}
+
     try {
       const session = await Calls.getActiveCallSession();
       if (session) {
