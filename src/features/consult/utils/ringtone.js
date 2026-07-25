@@ -9,12 +9,20 @@
 
 let SoundPlayer;
 let Audio;
+let InCallManager;
 try {
   SoundPlayer = require("react-native-sound-player").default;
   Audio = require("expo-av").Audio;
 } catch (e) {
   console.warn("⚠️ [RINGTONE] Dependencies not available:", e?.message);
 }
+
+try {
+  InCallManager = require("react-native-incall-manager").default;
+} catch (e) {
+  console.warn("⚠️ [RINGTONE] InCallManager not available:", e?.message);
+}
+
 
 // Bundled ringtones (relative to this file: utils -> consult -> features -> src)
 const INCOMING_RING = require("../../../assets/sounds/Incoming_calls.wav");
@@ -114,3 +122,44 @@ export const stopRingtone = () => {
     console.warn("⚠️ [RINGTONE] stopRingtone error:", error?.message);
   }
 };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// System default ringtone helpers (foreground incoming calls)
+//
+// Uses InCallManager to ring the device's native default ringtone WITHOUT
+// triggering a CallKeep / TelecomManager native call UI overlay.
+// Use these instead of startRingtone() when the app is in the foreground.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Play the device's system default ringtone.
+ * No CallKeep UI overlay is shown — use this for foreground incoming calls
+ * where the in-app UI (ChatPage overlay) is already visible.
+ */
+export const startSystemRingtone = () => {
+  if (!InCallManager) {
+    console.warn("⚠️ [RINGTONE] InCallManager not available for system ringtone");
+    return;
+  }
+  try {
+    console.log("🔔 [RINGTONE] Starting system default ringtone via InCallManager");
+    // '_DEFAULT_' tells InCallManager to use the device's chosen default ringtone
+    InCallManager.startRingtone("_DEFAULT_");
+  } catch (error) {
+    console.warn("⚠️ [RINGTONE] startSystemRingtone failed:", error?.message);
+  }
+};
+
+/**
+ * Stop the system default ringtone started by startSystemRingtone().
+ */
+export const stopSystemRingtone = () => {
+  if (!InCallManager) return;
+  try {
+    console.log("🔕 [RINGTONE] Stopping system default ringtone via InCallManager");
+    InCallManager.stopRingtone();
+  } catch (error) {
+    console.warn("⚠️ [RINGTONE] stopSystemRingtone error:", error?.message);
+  }
+};
+

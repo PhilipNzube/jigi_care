@@ -46,7 +46,7 @@ import {
   markBookingNoShow,
   getBookingById,
 } from "../services/bookingService";
-import { startRingtone, stopRingtone, getRingtoneURI } from "../utils/ringtone";
+import { startRingtone, stopRingtone, getRingtoneURI, startSystemRingtone, stopSystemRingtone } from "../utils/ringtone";
 import { format, parseISO } from "date-fns";
 import { showError, showSuccess } from "../../../shared/utils/toast";
 import ShimmerLoader from "../../../shared/components/ShimmerLoader";
@@ -188,6 +188,7 @@ export default function ChatPage({ navigation, route }) {
         setTimeout(async () => {
           try {
             stopRingtone();
+            stopSystemRingtone();
             console.log("📞 [CHAT PAGE] Auto-answering call – fromUserId (caller):", callData.fromUserId, "conversationId:", callData.conversationId);
             
             acceptCall(callData.fromUserId);
@@ -222,7 +223,9 @@ export default function ChatPage({ navigation, route }) {
         }, 100);
       } else {
         setIncomingCall(callData);
-        startRingtone(getRingtoneURI("incoming"));
+        // CUSTOM RINGTONE COMMENTED OUT (revertible — swap startSystemRingtone back to startRingtone):
+        // startRingtone(getRingtoneURI("incoming"));
+        startSystemRingtone();
 
         // Clear the parameter immediately
         navigation.setParams({ isIncoming: false, fromUserId: undefined });
@@ -316,7 +319,9 @@ export default function ChatPage({ navigation, route }) {
           conversationId: data.conversationId,
           callType: data.callType,
         });
-        startRingtone(getRingtoneURI("incoming"));
+        // CUSTOM RINGTONE COMMENTED OUT (revertible — swap startSystemRingtone back to startRingtone):
+        // startRingtone(getRingtoneURI("incoming"));
+        startSystemRingtone();
       },
       onCallRinging: () => {},
       onCallAccepted: () => {
@@ -325,22 +330,26 @@ export default function ChatPage({ navigation, route }) {
       },
       onCallRejected: (data) => {
         stopRingtone();
+        stopSystemRingtone();
         setIncomingCall(null);
         showError(data?.reason || "Call declined", "Call declined");
       },
       onCallNoAnswer: () => {
         stopRingtone();
+        stopSystemRingtone();
         setIncomingCall(null);
         showError("No answer", "Call ended");
       },
       onCallMissed: () => {
         stopRingtone();
+        stopSystemRingtone();
         setIncomingCall(null);
       },
       onCallStopRinging: () => {},
       onCallConnected: () => {},
       onCallEnded: () => {
         stopRingtone();
+        stopSystemRingtone();
         setIncomingCall(null);
       },
     });
@@ -351,6 +360,7 @@ export default function ChatPage({ navigation, route }) {
       ({ conversationId: endConvId, reason }) => {
         console.log(`🔴 [CHAT PAGE] Call ended via FCM notification (reason: ${reason})`);
         stopRingtone();
+        stopSystemRingtone();
         setIncomingCall(null);
         if (reason === "missed") {
           showError("Missed call", "Call Ended");
@@ -366,6 +376,7 @@ export default function ChatPage({ navigation, route }) {
       () => {
         console.log("🔴 [CHAT PAGE] Call ended via native CallKeep UI");
         stopRingtone();
+        stopSystemRingtone();
         setIncomingCall(null);
       }
     );
@@ -500,7 +511,6 @@ export default function ChatPage({ navigation, route }) {
    */
   const fetchConversations = async () => {
     try {
-      setIsLoading(true);
       console.log("💬 [CHAT PAGE] Getting or creating conversation...");
 
       // Use POST endpoint to get or create conversation
@@ -1011,6 +1021,7 @@ export default function ChatPage({ navigation, route }) {
       const { fromUserId, conversationId: convId, callType } = incomingCall;
       
       stopRingtone();
+      stopSystemRingtone();
       console.log("📞 [CHAT PAGE] Answering call – fromUserId (caller):", fromUserId, "conversationId:", convId, "callType:", callType);
       acceptCall(fromUserId);
       const minimalDoctor = { name: "Consultant", consultantId: fromUserId, ...localDoctor };
@@ -1041,6 +1052,7 @@ export default function ChatPage({ navigation, route }) {
   const handleRejectIncomingCall = () => {
     if (incomingCall) {
       stopRingtone();
+      stopSystemRingtone();
       rejectCall(incomingCall.fromUserId, "Declined");
       setIncomingCall(null);
     }

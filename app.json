@@ -3,6 +3,7 @@
     "name": "Jigi Care",
     "slug": "jigicare",
     "version": "1.0.0",
+    "runtimeVersion": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/app_icon.png",
     "userInterfaceStyle": "light",
@@ -17,12 +18,7 @@
       "./plugins/withAbiSplits",
       [
         "expo-callkit-telecom",
-        {
-          "sounds": [
-            "./src/assets/sounds/Incoming_calls.wav"
-          ],
-          "defaultRingtoneAndroid": "Incoming_calls.wav"
-        }
+        {}
       ],
       "@react-native-firebase/app",
       [
@@ -69,6 +65,7 @@
       },
       "edgeToEdgeEnabled": true,
       "package": "com.jigicare.app",
+      "versionCode": 5,
       "screenOrientation": "portrait",
       "permissions": [
         "CAMERA",

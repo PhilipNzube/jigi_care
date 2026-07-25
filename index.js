@@ -8,6 +8,8 @@ import {
   startRingtone,
   stopRingtone,
   getRingtoneURI,
+  startSystemRingtone,
+  stopSystemRingtone,
 } from './src/features/consult/utils/ringtone';
 
 import App from './App';
@@ -105,12 +107,18 @@ messaging().onMessage(async remoteMessage => {
       console.log("📥 [INDEX FCM FOREGROUND] User is already on ChatPage — socket UI will handle the in-app call modal.");
       // The socket listener inside ChatPage handles the custom UI, no navigation needed.
     } else {
-      console.log("📥 [INDEX FCM FOREGROUND] User is NOT on ChatPage. Starting ringtone and navigating to ChatPage...");
+      console.log("📥 [INDEX FCM FOREGROUND] User is NOT on ChatPage. Starting system ringtone & navigating...");
       
-      // Start playing the custom incoming ringtone
-      startRingtone(getRingtoneURI("incoming"));
+      // CUSTOM RINGTONE COMMENTED OUT (revertible — swap startSystemRingtone back to startRingtone):
+      // startRingtone(getRingtoneURI("incoming"));
       
-      // Navigate to ChatPage which renders the custom in-app incoming call UI
+      // Play the device system default ringtone via InCallManager.
+      // We do NOT call displayIncomingCall() here because the app is in the
+      // foreground — that would show the native CallKeep overlay unnecessarily.
+      // The in-app ChatPage overlay already handles the UI.
+      startSystemRingtone();
+      
+      // Navigate to ChatPage which renders the in-app incoming call UI
       navigate("ChatPage", {
         bookingId: actualBookingId,
         conversationId,
