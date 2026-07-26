@@ -32,7 +32,7 @@ export default function VoiceCallPage({ navigation, route }) {
   const [isMuted, setIsMuted] = useState(false);
   const [audioDevice, setAudioDevice] = useState("earpiece");
   const [showAudioMenu, setShowAudioMenu] = useState(false);
-  const [callStatus, setCallStatus] = useState(isInitiator ? "ringing" : "connecting");
+  const [callStatus, setCallStatus] = useState(isInitiator ? "calling" : "connecting");
   const [callDuration, setCallDuration] = useState(0);
   const [remoteUid, setRemoteUid] = useState(null);
 
@@ -80,7 +80,9 @@ export default function VoiceCallPage({ navigation, route }) {
     };
 
     const onCallRinging = () => {
+      console.log("🔔 [VOICE CALL] Call is ringing on remote device");
       if (isInitiator) {
+        setCallStatus("ringing");
         playRingingSound();
       }
     };
@@ -180,10 +182,6 @@ export default function VoiceCallPage({ navigation, route }) {
         handleEndCall();
       }
     );
-
-    if (isInitiator) {
-      playRingingSound();
-    }
 
     setupAgoraAndJoin();
 
@@ -303,7 +301,9 @@ export default function VoiceCallPage({ navigation, route }) {
               ? "Connected"
               : callStatus === "connecting"
                 ? "Connecting..."
-                : "Ringing..."}
+                : callStatus === "calling"
+                  ? "Calling..."
+                  : "Ringing..."}
           </Text>
         </View>
       </SafeAreaView>

@@ -27,7 +27,7 @@ export default function VideoCallPage({ navigation, route }) {
   const [audioDevice, setAudioDevice] = useState("speaker");
   const [showAudioMenu, setShowAudioMenu] = useState(false);
   const [isVideoOn, setIsVideoOn] = useState(true);
-  const [callStatus, setCallStatus] = useState(isInitiator ? "ringing" : "connecting");
+  const [callStatus, setCallStatus] = useState(isInitiator ? "calling" : "connecting");
   const [callDuration, setCallDuration] = useState(0);
   const [remoteUid, setRemoteUid] = useState(null);
 
@@ -74,7 +74,9 @@ export default function VideoCallPage({ navigation, route }) {
     };
 
     const onCallRinging = () => {
+      console.log("🔔 [VIDEO CALL] Call is ringing on remote device");
       if (isInitiator) {
+        setCallStatus("ringing");
         playRingingSound();
       }
     };
@@ -172,10 +174,6 @@ export default function VideoCallPage({ navigation, route }) {
         handleEndCall();
       }
     );
-
-    if (isInitiator) {
-      playRingingSound();
-    }
 
     setupAgoraAndJoin();
 
@@ -307,7 +305,9 @@ export default function VideoCallPage({ navigation, route }) {
               ? formatCallDuration(callDuration)
               : callStatus === "connecting"
                 ? "Connecting..."
-                : "Ringing..."}
+                : callStatus === "calling"
+                  ? "Calling..."
+                  : "Ringing..."}
           </Text>
         </View>
       </View>
