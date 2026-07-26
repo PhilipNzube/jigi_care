@@ -289,8 +289,8 @@ class CallKeepService {
       bookingId,
     };
 
-    // Play device system default ringtone via InCallManager when incoming call arrives in background/terminated state
-    startSystemRingtone();
+    // Note: Do NOT call InCallManager startSystemRingtone() here. Native CallKeep /
+    // TelecomManager / OS notification channel handles its own native ringing sound in background/minimized mode.
 
     console.log(`📞 [CALLKIT TELECOM SERVICE] Reporting native incoming call for ${callerName} (UUID: ${uuid})`);
     

@@ -131,6 +131,8 @@ export const stopRingtone = () => {
 // Use these instead of startRingtone() when the app is in the foreground.
 // ─────────────────────────────────────────────────────────────────────────────
 
+let _isSystemRingtonePlaying = false;
+
 /**
  * Play the device's system default ringtone.
  * No CallKeep UI overlay is shown — use this for foreground incoming calls
@@ -141,11 +143,17 @@ export const startSystemRingtone = () => {
     console.warn("⚠️ [RINGTONE] InCallManager not available for system ringtone");
     return;
   }
+  if (_isSystemRingtonePlaying) {
+    console.log("🔔 [RINGTONE] System ringtone is already playing. Skipping duplicate play request.");
+    return;
+  }
   try {
+    _isSystemRingtonePlaying = true;
     console.log("🔔 [RINGTONE] Starting system default ringtone via InCallManager");
     // '_DEFAULT_' tells InCallManager to use the device's chosen default ringtone
     InCallManager.startRingtone("_DEFAULT_");
   } catch (error) {
+    _isSystemRingtonePlaying = false;
     console.warn("⚠️ [RINGTONE] startSystemRingtone failed:", error?.message);
   }
 };
@@ -154,6 +162,7 @@ export const startSystemRingtone = () => {
  * Stop the system default ringtone started by startSystemRingtone().
  */
 export const stopSystemRingtone = () => {
+  _isSystemRingtonePlaying = false;
   if (!InCallManager) return;
   try {
     console.log("🔕 [RINGTONE] Stopping system default ringtone via InCallManager");
